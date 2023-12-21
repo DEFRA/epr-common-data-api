@@ -1,0 +1,68 @@
+trigger:
+  branches:
+    include:
+      - '*'
+  paths:
+    include:
+      - 'src/'
+
+parameters:
+  - name: teamName
+    displayName: 'Load default variables from Team-1_Pi file'
+    values:
+      - Team-1_Pi
+    default: Team-1_Pi
+    type: string
+  - name: envToDeploy
+    displayName: 'Image created for development first'
+    type: string
+    values:
+      - development
+    default: development
+  - name: runTests
+    displayName: Run tests and generate test coverage. Adds >10 minutes processing time.
+    type: boolean
+    default: true
+
+pool: DEFRA-COMMON-ubuntu2004-SSV3
+
+variables:
+  - ${{ if eq(parameters.envToDeploy, 'development') }}:
+      - template: vars/${{ parameters.teamName }}-${{ parameters.envToDeploy }}.yaml
+
+  - name: solutionFolder
+    value: src
+  - name: projectFolder
+    value: EPR.CommonDataService.Api
+  - name: testProjectFolder
+    value: EPR.CommonDataService.Core.UnitTests
+  - name: sonarQubeProjectKey
+    value: epr-common-data-api
+  - name: sonarQubeProjectName
+    value: epr-common-data-api
+  - name: runNugetTasks
+    value: false
+  - name: NUGET_PACKAGES
+    value: $(Pipeline.Workspace)/.nuget/packages
+
+resources:
+  repositories:
+    - repository: CommonTemplates
+      name: RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates
+      type: git
+      ref: main
+
+extends:
+  template: epr-build-pipeline.yaml@CommonTemplates
+  parameters:
+    solutionFolder: ${{ variables.solutionFolder }}
+    projectFolder: ${{ variables.projectFolder }}
+    testProjectFolder: ${{ variables.testProjectFolder }}
+    sonarQubeProjectKey: ${{ variables.sonarQubeProjectKey }}
+    sonarQubeProjectName: ${{ variables.sonarQubeProjectName }}
+    runTests: ${{ parameters.runTests }}
+    azureSubscription: $(azureSubscription)
+    acrAzureContainerRegistryName: $(acr.azureContainerRegistryName)
+    acrRepositoryName: $(acr.repositoryName)
+    branchName: ${{ replace(replace(variables['Build.SourceBranch'], 'refs/heads/', ''), '/', '_') }}
+    runNugetTasks: ${{ variables.runNugetTasks }}

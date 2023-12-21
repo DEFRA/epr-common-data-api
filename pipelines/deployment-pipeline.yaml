@@ -1,0 +1,74 @@
+trigger: none
+pr: none
+pool: DEFRA-COMMON-ubuntu2004-SSV3
+
+parameters:
+  - name: teamName
+    displayName: 'Select Team Name:    (works only with "development" as target env)'
+    default: 'Team-1_Pi'
+    type: string
+    values:
+      - Team-1_Pi
+      - Team-2_Wastebusters
+      - Team-3_Recyclers
+      - Team-4_QA
+      - Team-5_Phoenix
+      - Team-6_Stig
+      - Team-7_Oscar
+      - Team-8_Pre-TST
+      - Team-9_Ops
+  - name: envToDeploy
+    displayName: 'Target Environment to deploy:    (select "development" for Team1/3/7)'
+    default: development
+    type: string
+    values:
+      - development
+      - tst
+      - preprod
+      - prod
+  - name: imageTag
+    displayName: Enter Tag for the Image
+    default: ''
+    type: string
+
+variables:
+  - ${{ if eq(parameters.envToDeploy, 'development') }}:
+      - name: env
+        value: DEV1
+      - template: vars/${{ parameters.teamName }}-${{ parameters.envToDeploy }}.yaml
+  - ${{ elseif eq(parameters.envToDeploy, 'qa-dev4') }}:
+      - name: env
+        value: DEV4
+      - template: vars/${{ parameters.envToDeploy }}.yaml
+  - ${{ elseif eq(parameters.envToDeploy, 'tst') }}:
+      - name: env
+        value: TST1
+      - template: vars/${{ parameters.envToDeploy }}.yaml
+  - ${{ elseif eq(parameters.envToDeploy, 'preprod') }}:
+      - name: env
+        value: PRE1
+      - template: vars/${{ parameters.envToDeploy }}.yaml
+  - ${{ elseif eq(parameters.envToDeploy, 'prod') }}:
+      - name: env
+        value: PRD1
+      - template: vars/${{ parameters.envToDeploy }}.yaml
+
+resources:
+  repositories:
+    - repository: CommonTemplates
+      name: RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates
+      type: git
+      ref: main
+
+extends:
+  template: epr-deployment-pipeline.yaml@CommonTemplates
+  parameters:
+    imageTag: ${{ parameters.imageTag }}
+    azureSubscription: $(azureSubscription)
+    acrName: $(acr.azureContainerRegistryName)
+    registryName: $(acr.repositoryName)
+    serviceName: $(serviceName)
+    ${{ if or( eq(parameters.envToDeploy, 'development'), eq(parameters.envToDeploy, 'qa-dev4') )}}:
+      targetEnvironment: 'development'
+    ${{ else }}:
+      targetEnvironment: '$(env)'

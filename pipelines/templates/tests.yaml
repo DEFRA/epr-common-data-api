@@ -1,0 +1,64 @@
+parameters:
+  - name: solutionFolder
+    type: string
+    default: ''
+  - name: sonarQubeProjectKey
+    type: string
+  - name: sonarQubeProjectName
+    type: string
+  - name: runTests
+    type: boolean
+    default: true
+
+  - name: projectName
+    type: string
+    default: ''
+  - name: testProjectFolder
+    type: string
+    default: ''
+
+steps:
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore project'
+    inputs:
+      command: 'restore'
+      projects: '${{parameters.solutionFolder}}/${{parameters.projectName}}/${{parameters.projectName}}.csproj'
+      feedsToUse: 'select'
+
+  - task: SonarQubePrepare@5
+    inputs:
+      SonarQube: 'SonarQube'
+      scannerMode: 'MSBuild'
+      projectKey: ${{parameters.sonarQubeProjectKey}}
+      projectName: ${{parameters.sonarQubeProjectName}}
+      extraProperties: 'sonar.cs.opencover.reportsPaths=**/coverage.opencover.xml'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build project'
+    inputs:
+      command: 'build'
+      arguments: '/p:AzureBuild=true'
+      projects: '${{parameters.solutionFolder}}/${{parameters.projectName}}/${{parameters.projectName}}.csproj'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Unit Tests'
+    condition: eq(${{parameters.runTests}}, true)
+    inputs:
+      command: test
+      projects: '**/*UnitTests/*.csproj'
+      arguments: '--configuration Debug /p:CollectCoverage=true /p:CoverletOutput=$(Build.SourcesDirectory)/coverage/ /p:MergeWith=$(Build.SourcesDirectory)/coverage/coverage.json /p:CoverletOutputFormat=json --environment AzureBuild=true'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Integration Tests'
+    condition: eq(${{parameters.runTests}}, true)
+    inputs:
+      command: test
+      projects: '**/*IntegrationTests/*.csproj'
+      arguments: '--configuration Debug /p:CollectCoverage=true /p:CoverletOutput=$(Build.SourcesDirectory)/coverage/ /p:MergeWith=$(Build.SourcesDirectory)/coverage/coverage.json /p:CoverletOutputFormat=opencover --environment AzureBuild=true'
+
+  - task: SonarQubeAnalyze@5
+
+  - task: SonarQubePublish@5
+    inputs:
+      pollingTimeoutSec: '300'

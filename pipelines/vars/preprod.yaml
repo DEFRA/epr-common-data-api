@@ -1,0 +1,9 @@
+variables:
+  azureSubscription: 'AZR-RWD-PRE1'
+  docker.imageName: 'eprcommondataregistry'
+  acr.azureContainerRegistryName: 'prerwdinfac1401'
+  acr.repositoryName: 'eprcommondataregistry'
+  serviceName: 'prerwdwebwa1415'
+  kvName: PRERWDINFKV1401
+  sqlDBserver: prerwddbssq1401.database.windows.net
+  sqlDB: 'pre1_accounts'

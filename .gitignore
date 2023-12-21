@@ -1,0 +1,12 @@
+/src/EPR.CommonDataService.Api/bin/
+/src/EPR.CommonDataService.Api/obj/
+/src/EPR.CommonDataService.Api.UnitTests/bin/
+/src/EPR.CommonDataService.Api.UnitTests/obj/
+/src/EPR.CommonDataService.Core/bin/
+/src/EPR.CommonDataService.Core/obj/
+/src/EPR.CommonDataService.Core.UnitTests/bin/
+/src/EPR.CommonDataService.Core.UnitTests/obj/
+/src/EPR.CommonDataService.Data/bin/
+/src/EPR.CommonDataService.Data/obj/
+/src/EPR.CommonDataService.Data.UnitTests/bin/
+/src/EPR.CommonDataService.Data.UnitTests/obj/

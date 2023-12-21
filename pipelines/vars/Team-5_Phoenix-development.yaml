@@ -1,0 +1,9 @@
+variables:
+  azureSubscription: 'AZD-RWD-DEV5'
+  docker.imageName: 'eprcommondataregistry'
+  acr.azureContainerRegistryName: 'devrwdinfac1401'
+  acr.repositoryName: 'eprcommondataregistry'
+  serviceName: 'devrwdwebwa5415'
+  kvName: DEVRWDINFKV1401
+  sqlDBserver: 'devrwddbssq1401.database.windows.net'
+  sqlDB: 'dev5_accounts'
