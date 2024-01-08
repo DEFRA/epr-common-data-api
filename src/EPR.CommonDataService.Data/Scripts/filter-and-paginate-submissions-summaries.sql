@@ -124,10 +124,11 @@ WHERE
      [IsResubmission],
      [PreviousRejectionComments],
      [NationId],
-     (SELECT COUNT(*) FROM StatusFilteredResults) AS TotalItems
+     (SELECT COUNT(*) FROM StatusFilteredResults where UpdatedDecision in ('Pending','Rejected','Accepted')) AS TotalItems
  FROM StatusFilteredResults
  WHERE RowNum > (@PageSize * (@PageNumber - 1))
    AND RowNum <= @PageSize * @PageNumber
+   AND UpdatedDecision in ('Pending','Rejected','Accepted')
  ORDER BY RowNum;
 
 END;
