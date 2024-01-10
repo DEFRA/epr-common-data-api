@@ -41,7 +41,10 @@ WITH AllSubmittedEventsCTE AS (
         decision.SubmissionId,
         decision.Decision,
         decision.Comments,
-        decision.IsResubmissionRequired,
+        CASE
+            WHEN UPPER( ISNULL(decision.IsResubmissionRequired,'FALSE')) = 'TRUE' THEN 1
+            ELSE 0
+        END AS IsResubmissionRequired ,
         decision.Created AS DecisionDate,
         ROW_NUMBER() OVER(
         PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
@@ -147,7 +150,16 @@ WITH AllSubmittedEventsCTE AS (
         j.RowNum > l.RowNum AND
         j.Decision='Rejected' -- get last rejection comments BEFORE this one
         ORDER BY j.SubmittedDate DESC
-        ) AS PreviousRejectionComments
+        ) AS PreviousRejectionComments,
+        (
+        SELECT TOP 1 j.IsResubmissionRequired
+        FROM JoinedSubmissionsAndEventsCTE j
+        WHERE
+        j.SubmissionId = l.SubmissionId AND
+        j.RowNum > l.RowNum AND
+        j.Decision='Rejected' -- get last rejection isResubmissionRequired BEFORE this one
+        ORDER BY j.SubmittedDate DESC
+        ) AS PreviousRejectionIsResubmissionRequired
         FROM JoinedSubmissionsAndEventsCTE l
         WHERE
         (l.Decision IS NULL AND RowNum=1) -- show pending if latest
@@ -189,7 +201,9 @@ SELECT
         WHEN Decision IS NULL THEN 'Pending'
         ELSE Decision
         END AS Decision,
-    ISNULL(IsResubmissionRequired,0) IsResubmissionRequired,
+    CASE
+        WHEN PreviousDecisions > 0 THEN ISNULL(PreviousRejectionIsResubmissionRequired,0)
+        ELSE ISNULL(IsResubmissionRequired,0) END AS IsResubmissionRequired,
     Comments,
     CASE
         WHEN PreviousDecisions > 0 THEN 1
