@@ -47,4 +47,10 @@
     </SonarQubeSetting>
   </ItemGroup>
 
+  <ItemGroup>
+    <SonarQubeSetting Include="sonar.cpd.exclusions">
+      <Value>Migrations/*.cs,Scripts/migrations.sql,**/create-registrations-summaries-table.sql,**/merge-registrations-summaries-from-view-to-table.sql</Value>
+    </SonarQubeSetting>
+  </ItemGroup>
+
 </Project>
