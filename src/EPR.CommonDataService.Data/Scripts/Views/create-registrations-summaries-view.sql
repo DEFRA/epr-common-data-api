@@ -17,7 +17,7 @@ WITH AllSubmittedEventsCTE AS (
                 PARTITION BY FileId
                 ORDER BY load_ts DESC -- mark latest submissionEvent synced from cosmos
         ) as RowNum
-    FROM [rpd].[SubmissionEvents]
+    FROM [apps].[SubmissionEvents]
     WHERE Type = 'Submitted'
     )
 
@@ -46,7 +46,7 @@ WITH AllSubmittedEventsCTE AS (
             PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
             ORDER BY decision.load_ts DESC
         ) as RowNum
-    FROM [rpd].[SubmissionEvents] decision
+    FROM [apps].[SubmissionEvents] decision
     INNER JOIN LatestSubmittedEventsCTE submitted ON submitted.CompanyDetailsFileId = decision.FileId
     WHERE decision.Type = 'RegulatorRegistrationDecision'
     )
@@ -89,7 +89,7 @@ WITH AllSubmittedEventsCTE AS (
             PARTITION BY s.SubmissionId
             ORDER BY s.load_ts DESC
         ) as RowNum -- mark latest submission synced from cosmos
-    FROM [rpd].[Submissions] s
+    FROM [apps].[Submissions] s
     INNER JOIN JoinedSubmittedAndDecisionsCTE jsd ON jsd.SubmissionId = s.SubmissionId
     )
 
@@ -162,7 +162,7 @@ WITH AllSubmittedEventsCTE AS (
             PARTITION BY companyDetailsAntiVirus.FileId
             ORDER BY companyDetailsAntiVirus.load_ts DESC
         ) as RowNum
-    FROM [rpd].[SubmissionEvents] companyDetailsAntiVirus
+    FROM [apps].[SubmissionEvents] companyDetailsAntiVirus
     INNER JOIN JoinedSubmissionsAndEventsWithResubmissionCTE joinedSubmissions ON joinedSubmissions.CompanyDetailsFileId = companyDetailsAntiVirus.FileId
     WHERE companyDetailsAntiVirus.FileType = 'CompanyDetails'
     AND Type = 'AntivirusCheck'
@@ -187,7 +187,7 @@ WITH AllSubmittedEventsCTE AS (
             PARTITION BY latestCompanyDetails.CompanyDetailsFileId
             ORDER BY brandsAntiVirus.load_ts DESC
         ) as RowNum
-    FROM [rpd].[SubmissionEvents] brandsAntiVirus
+    FROM [apps].[SubmissionEvents] brandsAntiVirus
     INNER JOIN LatestCompanyDetailsCTE latestCompanyDetails ON brandsAntiVirus.RegistrationSetId = latestCompanyDetails.RegistrationSetId
     WHERE brandsAntiVirus.FileType = 'Brands'
     AND Type = 'AntivirusCheck'
@@ -211,7 +211,7 @@ WITH AllSubmittedEventsCTE AS (
             PARTITION BY latestCompanyDetails.CompanyDetailsFileId
             ORDER BY partnershipAntiVirus.load_ts DESC
         ) as RowNum
-    FROM [rpd].[SubmissionEvents] partnershipAntiVirus
+    FROM [apps].[SubmissionEvents] partnershipAntiVirus
     INNER JOIN LatestCompanyDetailsCTE latestCompanyDetails ON partnershipAntiVirus.RegistrationSetId = latestCompanyDetails.RegistrationSetId
     WHERE partnershipAntiVirus.FileType = 'Partnerships'
     AND Type = 'AntivirusCheck'

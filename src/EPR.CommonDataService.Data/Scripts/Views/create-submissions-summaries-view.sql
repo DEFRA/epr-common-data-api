@@ -17,7 +17,7 @@ WITH AllSubmittedEventsCTE AS (
 				PARTITION BY FileId
 				ORDER BY load_ts DESC -- mark latest submissionEvent synced from cosmos
 			) as RowNum
-    FROM [rpd].[SubmissionEvents] submitted
+    FROM [apps].[SubmissionEvents] submitted
         WHERE submitted.Type='Submitted'
         )
 
@@ -50,7 +50,7 @@ WITH AllSubmittedEventsCTE AS (
         PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
         ORDER BY decision.load_ts DESC
         ) as RowNum
-        FROM [rpd].[SubmissionEvents] decision
+        FROM [apps].[SubmissionEvents] decision
         INNER JOIN LatestSubmittedEventsCTE submitted ON submitted.FileId = decision.FileId
         WHERE
         decision.Type='RegulatorPomDecision'
@@ -94,7 +94,7 @@ WITH AllSubmittedEventsCTE AS (
         s.UserId,
         s.SubmissionPeriod,
         ROW_NUMBER() OVER(PARTITION BY s.SubmissionId ORDER BY s.load_ts DESC) as RowNum -- mark latest submission synced from cosmos
-        FROM [rpd].[Submissions] s
+        FROM [apps].[Submissions] s
         INNER JOIN JoinedSubmittedAndDecisionsCTE jsd ON jsd.SubmissionId = s.SubmissionId
         )
 

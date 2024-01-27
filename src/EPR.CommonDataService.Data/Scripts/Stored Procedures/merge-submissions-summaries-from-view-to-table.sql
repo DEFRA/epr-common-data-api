@@ -141,7 +141,7 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Source.NationId
     )
     WHEN NOT MATCHED BY SOURCE THEN
-DELETE; -- delete from table when no longer in source
+        DELETE; -- delete from table when no longer in source
 
 DROP TABLE #SubmissionsSummariesTemp;
 

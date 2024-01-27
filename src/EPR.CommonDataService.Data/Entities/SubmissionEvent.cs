@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
-[Table("SubmissionEvents",Schema = "rpd")]
+[Table("SubmissionEvents",Schema = "apps")]
 [Keyless]
 public class SubmissionEvent
 {
