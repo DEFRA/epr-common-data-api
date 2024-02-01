@@ -6,5 +6,7 @@ namespace EPR.CommonDataService.Core.Services;
 
 public interface ISubmissionsService
 {
-    Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries(PomSubmissionsSummariesRequest request);
+    Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request);
+    
+    Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
 }

@@ -1,14 +1,13 @@
-using System.Data;
 using EPR.CommonDataService.Core.Models.Requests;
-using System.Text;
-using System.Text.Json;
 using Microsoft.Data.SqlClient;
+using System.Data;
+using System.Text.Json;
 
 namespace EPR.CommonDataService.Core.Extensions;
 
 public static class StoredProcedureExtensions
 {
-    public static SqlParameter[] ToProcParams(this PomSubmissionsSummariesRequest request)
+    public static SqlParameter[] ToProcParams<T>(this SubmissionsSummariesRequest<T> request)
     {
         var parameters = new List<SqlParameter>
         {

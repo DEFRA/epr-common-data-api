@@ -1,10 +1,10 @@
 ﻿namespace EPR.CommonDataService.Core.Models.Requests;
 
-public class PomSubmissionsSummariesRequest
+public class SubmissionsSummariesRequest<T>
 {
     public Guid UserId { get; set; }
     
-    public RegulatorPomDecision[]? DecisionsDelta { get; set; }
+    public T[]? DecisionsDelta { get; set; }
     
     public string? OrganisationName { get; set; }
     

@@ -24,13 +24,13 @@ public class PaginatedResponseExtensionsTests
             .With(x => x.TotalItems, 100)
             .CreateMany(10);
         var request = _fixture
-            .Build<PomSubmissionsSummariesRequest>()
+            .Build<SubmissionsSummariesRequest<RegulatorPomDecision>>()
             .With(x => x.PageSize, 10)
             .With(x => x.PageNumber, 1)
             .Create();
 
         // Act
-        var response = rows.ToPaginatedResponse(request);
+        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow,RegulatorPomDecision,PomSubmissionSummary>(request, 100);
 
         // Assert
         response.Items.Should().HaveCount(10);
@@ -44,14 +44,14 @@ public class PaginatedResponseExtensionsTests
         // Arrange
         var rows = new List<PomSubmissionSummaryRow>();
 
-        var request = new PomSubmissionsSummariesRequest
+        var request = new SubmissionsSummariesRequest<RegulatorPomDecision>
         {
             PageNumber = 1,
             PageSize = 10
         };
 
         // Act
-        var response = rows.ToPaginatedResponse(request);
+        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow,RegulatorPomDecision,PomSubmissionSummary>(request, 10);
 
         // Assert
         response.TotalItems.Should().Be(0);

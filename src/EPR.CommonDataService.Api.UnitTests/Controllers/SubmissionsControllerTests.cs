@@ -44,7 +44,7 @@ public class SubmissionsControllerTests
     public async Task GetPomSubmissionsSummaries_ReturnsResponse()
     {
         // Arrange
-        var request = _fixture.Create<PomSubmissionsSummariesRequest>();
+        var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorPomDecision>>();
         var serviceResponse = _fixture.Create<PaginatedResponse<PomSubmissionSummary>>();
         
         _submissionsService.Setup(service => service.GetSubmissionPomSummaries(request))
@@ -52,6 +52,24 @@ public class SubmissionsControllerTests
 
         // Act
         var result = await _submissionsController.GetPomSubmissionsSummaries(request) as ObjectResult;
+
+        // Assert
+        result.Should().NotBeNull();
+        result?.Value.Should().BeEquivalentTo(serviceResponse);
+    }
+    
+    [TestMethod]
+    public async Task GetRegistrationSubmissionsSummaries_ReturnsResponse()
+    {
+        // Arrange
+        var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorRegistrationDecision>>();
+        var serviceResponse = _fixture.Create<PaginatedResponse<RegistrationSubmissionSummary>>();
+        
+        _submissionsService.Setup(service => service.GetSubmissionRegistrationSummaries(request))
+            .ReturnsAsync(serviceResponse);
+
+        // Act
+        var result = await _submissionsController.GetRegistrationsSubmissionsSummaries(request) as ObjectResult;
 
         // Assert
         result.Should().NotBeNull();

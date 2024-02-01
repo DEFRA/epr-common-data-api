@@ -1,7 +1,7 @@
-﻿using System.Text.Json;
-using AutoFixture;
+﻿using AutoFixture;
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Requests;
+using System.Text.Json;
 
 namespace EPR.CommonDataService.Core.UnitTests.Extensions;
 
@@ -20,7 +20,7 @@ public class StoredProcedureExtensionsTests
     public void ToProcParams_ShouldReturnCorrectFormat_GivenAllPropertiesHaveValues()
     {
         // Arrange
-        var request = _fixture.Create<PomSubmissionsSummariesRequest>();
+        var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorPomDecision>>();
 
         // Act
         var result = request.ToProcParams();
@@ -50,7 +50,7 @@ public class StoredProcedureExtensionsTests
     {
         // Arrange
         var request = _fixture
-            .Build<PomSubmissionsSummariesRequest>()
+            .Build<SubmissionsSummariesRequest<RegulatorPomDecision>>()
             .With(x => x.DecisionsDelta, (RegulatorPomDecision[])null)
             .Create();
 
@@ -66,7 +66,7 @@ public class StoredProcedureExtensionsTests
     public void ToProcParams_ShouldHandleEmptyArrayDecisionsDelta()
     {
         // Arrange
-        var request = _fixture.Build<PomSubmissionsSummariesRequest>()
+        var request = _fixture.Build<SubmissionsSummariesRequest<RegulatorPomDecision>>()
             .With(x => x.DecisionsDelta, new RegulatorPomDecision[]{})
             .Create();
 

@@ -6,14 +6,14 @@ namespace EPR.CommonDataService.Core.Extensions;
 
 public static class PaginatedResponseExtensions
 {
-    public static PaginatedResponse<PomSubmissionSummary> ToPaginatedResponse(this IEnumerable<PomSubmissionSummaryRow> rows, PomSubmissionsSummariesRequest request)
+    public static PaginatedResponse<TOut> ToPaginatedResponse<T1,T2,TOut>(this IEnumerable<T1> rows, SubmissionsSummariesRequest<T2> request, int count) where TOut : class
     {
-        return new PaginatedResponse<PomSubmissionSummary>()
+        return new PaginatedResponse<TOut>()
         {
-            Items = rows.Select(x => x as PomSubmissionSummary).ToList(),
+            Items = rows.Select(x => x as TOut).ToList(),
             CurrentPage = request.PageNumber,
             PageSize = request.PageSize,
-            TotalItems = rows.FirstOrDefault()?.TotalItems ?? 0
+            TotalItems = count
         };
     }
 }

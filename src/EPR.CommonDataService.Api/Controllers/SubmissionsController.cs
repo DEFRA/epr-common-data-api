@@ -23,9 +23,21 @@ public class SubmissionsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetPomSubmissionsSummaries(PomSubmissionsSummariesRequest request)
+    public async Task<IActionResult> GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)
     {
         var result = await _submissionsService.GetSubmissionPomSummaries(request);
+
+        return Ok(result);
+    }
+    
+    [HttpPost("registrations/summary")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetRegistrationsSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorRegistrationDecision> request)
+    {
+        var result = await _submissionsService.GetSubmissionRegistrationSummaries(request);
 
         return Ok(result);
     }

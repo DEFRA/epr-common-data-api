@@ -10,6 +10,9 @@ public class SynapseContext : DbContext
 {
     public DbSet<SubmissionEvent> SubmissionEvents { get; set; } = null!;
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
+    public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
+
+    private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
     
     public SynapseContext(DbContextOptions<SynapseContext> options)
         : base(options)
@@ -24,7 +27,7 @@ public class SynapseContext : DbContext
     {
         modelBuilder.Entity<SubmissionEvent>(entity =>
         {
-            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            if (Database.ProviderName == InMemoryProvider)
             {
                 entity.HasKey(e => e.SubmissionEventId);
             }
@@ -36,9 +39,21 @@ public class SynapseContext : DbContext
         
         modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
         {
-            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory")
+            if (Database.ProviderName == InMemoryProvider)
             {
                 entity.HasKey(e => e.FileId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+        
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.CompanyDetailsFileId);
             }
             else
             {
@@ -65,6 +80,34 @@ public class SynapseContext : DbContext
             .HasConversion(stringToGuidConverter);
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
+            .Property(e => e.ComplianceSchemeId)
+            .HasConversion(stringToGuidConverter);
+        
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.SubmissionId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.OrganisationId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.CompanyDetailsFileId)
+            .HasConversion(stringToGuidConverter);
+        
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.BrandsFileId)
+            .HasConversion(stringToGuidConverter);
+        
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.PartnershipFileId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.UserId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
             .Property(e => e.ComplianceSchemeId)
             .HasConversion(stringToGuidConverter);
     }
