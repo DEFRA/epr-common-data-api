@@ -1,4 +1,9 @@
-﻿CREATE PROCEDURE apps.sp_FilterAndPaginateRegistrationsSummaries
+﻿-- Dropping stored procedure if it exists
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_FilterAndPaginateRegistrationsSummaries]'))
+DROP PROCEDURE [apps].[sp_FilterAndPaginateRegistrationsSummaries];
+GO
+
+CREATE PROCEDURE apps.sp_FilterAndPaginateRegistrationsSummaries
     @OrganisationName NVARCHAR(255),
     @OrganisationReference NVARCHAR(255),
     @RegulatorUserId NVARCHAR(50),

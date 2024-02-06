@@ -1,9 +1,9 @@
 ﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_MergeRegistrationsSummaries]'))
-DROP PROCEDURE [apps].[sp_MergeRegistrationsSummaries];
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_AggregateAndMergeRegistrationData]'))
+DROP PROCEDURE [apps].[sp_AggregateAndMergeRegistrationData];
 GO
 
-CREATE PROCEDURE apps.sp_MergeRegistrationsSummaries
+CREATE PROCEDURE apps.sp_AggregateAndMergeRegistrationData
 AS
 BEGIN
 	IF OBJECT_ID('tempdb..#RegistrationsSummariesTemp') IS NOT NULL

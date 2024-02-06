@@ -1,30 +1,42 @@
-﻿BEGIN TRY
-    -- Merge rpd.submissions into apps.submissions
-    EXEC [apps].[sp_DynamicTableMerge]
-        @sourceSchema = 'rpd',
-        @sourceTableName = 'Submissions',
-        @targetSchema = 'apps',
-        @targetTableName = 'Submissions',
-        @matchColumns = 'SubmissionId,load_ts'
+﻿-- Dropping stored procedure if it exists
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_MergeSubmissionsSummaries]'))
+DROP PROCEDURE [apps].[sp_MergeSubmissionsSummaries];
+GO
 
-    -- Merge rpd.submissionEvents into apps.submissionEvents
-    EXEC [apps].[sp_DynamicTableMerge]
-        @sourceSchema = 'rpd',
-        @sourceTableName = 'SubmissionEvents',
-        @targetSchema = 'apps',
-        @targetTableName = 'SubmissionEvents',
-        @matchColumns = 'SubmissionEventId,load_ts'
+CREATE PROCEDURE apps.sp_MergeSubmissionsSummaries
+    AS
+BEGIN
 
-    -- If no errors occur, execute the next set of procedures
     BEGIN TRY
-        EXEC [apps].[sp_MergeSubmissionsSummaries]
-        EXEC [apps].[sp_MergeRegistrationsSummaries]    
+        -- Merge rpd.submissions into apps.submissions
+        EXEC [apps].[sp_DynamicTableMerge]
+            @sourceSchema = 'rpd',
+            @sourceTableName = 'Submissions',
+            @targetSchema = 'apps',
+            @targetTableName = 'Submissions',
+            @matchColumns = 'id,load_ts'
+    
+        -- Merge rpd.submissionEvents into apps.submissionEvents
+        EXEC [apps].[sp_DynamicTableMerge]
+            @sourceSchema = 'rpd',
+            @sourceTableName = 'SubmissionEvents',
+            @targetSchema = 'apps',
+            @targetTableName = 'SubmissionEvents',
+            @matchColumns = 'id,load_ts'
+    
+        -- If no errors occur, execute the next set of procedures
+        BEGIN TRY
+            EXEC [apps].[sp_AggregateAndMergePomData]
+            EXEC [apps].[sp_AggregateAndMergeRegistrationData]    
+        END TRY
+        BEGIN CATCH
+            PRINT 'Error occurred in the submissions to summaries merge'
+        END CATCH
+    
     END TRY
     BEGIN CATCH
-        PRINT 'Error occurred in the submissions to summaries merge'
+        PRINT 'Error occurred in the rpd to apps merge'
     END CATCH
 
-END TRY
-BEGIN CATCH
-    PRINT 'Error occurred in the rpd to apps merge'
-END CATCH
+END;
+GO
