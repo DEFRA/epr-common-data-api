@@ -46,9 +46,9 @@ WHERE
         (
                 (@OrganisationType IS NULL OR @OrganisationType = 'All' OR @OrganisationType = '')
                 OR
-                (@OrganisationType = 'ComplianceScheme' AND ComplianceSchemeId IS NOT NULL)
+                (@OrganisationType = 'Compliance Scheme' AND ComplianceSchemeId IS NOT NULL)
                 OR
-                (@OrganisationType = 'DirectProducer' AND ComplianceSchemeId IS NULL)
+                (@OrganisationType = 'Direct Producer' AND ComplianceSchemeId IS NULL)
             )
 )
 

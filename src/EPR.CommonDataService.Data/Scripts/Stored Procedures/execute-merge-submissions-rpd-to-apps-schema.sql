@@ -27,7 +27,7 @@ BEGIN
         -- If no errors occur, execute the next set of procedures
         BEGIN TRY
             EXEC [apps].[sp_AggregateAndMergePomData]
-            EXEC [apps].[sp_AggregateAndMergeRegistrationData]    
+            --- EXEC [apps].[sp_AggregateAndMergeRegistrationData]    
         END TRY
         BEGIN CATCH
             PRINT 'Error occurred in the submissions to summaries merge'
