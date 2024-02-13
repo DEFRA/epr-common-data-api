@@ -96,6 +96,7 @@ WITH AllSubmittedEventsCTE AS (
         ROW_NUMBER() OVER(PARTITION BY s.SubmissionId ORDER BY s.load_ts DESC) as RowNum -- mark latest submission synced from cosmos
         FROM [apps].[Submissions] s
         INNER JOIN JoinedSubmittedAndDecisionsCTE jsd ON jsd.SubmissionId = s.SubmissionId
+        WHERE s.SubmissionType='Producer'
         )
 
         ,LatestRelatedSubmissionsCTE AS (

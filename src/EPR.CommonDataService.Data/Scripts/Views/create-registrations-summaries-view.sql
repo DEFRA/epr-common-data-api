@@ -91,6 +91,7 @@ WITH AllSubmittedEventsCTE AS (
         ) as RowNum -- mark latest submission synced from cosmos
     FROM [apps].[Submissions] s
     INNER JOIN JoinedSubmittedAndDecisionsCTE jsd ON jsd.SubmissionId = s.SubmissionId
+    WHERE s.SubmissionType='Registration'
     )
 
     ,LatestRelatedSubmissionsCTE AS (
@@ -305,7 +306,7 @@ SELECT
         END AS NationId
 FROM JoinDataWithPartnershipAndBrandsCTE r
 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
-INNER JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
+LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
 INNER JOIN [rpd].[Users] u ON u.UserId = r.UserId
 INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
 INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
