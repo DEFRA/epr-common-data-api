@@ -14,9 +14,9 @@ FROM (
     Pom.organisation_id AS 'RPD_Organisation_ID'
     , Pom.submission_period
     , cs.Name AS 'Compliance_scheme'
-    , CompanyDetails.companies_house_number AS 'Companies_House_number'
-    , Pom.subsidiary_id AS 'Subsidiary_ID'
     -- COALESCE ALL COMPANY DETAILS FIELDS
+    , COALESCE( CompanyDetails.companies_house_number, producer.CompaniesHouseNumber) AS 'Companies_House_number'
+    , COALESCE( CompanyDetails.subsidiary_id, Pom.subsidiary_id) AS 'Subsidiary_ID'
     , COALESCE( CompanyDetails.organisation_name, producer.Name ) AS 'Organisation_name'
     , COALESCE( CompanyDetails.Trading_Name, producer.TradingName ) AS 'Trading_name'
     , COALESCE( CompanyDetails.registered_addr_line1, (
@@ -40,48 +40,51 @@ FROM (
         WHEN 1 THEN 'Environment Agency (England)'
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
-        WHEN 4 THEN 'Natural Resources wales'
+        WHEN 4 THEN 'Natural Resources Wales'
         ELSE 'Environment Agency (England)'
       END) As 'Environmental_regulator'
     , (CASE csnation.Id
         WHEN 1 THEN 'Environment Agency (England)'
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
-        WHEN 4 THEN 'Natural Resources wales'
+        WHEN 4 THEN 'Natural Resources Wales'
         ELSE 'Environment Agency (England)'
       END) As 'Compliance_scheme_regulator'
     , 'Reporting_year' = '2023'
-    , 'POM_START' AS StartPoint
-    
+    --, 'POM_START' AS StartPoint
+   
     FROM [rpd].[Pom]
-    
-    LEFT JOIN [rpd].[CompanyDetails]
-        ON Pom.Organisation_id = CompanyDetails.organisation_id
+   
+LEFT JOIN (
+    SELECT CompanyDetails.*
+    FROM [rpd].[CompanyDetails]
+    JOIN [dbo].[v_registration_latest] rl ON CompanyDetails.organisation_id = rl.organisation_id
+) CompanyDetails ON Pom.Organisation_id = CompanyDetails.organisation_id
     LEFT JOIN rpd.cosmos_file_metadata meta
         ON Pom.FileName = meta.FileName
     LEFT JOIN rpd.ComplianceSchemes cs
         ON meta.ComplianceSchemeId = cs.ExternalId
     LEFT JOIN rpd.Organisations producer
         ON Pom.organisation_id = producer.ReferenceNumber
-    JOIN rpd.Nations producernation
+    JOIN rpd.Nations producernation   ---> 'LEFT JOIN instead of JOIN to take data even if enrolment data doesn't exist' (donot use it)
         ON producer.NationId = producernation.Id
     LEFT JOIN rpd.Nations csnation
         ON cs.NationId = csnation.Id
-
+ 
     WHERE organisation_size = 'L'
-    AND cs.IsDeleted = 0
+       AND (cs.IsDeleted = 0 or cs.IsDeleted IS NULL)  ---> If only company-details file is submitted cs.IsDeleted would be NULL
 ) pom_start
-
+ 
 UNION
-
+ 
 SELECT * FROM (
     SELECT DISTINCT
-    Pom.organisation_id AS 'RPD_Organisation_ID'
+    CompanyDetails.organisation_id AS 'RPD_Organisation_ID'
     , Pom.submission_period
     , cs.Name AS 'Compliance_scheme'
-    , CompanyDetails.companies_house_number AS 'Companies_House_number'
-    , Pom.subsidiary_id AS 'Subsidiary_ID'
     -- COALESCE ALL COMPANY DETAILS FIELDS
+    , COALESCE( CompanyDetails.companies_house_number, producer.CompaniesHouseNumber) AS 'Companies_House_number'
+    , COALESCE( CompanyDetails.subsidiary_id, Pom.subsidiary_id) AS 'Subsidiary_ID'
     , COALESCE( CompanyDetails.organisation_name, producer.Name ) AS 'Organisation_name'
     , COALESCE( CompanyDetails.Trading_Name, producer.TradingName ) AS 'Trading_name'
     , COALESCE( CompanyDetails.registered_addr_line1, (
@@ -105,21 +108,21 @@ SELECT * FROM (
         WHEN 1 THEN 'Environment Agency (England)'
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
-        WHEN 4 THEN 'Natural Resources wales'
+        WHEN 4 THEN 'Natural Resources Wales'
         ELSE 'Environment Agency (England)'
       END) As 'Environmental_regulator'
     , (CASE csnation.Id
         WHEN 1 THEN 'Environment Agency (England)'
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
-        WHEN 4 THEN 'Natural Resources wales'
+        WHEN 4 THEN 'Natural Resources Wales'
         ELSE 'Environment Agency (England)'
       END) As 'Compliance_scheme_regulator'
     , 'Reporting_year' = '2023'
-    , 'REG_START' AS StartPoint
-    
+    --, 'REG_START' AS StartPoint
+   
     FROM [rpd].[CompanyDetails]
-    
+   
     LEFT JOIN [rpd].[Pom]
         ON Pom.Organisation_id = CompanyDetails.organisation_id
     LEFT JOIN rpd.cosmos_file_metadata meta
@@ -128,13 +131,15 @@ SELECT * FROM (
         ON meta.ComplianceSchemeId = cs.ExternalId
     LEFT JOIN rpd.Organisations producer
         ON Pom.organisation_id = producer.ReferenceNumber
-    JOIN rpd.Nations producernation
+    LEFT JOIN rpd.Nations producernation  ---> 'LEFT JOIN instead of JOIN to take data even if enrolment data doesn't exist' (should use it)
         ON producer.NationId = producernation.Id
     LEFT JOIN rpd.Nations csnation
         ON cs.NationId = csnation.Id
+    JOIN [dbo].[v_registration_latest] rl
+        ON CompanyDetails.organisation_id = rl.organisation_id
 
-    WHERE organisation_size = 'L'
-    AND cs.IsDeleted = 0
+    WHERE (organisation_size = 'L' OR organisation_size IS NULL) ---> When only POM is submitted organisation_size will be NULL
+    AND (cs.IsDeleted = 0 OR cs.IsDeleted IS NULL)  ---> If only company-details file is submitted cs.IsDeleted would be NULL
 ) reg_start
 
 -- The ORDER BY clause is not valid in views

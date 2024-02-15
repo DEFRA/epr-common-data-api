@@ -18,7 +18,7 @@ parameters:
       - Team-8_Pre-TST
       - Team-9_Ops
   - name: envToDeploy
-    displayName: 'Target Environment to deploy:    (select "development" for Team1/3/7)'
+    displayName: 'Target Environment to deploy:    (select "development" for Team1-9)'
     default: development
     type: string
     values:
@@ -27,7 +27,7 @@ parameters:
       - preprod
       - prod
   - name: imageTag
-    displayName: Enter Tag for the Image
+    displayName: Enter Tag for the Image (Docker tag) or Release name (Git repo tag)
     default: ''
     type: string
 
@@ -36,10 +36,6 @@ variables:
       - name: env
         value: DEV1
       - template: vars/${{ parameters.teamName }}-${{ parameters.envToDeploy }}.yaml
-  - ${{ elseif eq(parameters.envToDeploy, 'qa-dev4') }}:
-      - name: env
-        value: DEV4
-      - template: vars/${{ parameters.envToDeploy }}.yaml
   - ${{ elseif eq(parameters.envToDeploy, 'tst') }}:
       - name: env
         value: TST1
@@ -52,6 +48,10 @@ variables:
       - name: env
         value: PRD1
       - template: vars/${{ parameters.envToDeploy }}.yaml
+# Release tags reference
+  - template: pipelines/image-tags/${{ parameters.envToDeploy }}.yaml@ReleaseTags
+  - ${{ if eq(parameters.envToDeploy, 'development') }}:
+    - template: pipelines/image-tags/${{ parameters.teamName }}-${{ parameters.envToDeploy }}.yaml@ReleaseTags
 
 resources:
   repositories:
@@ -60,15 +60,24 @@ resources:
       type: git
       ref: main
 
+    # The repo will be reference the repo by a release tag (if the imageTag parameter contains 'release') otherwise it will pull down the main branch.
+    - repository: ReleaseTags
+      name: RWD-CPR-EPR4P-ADO/epr-app-config-settings
+      type: git
+      ref: ${{ replace(replace(contains(parameters.imageTag, 'RELEASE'),'True',replace('refs/tags/RELEASETAG','RELEASETAG', parameters.imageTag)),'False','main') }}
+
 extends:
   template: epr-deployment-pipeline.yaml@CommonTemplates
   parameters:
-    imageTag: ${{ parameters.imageTag }}
+    ${{ if contains(parameters.imageTag, 'RELEASE') }}:
+      imageTag: $(DEVRWDWEBWAx415)
+    ${{ else }}:
+      imageTag: ${{ parameters.imageTag }}
     azureSubscription: $(azureSubscription)
     acrName: $(acr.azureContainerRegistryName)
     registryName: $(acr.repositoryName)
     serviceName: $(serviceName)
-    ${{ if or( eq(parameters.envToDeploy, 'development'), eq(parameters.envToDeploy, 'qa-dev4') )}}:
+    ${{ if eq(parameters.envToDeploy, 'development') }}:
       targetEnvironment: 'development'
     ${{ else }}:
       targetEnvironment: '$(env)'
