@@ -11,6 +11,13 @@ parameters:
     displayName: Run tests and generate test coverage. Adds >10 minutes processing time.
     type: boolean
     default: true
+  - name: sonarqubeInstance
+    displayName: 'Select SonarQube for v9.9 or SonarQubeLatest for 10.4'
+    type: string
+    default: 'SonarQube'
+    values:
+    - 'SonarQube'
+    - 'SonarQubeLatest'
 
 pool: DEFRA-COMMON-ubuntu2004-SSV3
 
@@ -53,3 +60,4 @@ extends:
     branchName: ${{ replace(replace(variables['Build.SourceBranch'], 'refs/heads/', ''), '/', '_') }}
     runNugetTasks: ${{ variables.runNugetTasks }}
     serviceName: $(serviceName)
+    sonarqubeInstance: ${{ parameters.sonarqubeInstance }}
