@@ -41,50 +41,55 @@ FROM (
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
         WHEN 4 THEN 'Natural Resources Wales'
-        ELSE 'Environment Agency (England)'
       END) As 'Environmental_regulator'
     , (CASE csnation.Id
         WHEN 1 THEN 'Environment Agency (England)'
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
         WHEN 4 THEN 'Natural Resources Wales'
-        ELSE 'Environment Agency (England)'
       END) As 'Compliance_scheme_regulator'
     , 'Reporting_year' = '2023'
     --, 'POM_START' AS StartPoint
-   
+    --, e_status.EnrolmentStatuses_EnrolmentStatus as e_status
     FROM [rpd].[Pom]
-   
-LEFT JOIN (
-    SELECT CompanyDetails.*
-    FROM [rpd].[CompanyDetails]
-    JOIN [dbo].[v_registration_latest] rl ON CompanyDetails.organisation_id = rl.organisation_id
-) CompanyDetails ON Pom.Organisation_id = CompanyDetails.organisation_id
+
+    LEFT JOIN (
+        SELECT CompanyDetails.*
+        FROM [rpd].[CompanyDetails]
+        JOIN [dbo].[v_registration_latest] rl
+            ON CompanyDetails.organisation_id = rl.organisation_id
+    ) CompanyDetails
+        ON Pom.Organisation_id = CompanyDetails.organisation_id
     LEFT JOIN rpd.cosmos_file_metadata meta
         ON Pom.FileName = meta.FileName
     LEFT JOIN rpd.ComplianceSchemes cs
         ON meta.ComplianceSchemeId = cs.ExternalId
-    LEFT JOIN rpd.Organisations producer
+    JOIN rpd.Organisations producer
         ON Pom.organisation_id = producer.ReferenceNumber
     JOIN rpd.Nations producernation   ---> 'LEFT JOIN instead of JOIN to take data even if enrolment data doesn't exist' (donot use it)
         ON producer.NationId = producernation.Id
     LEFT JOIN rpd.Nations csnation
         ON cs.NationId = csnation.Id
- 
+    JOIN (SELECT FromOrganisation_ReferenceNumber, EnrolmentStatuses_EnrolmentStatus
+          FROM t_rpd_data_SECURITY_FIX
+          GROUP BY FromOrganisation_ReferenceNumber, EnrolmentStatuses_EnrolmentStatus) e_status
+        ON e_status.FromOrganisation_ReferenceNumber = pom.organisation_id
     WHERE organisation_size = 'L'
-       AND (cs.IsDeleted = 0 or cs.IsDeleted IS NULL)  ---> If only company-details file is submitted cs.IsDeleted would be NULL
+       AND (cs.IsDeleted = 0 OR cs.IsDeleted IS NULL)  ---> If only company-details file is submitted cs.IsDeleted would be NULL
+       AND (producer.isdeleted = 0 OR producer.isdeleted IS NULL)
+       AND e_status.EnrolmentStatuses_EnrolmentStatus <> 'Rejected'
 ) pom_start
- 
-UNION
- 
+
+UNION 
+
 SELECT * FROM (
     SELECT DISTINCT
     CompanyDetails.organisation_id AS 'RPD_Organisation_ID'
-    , Pom.submission_period
+    , meta.submissionperiod
     , cs.Name AS 'Compliance_scheme'
     -- COALESCE ALL COMPANY DETAILS FIELDS
     , COALESCE( CompanyDetails.companies_house_number, producer.CompaniesHouseNumber) AS 'Companies_House_number'
-    , COALESCE( CompanyDetails.subsidiary_id, Pom.subsidiary_id) AS 'Subsidiary_ID'
+    , COALESCE( CompanyDetails.subsidiary_id, '') AS 'Subsidiary_ID'
     , COALESCE( CompanyDetails.organisation_name, producer.Name ) AS 'Organisation_name'
     , COALESCE( CompanyDetails.Trading_Name, producer.TradingName ) AS 'Trading_name'
     , COALESCE( CompanyDetails.registered_addr_line1, (
@@ -109,38 +114,39 @@ SELECT * FROM (
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
         WHEN 4 THEN 'Natural Resources Wales'
-        ELSE 'Environment Agency (England)'
       END) As 'Environmental_regulator'
     , (CASE csnation.Id
         WHEN 1 THEN 'Environment Agency (England)'
         WHEN 2 THEN 'Northern Ireland Environment Agency'
         WHEN 3 THEN 'Scottish Environment Protection Agency'
         WHEN 4 THEN 'Natural Resources Wales'
-        ELSE 'Environment Agency (England)'
       END) As 'Compliance_scheme_regulator'
     , 'Reporting_year' = '2023'
     --, 'REG_START' AS StartPoint
-   
+    -- , e_status.EnrolmentStatuses_EnrolmentStatus as e_status
     FROM [rpd].[CompanyDetails]
-   
-    LEFT JOIN [rpd].[Pom]
-        ON Pom.Organisation_id = CompanyDetails.organisation_id
-    LEFT JOIN rpd.cosmos_file_metadata meta
-        ON Pom.FileName = meta.FileName
+
+    LEFT JOIN v_cosmos_file_metadata meta
+        ON [CompanyDetails].FileName = meta.FileName
     LEFT JOIN rpd.ComplianceSchemes cs
         ON meta.ComplianceSchemeId = cs.ExternalId
-    LEFT JOIN rpd.Organisations producer
-        ON Pom.organisation_id = producer.ReferenceNumber
+    JOIN rpd.Organisations producer
+        ON [CompanyDetails].organisation_id = producer.ReferenceNumber
     LEFT JOIN rpd.Nations producernation  ---> 'LEFT JOIN instead of JOIN to take data even if enrolment data doesn't exist' (should use it)
         ON producer.NationId = producernation.Id
     LEFT JOIN rpd.Nations csnation
         ON cs.NationId = csnation.Id
     JOIN [dbo].[v_registration_latest] rl
-        ON CompanyDetails.organisation_id = rl.organisation_id
+        ON CompanyDetails.organisation_id = rl.organisation_id AND rl.created = meta.created
+    JOIN (SELECT FromOrganisation_ReferenceNumber, EnrolmentStatuses_EnrolmentStatus
+          FROM t_rpd_data_SECURITY_FIX
+          GROUP BY FromOrganisation_ReferenceNumber, EnrolmentStatuses_EnrolmentStatus) e_status
+        ON e_status.FromOrganisation_ReferenceNumber = CompanyDetails.organisation_id
 
-    WHERE (organisation_size = 'L' OR organisation_size IS NULL) ---> When only POM is submitted organisation_size will be NULL
-    AND (cs.IsDeleted = 0 OR cs.IsDeleted IS NULL)  ---> If only company-details file is submitted cs.IsDeleted would be NULL
-) reg_start
+     WHERE (cs.IsDeleted = 0 OR cs.IsDeleted IS NULL)  ---> If only company-details file is submitted cs.IsDeleted would be NULL
+          AND (producer.isdeleted = 0 OR producer.isdeleted IS NULL)
+          AND e_status.EnrolmentStatuses_EnrolmentStatus <> 'Rejected'
+) reg_start;
 
 -- The ORDER BY clause is not valid in views
 -- ORDER BY 'Companies House Number', subsidiary_id 
