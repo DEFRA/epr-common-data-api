@@ -13,6 +13,7 @@ WITH AllSubmittedEventsCTE AS (
         submitted.Type,
         submitted.FileId,
         submitted.Created AS SubmittedDate,
+		submitted.UserId as SubmittedUserId,
         ROW_NUMBER() OVER(
 				PARTITION BY FileId
 				ORDER BY load_ts DESC -- mark latest submissionEvent synced from cosmos
@@ -28,11 +29,12 @@ WITH AllSubmittedEventsCTE AS (
         SubmissionId,
         Type,
         FileId,
-        SubmittedDate
+        SubmittedDate,
+		SubmittedUserId
         FROM AllSubmittedEventsCTE
         WHERE RowNum = 1
         )
-
+		
     -- Get Decision events for submitted (match by fileId)
         ,AllRelatedDecisionEventsCTE AS (
         SELECT
@@ -74,6 +76,7 @@ WITH AllSubmittedEventsCTE AS (
         submitted.SubmissionId,
         submitted.SubmittedDate,
         submitted.FileId,
+		submitted.SubmittedUserId,
         decision.DecisionDate,
         decision.Decision,
         decision.Comments,
@@ -124,8 +127,9 @@ WITH AllSubmittedEventsCTE AS (
         jsd.IsResubmissionRequired,
         jsd.SubmittedDate,
         jsd.DecisionDate,
+		jsd.SubmittedUserId,
         ROW_NUMBER() OVER(
-        PARTITION BY s.SubmissionId
+        PARTITION BY s.SubmissionId, jsd.FileId--to match the count with power bi
         ORDER BY jsd.SubmittedDate DESC
         ) as RowNum -- original row number based on submitted date
         FROM JoinedSubmittedAndDecisionsCTE jsd
@@ -189,7 +193,7 @@ SELECT
         ELSE 'Direct Producer'
         END AS  OrganisationType,
     pt.Name as ProducerType,
-    r.UserId,
+    r.SubmittedUserId as UserId,
     p.FirstName,
     p.LastName,
     p.Email,
@@ -218,10 +222,10 @@ SELECT
 FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
          INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
     LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
-    INNER JOIN [rpd].[Users] u ON u.UserId = r.UserId
+    INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
     INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
     INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
     INNER JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
     INNER JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
     LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
-WHERE o.IsDeleted=0
+WHERE o.IsDeleted=0 and poc.IsDeleted=0;
