@@ -58,7 +58,7 @@ BEGIN
                'WHEN NOT MATCHED BY TARGET THEN INSERT (' + @insertCols + ') VALUES (' + @insertValues + ') ' +
                'WHEN NOT MATCHED BY SOURCE THEN DELETE;'
 
-	PRINT @sql
+	--PRINT @sql -- Do not check in PRINT statements as these are not compatible with the synapse pyodb and cause intermittent silent crashes
 
     -- Execute the dynamic SQL
     EXEC sp_executesql @sql
