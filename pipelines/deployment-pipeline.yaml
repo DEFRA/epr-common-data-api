@@ -56,9 +56,10 @@ variables:
 resources:
   repositories:
     - repository: CommonTemplates
-      name: RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates
-      type: git
+      name: defra/epr-webapps-code-deploy-templates
+      type: github
       ref: main
+      endpoint: DEFRA
 
     # The repo will be reference the repo by a release tag (if the imageTag parameter contains 'release') otherwise it will pull down the main branch.
     - repository: ReleaseTags
