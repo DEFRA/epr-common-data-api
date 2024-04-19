@@ -12,3 +12,5 @@
 /src/EPR.CommonDataService.Data.UnitTests/obj/
 
 **/appsettings.Development*.json
+/.vs/epr-common-data-api/v17
+/src/.vs/EPR.CommonDataService
