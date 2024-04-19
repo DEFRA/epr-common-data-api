@@ -19,7 +19,7 @@ parameters:
     - 'SonarQube'
     - 'SonarQubeLatest'
 
-pool: DEFRA-COMMON-ubuntu2004-SSV3
+pool: DEFRA-COMMON-windows2022-SSV3
 
 variables:
   - template: vars/Team-4_QA-development.yaml
