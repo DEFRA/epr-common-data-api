@@ -41,10 +41,9 @@ variables:
 resources:
   repositories:
     - repository: CommonTemplates
-      name: defra/epr-webapps-code-deploy-templates
-      type: github
+      name: RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates
+      type: git
       ref: main
-      endpoint: DEFRA
 
 extends:
   template: epr-build-pipeline.yaml@CommonTemplates
