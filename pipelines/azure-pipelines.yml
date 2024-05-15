@@ -22,7 +22,7 @@ parameters:
 pool: DEFRA-COMMON-ubuntu2004-SSV3
 
 variables:
-  - template: vars/Team-4_QA-development.yaml
+  - template: vars/DEV4-development.yaml
   - name: solutionFolder
     value: src
   - name: projectFolder
