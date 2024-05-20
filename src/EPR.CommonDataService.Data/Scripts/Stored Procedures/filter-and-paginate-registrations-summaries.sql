@@ -90,7 +90,7 @@ WHERE
                         WHEN UpdatedDecision = 'Accepted' THEN 3
                         ELSE 4
                     END,
-                    RegistrationDate DESC
+                    RegistrationDate
             ) AS RowNum
         FROM OverriddenStatuses
         WHERE
