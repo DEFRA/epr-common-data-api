@@ -1,9 +1,7 @@
 using EPR.CommonDataService.Api.Extensions;
 using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,5 +25,13 @@ app.MapControllers();
 app.MapHealthChecks(
     builder.Configuration.GetValue<string>("HealthCheckPath"),
     HealthCheckOptionBuilder.Build()).AllowAnonymous();
+
+app.MapHealthChecks("/admin/error", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResultStatusCodes =
+    {
+        [HealthStatus.Healthy] = StatusCodes.Status500InternalServerError
+    }
+}).AllowAnonymous();
 
 app.Run();
