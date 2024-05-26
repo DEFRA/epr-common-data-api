@@ -1,16 +1,19 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPR.CommonDataService.Data", "EPR.CommonDataService.Data\EPR.CommonDataService.Data.csproj", "{30EB93A4-2D70-4540-B641-70418BE1F724}"
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34902.65
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EPR.CommonDataService.Data", "EPR.CommonDataService.Data\EPR.CommonDataService.Data.csproj", "{30EB93A4-2D70-4540-B641-70418BE1F724}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPR.CommonDataService.Core", "EPR.CommonDataService.Core\EPR.CommonDataService.Core.csproj", "{6D7EFCF5-A2C1-4181-8B0B-1F9E04EF31E3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EPR.CommonDataService.Core", "EPR.CommonDataService.Core\EPR.CommonDataService.Core.csproj", "{6D7EFCF5-A2C1-4181-8B0B-1F9E04EF31E3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPR.CommonDataService.Api", "EPR.CommonDataService.Api\EPR.CommonDataService.Api.csproj", "{F15B3E64-D791-476A-AE6D-63E1D1F5D7A4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EPR.CommonDataService.Api", "EPR.CommonDataService.Api\EPR.CommonDataService.Api.csproj", "{F15B3E64-D791-476A-AE6D-63E1D1F5D7A4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPR.CommonDataService.Core.UnitTests", "EPR.CommonDataService.Core.UnitTests\EPR.CommonDataService.Core.UnitTests.csproj", "{AAE1D4B6-0D75-4D6D-968D-16D36859E5F5}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EPR.CommonDataService.Core.UnitTests", "EPR.CommonDataService.Core.UnitTests\EPR.CommonDataService.Core.UnitTests.csproj", "{AAE1D4B6-0D75-4D6D-968D-16D36859E5F5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPR.CommonDataService.Api.UnitTests", "EPR.CommonDataService.Api.UnitTests\EPR.CommonDataService.Api.UnitTests.csproj", "{012E709B-FE4A-4A99-B4BE-7CEF9C830771}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EPR.CommonDataService.Api.UnitTests", "EPR.CommonDataService.Api.UnitTests\EPR.CommonDataService.Api.UnitTests.csproj", "{012E709B-FE4A-4A99-B4BE-7CEF9C830771}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EPR.CommonDataService.Data.UnitTests", "EPR.CommonDataService.Data.UnitTests\EPR.CommonDataService.Data.UnitTests.csproj", "{835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EPR.CommonDataService.Data.UnitTests", "EPR.CommonDataService.Data.UnitTests\EPR.CommonDataService.Data.UnitTests.csproj", "{835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,5 +45,8 @@ Global
 		{835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
 	EndGlobalSection
 EndGlobal
