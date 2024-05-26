@@ -1,9 +1,6 @@
 using EPR.CommonDataService.Api.Extensions;
-using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,14 +15,19 @@ builder.Services
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+if (app.Environment.IsDevelopment())
+{
+    IdentityModelEventSource.ShowPII = true;
+    app.UseDeveloperExceptionPage();
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+else
+{
+    app.UseExceptionHandler("/error");
+}
 
-app.UseExceptionHandler("/error");
 app.MapControllers();
-
-app.MapHealthChecks(
-    builder.Configuration.GetValue<string>("HealthCheckPath"),
-    HealthCheckOptionBuilder.Build()).AllowAnonymous();
+app.MapHealthChecks("/admin/health").AllowAnonymous();
 
 app.Run();

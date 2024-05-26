@@ -39,6 +39,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="HealthChecks\" />
     <Folder Include="Models\" />
   </ItemGroup>
 </Project>
