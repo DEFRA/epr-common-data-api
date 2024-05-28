@@ -1,3 +1,8 @@
+-- Dropping view if it exists
+IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_RegistrationsSummaries]'))
+DROP VIEW [apps].[v_RegistrationsSummaries];
+GO
+
 CREATE VIEW [apps].[v_RegistrationsSummaries]
 AS WITH  file_id_set_id as
 (
