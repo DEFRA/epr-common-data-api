@@ -1,4 +1,4 @@
-CREATE VIEW [apps].[v_RegistrationsSummaries_fix]
+CREATE VIEW [apps].[v_RegistrationsSummaries]
 AS WITH  file_id_set_id as
 (
 	select distinct RegistrationSetId, FileId, FileName, load_ts
