@@ -14,7 +14,7 @@ BEGIN
             @sourceTableName = 'Submissions',
             @targetSchema = 'apps',
             @targetTableName = 'Submissions',
-            @matchColumns = 'id,load_ts'
+            @matchColumns = 'created,id,load_ts'
     
         -- Merge rpd.submissionEvents into apps.submissionEvents
         EXEC [apps].[sp_DynamicTableMerge]
@@ -22,7 +22,7 @@ BEGIN
             @sourceTableName = 'SubmissionEvents',
             @targetSchema = 'apps',
             @targetTableName = 'SubmissionEvents',
-            @matchColumns = 'id,load_ts'
+            @matchColumns = 'created,id,load_ts'
     
         -- If no errors occur, execute the next set of procedures
         BEGIN TRY
