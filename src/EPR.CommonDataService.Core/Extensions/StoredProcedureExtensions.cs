@@ -36,6 +36,12 @@ public static class StoredProcedureExtensions
                 Value = request.DecisionsDelta?.Length > 0
                     ? JsonSerializer.Serialize(request.DecisionsDelta)
                     : "[]"
+            },
+            new ("@SubmissionYearsCommaSeperated", SqlDbType.NVarChar, 1000) {
+                Value = request.SubmissionYears ?? (object)DBNull.Value
+            },
+            new ("@SubmissionPeriodsCommaSeperated", SqlDbType.NVarChar, 1500) {
+                Value = request.SubmissionPeriods ?? (object)DBNull.Value
             }
         };
 
