@@ -26,7 +26,7 @@ public class StoredProcedureExtensionsTests
         var result = request.ToProcParams();
 
         // Assert
-        result.Should().HaveCount(10);
+        result.Should().HaveCount(11);
 
         var organisationName = result.Single(x => x.ParameterName == "@OrganisationName");
         organisationName.Value.Should().Be(request.OrganisationName);
@@ -56,7 +56,10 @@ public class StoredProcedureExtensionsTests
         submissionYears.Value.Should().Be(request.SubmissionYears);
         
         var submissionPeriods = result.Single(x => x.ParameterName == "@SubmissionPeriodsCommaSeperated");
-        submissionPeriods.Value.Should().Be(request.SubmissionPeriods);
+        submissionPeriods.Value.Should().Be(DBNull.Value);
+
+        var actualSubmissionPeriods = result.Single(x => x.ParameterName == "@ActualSubmissionPeriodsCommaSeperated");
+        actualSubmissionPeriods.Value.Should().Be(request.SubmissionPeriods);
     }
 
     [TestMethod]

@@ -41,6 +41,9 @@ public static class StoredProcedureExtensions
                 Value = request.SubmissionYears ?? (object)DBNull.Value
             },
             new ("@SubmissionPeriodsCommaSeperated", SqlDbType.NVarChar, 1500) {
+                Value = DBNull.Value
+            },
+            new ("@ActualSubmissionPeriodsCommaSeperated", SqlDbType.NVarChar, 1500) {
                 Value = request.SubmissionPeriods ?? (object)DBNull.Value
             }
         };
