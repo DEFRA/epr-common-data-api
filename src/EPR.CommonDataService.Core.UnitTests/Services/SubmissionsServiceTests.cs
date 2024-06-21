@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Core.UnitTests.TestHelpers;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
+using Microsoft.Extensions.Configuration;
 using Moq;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
@@ -16,11 +17,11 @@ public class SubmissionsServiceTests
     private IFixture _fixture = null!;
 
     [TestInitialize]
-    public void Setup()
+    public void Setup(IConfiguration configuration)
     {
         _fixture = new Fixture();
         _mockSynapseContext = new Mock<SynapseContext>();
-        _sut = new SubmissionsService(_mockSynapseContext.Object);
+        _sut = new SubmissionsService(_mockSynapseContext.Object, configuration);
     }
 
     [TestMethod]
