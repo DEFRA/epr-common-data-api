@@ -10,21 +10,22 @@ namespace EPR.CommonDataService.Core.Services;
 public class SubmissionsService : ISubmissionsService
 {
     private readonly SynapseContext _synapseContext;
-    private readonly IConfiguration _configuration;
+    private readonly string testRegulatorUserId;
 
     public SubmissionsService(SynapseContext accountsDbContext, IConfiguration configuration)
     {
         _synapseContext = accountsDbContext;
-        _configuration = configuration;
+
+        // To pull the results from DEV3, supply the DEV3 Regulator User Id (GUID) in config setting "TestSettings:RegulatorUserId"
+        testRegulatorUserId = configuration.GetSection("TestSettings:RegulatorUserId").Value;
     }
-    
+
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {
         string sql = "EXECUTE apps.sp_FilterAndPaginateSubmissionsSummaries @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta";
 
-        request.UserId = _configuration.GetConnectionString("RegulatorUserId") != null 
-            ? new Guid(_configuration.GetConnectionString("RegulatorUserId")) 
-            : request.UserId;
+        // Only used in DEV to test data from DEV3
+        request.UserId = testRegulatorUserId != null ? new Guid(testRegulatorUserId) : request.UserId;
 
         var sqlParameters = request.ToProcParams();
         
@@ -38,9 +39,8 @@ public class SubmissionsService : ISubmissionsService
     {
         string sql = "EXECUTE apps.sp_FilterAndPaginateRegistrationsSummaries @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta";
 
-        request.UserId = _configuration.GetConnectionString("RegulatorUserId") != null
-            ? new Guid(_configuration.GetConnectionString("RegulatorUserId"))
-            : request.UserId;
+        // Only used in DEV to test data from DEV3
+        request.UserId = testRegulatorUserId != null ? new Guid(testRegulatorUserId) : request.UserId;
 
         var sqlParameters = request.ToProcParams();
         
