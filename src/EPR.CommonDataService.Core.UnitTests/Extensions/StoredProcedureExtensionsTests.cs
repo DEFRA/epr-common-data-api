@@ -26,23 +26,37 @@ public class StoredProcedureExtensionsTests
         var result = request.ToProcParams();
 
         // Assert
-        result.Should().HaveCount(8);
+        result.Should().HaveCount(10);
+
         var organisationName = result.Single(x => x.ParameterName == "@OrganisationName");
         organisationName.Value.Should().Be(request.OrganisationName);
+
         var organisationReference = result.Single(x => x.ParameterName == "@OrganisationReference");
         organisationReference.Value.Should().Be(request.OrganisationReference);
+        
         var regulatorUserId = result.Single(x => x.ParameterName == "@RegulatorUserId");
         regulatorUserId.Value.Should().Be(request.UserId.ToString());
+        
         var statusesCommaSeperated = result.Single(x => x.ParameterName == "@StatusesCommaSeperated");
         statusesCommaSeperated.Value.Should().Be(request.Statuses);
+        
         var organisationType = result.Single(x => x.ParameterName == "@OrganisationType");
         organisationType.Value.Should().Be(request.OrganisationType);
+        
         var pageSize = result.Single(x => x.ParameterName == "@PageSize");
         pageSize.Value.Should().Be(request.PageSize);
+        
         var pageNumber = result.Single(x => x.ParameterName == "@PageNumber");
         pageNumber.Value.Should().Be(request.PageNumber);
+        
         var descisionDelta = result.Single(x => x.ParameterName == "@DecisionsDelta");
         descisionDelta.Value.Should().Be(JsonSerializer.Serialize(request.DecisionsDelta));
+        
+        var submissionYears = result.Single(x => x.ParameterName == "@SubmissionYearsCommaSeperated");
+        submissionYears.Value.Should().Be(request.SubmissionYears);
+        
+        var submissionPeriods = result.Single(x => x.ParameterName == "@SubmissionPeriodsCommaSeperated");
+        submissionPeriods.Value.Should().Be(request.SubmissionPeriods);
     }
 
     [TestMethod]

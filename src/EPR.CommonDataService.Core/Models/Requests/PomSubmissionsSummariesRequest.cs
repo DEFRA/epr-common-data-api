@@ -13,6 +13,10 @@ public class SubmissionsSummariesRequest<T>
     public string? OrganisationType { get; set; }
     
     public string? Statuses { get; set; }
+
+    public string? SubmissionYears { get; set; }
+
+    public string? SubmissionPeriods { get; set; }
     
     public int PageSize { get; set; }
     

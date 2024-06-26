@@ -11,7 +11,9 @@ CREATE PROCEDURE apps.sp_FilterAndPaginateSubmissionsSummaries
 	@OrganisationType NVARCHAR(50),
     @PageSize INT,
     @PageNumber INT,
-    @DecisionsDelta NVARCHAR(MAX)
+    @DecisionsDelta NVARCHAR(MAX),
+    @SubmissionYearsCommaSeperated NVARCHAR(1000),
+    @SubmissionPeriodsCommaSeperated NVARCHAR(1500)
 AS
 BEGIN
 	
@@ -50,6 +52,8 @@ WHERE
                 OR
                 (@OrganisationType = 'Direct Producer' AND ComplianceSchemeId IS NULL)
             )
+      AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR RIGHT(SubmissionPeriod, 4) IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
+      AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
 )
 
     ,RankedJsonParsedUpdates AS (
