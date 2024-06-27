@@ -9,7 +9,7 @@ BEGIN
 
 IF OBJECT_ID('tempdb..#SubmissionsSummariesTemp') IS NOT NULL
 DROP TABLE #SubmissionsSummariesTemp;
-	
+
 
 -- Create temp table
 CREATE TABLE #SubmissionsSummariesTemp
@@ -28,6 +28,11 @@ CREATE TABLE #SubmissionsSummariesTemp
     [Telephone] NVARCHAR(4000),
     [ServiceRole] NVARCHAR(4000),
     [FileId] NVARCHAR(4000),
+	[SubmissionYear] INT,
+	[SubmissionCode] NVARCHAR(4000),
+	[ActualSubmissionPeriod] NVARCHAR(4000),
+	[Combined_SubmissionCode] NVARCHAR(4000),
+	[Combined_ActualSubmissionPeriod] NVARCHAR(4000),
     [SubmissionPeriod] NVARCHAR(4000),
     [SubmittedDate] NVARCHAR(4000),
     [Decision] NVARCHAR(4000),
@@ -54,6 +59,11 @@ SELECT
     [Telephone],
     [ServiceRole],
     [FileId],
+	[SubmissionYear],
+	[SubmissionCode],
+	[ActualSubmissionPeriod],
+	[Combined_SubmissionCode],
+	[Combined_ActualSubmissionPeriod],
     [SubmissionPeriod],
     [SubmittedDate],
     [Decision],
@@ -66,7 +76,7 @@ FROM apps.v_SubmissionsSummaries;
 
 MERGE INTO apps.SubmissionsSummaries AS Target
     USING #SubmissionsSummariesTemp AS Source
-    ON Target.FileId = Source.FileId
+    ON Target.FileId = Source.FileId and Target.SubmissionCode = Source.SubmissionCode
     WHEN MATCHED THEN
         UPDATE SET
             Target.SubmissionId = Source.SubmissionId,
@@ -83,6 +93,11 @@ MERGE INTO apps.SubmissionsSummaries AS Target
             Target.Telephone = Source.Telephone,
             Target.ServiceRole = Source.ServiceRole,
             Target.FileId = Source.FileId,
+			Target.SubmissionYear = Source.SubmissionYear,
+			Target.SubmissionCode = Source.SubmissionCode,
+			Target.ActualSubmissionPeriod = Source.ActualSubmissionPeriod,
+			Target.Combined_SubmissionCode = Source.Combined_SubmissionCode,
+			Target.Combined_ActualSubmissionPeriod = Source.Combined_ActualSubmissionPeriod,
             Target.SubmissionPeriod = Source.SubmissionPeriod,
             Target.SubmittedDate = Source.SubmittedDate,
             Target.Decision = Source.Decision,
@@ -107,6 +122,11 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Telephone,
     ServiceRole,
     FileId,
+	SubmissionYear,
+	SubmissionCode,
+	ActualSubmissionPeriod,
+	Combined_SubmissionCode,
+	Combined_ActualSubmissionPeriod,
     SubmissionPeriod,
     SubmittedDate,
     Decision,
@@ -131,6 +151,11 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Source.Telephone,
     Source.ServiceRole,
     Source.FileId,
+	Source.SubmissionYear,
+	Source.SubmissionCode,
+	Source.ActualSubmissionPeriod,
+	Source.Combined_SubmissionCode,
+	Source.Combined_ActualSubmissionPeriod,
     Source.SubmissionPeriod,
     Source.SubmittedDate,
     Source.Decision,

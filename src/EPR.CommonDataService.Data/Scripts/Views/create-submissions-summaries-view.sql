@@ -3,10 +3,30 @@ IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_Submi
 DROP VIEW [apps].[v_SubmissionsSummaries];
 GO
 
-CREATE VIEW apps.v_SubmissionsSummaries AS
-
-    -- CTE to filter the latest SubmissionEvents record by load_ts
-WITH AllSubmittedEventsCTE AS (
+CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH 
+	File_id_code_description as 
+	(
+		select distinct meta.fileid, p.filename, p.submission_period as SubmissionCode, Text as ActualSubmissionPeriod
+		from rpd.pom p
+		left join dbo.v_PoM_Codes c on 
+			p.submission_period = c.Code
+		left join rpd.cosmos_file_metadata meta 
+		on meta.filename = p.filename
+		where c.Type = 'apps_submission_period'
+	),
+	File_id_code_description_combined as
+	(
+		select F.fileid, F.filename, F.SubmissionCode, F.ActualSubmissionPeriod, A.Combined_SubmissionCode, A.Combined_ActualSubmissionPeriod
+		from File_id_code_description F
+		left join 
+		(
+			select fileid, filename, string_agg(SubmissionCode, ',') as Combined_SubmissionCode, string_agg(ActualSubmissionPeriod, ',') as Combined_ActualSubmissionPeriod
+			from File_id_code_description
+			group by fileid, filename
+		) A on A.fileid = F.fileid and A.filename = F.filename 
+	)
+	,
+	AllSubmittedEventsCTE AS (
     SELECT
         submitted.SubmissionEventId,
         submitted.SubmissionId,
@@ -200,6 +220,11 @@ SELECT
     p.Telephone,
     sr.Name as ServiceRole,
     r.FileId,
+	'20'+reverse(substring(reverse(trim(SubmissionPeriod)),1,2)) as 'SubmissionYear',
+	SubmissionCode,
+	ActualSubmissionPeriod,
+	Combined_SubmissionCode,
+	Combined_ActualSubmissionPeriod,
     SubmissionPeriod,
     SubmittedDate,
     CASE
@@ -228,4 +253,6 @@ FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
     INNER JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
     INNER JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
     LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
+	left join File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
 WHERE o.IsDeleted=0 and poc.IsDeleted=0;
+GO
