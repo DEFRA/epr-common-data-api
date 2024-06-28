@@ -3,18 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp
 DROP PROCEDURE [apps].[sp_FilterAndPaginateSubmissionsSummaries];
 GO
 
-CREATE PROCEDURE apps.sp_FilterAndPaginateSubmissionsSummaries
-    @OrganisationName NVARCHAR(255),
-    @OrganisationReference NVARCHAR(255),
-    @RegulatorUserId NVARCHAR(50),
-    @StatusesCommaSeperated NVARCHAR(50),
-	@OrganisationType NVARCHAR(50),
-    @PageSize INT,
-    @PageNumber INT,
-    @DecisionsDelta NVARCHAR(MAX),
-    @SubmissionYearsCommaSeperated NVARCHAR(1000),
-    @SubmissionPeriodsCommaSeperated NVARCHAR(1500)
-AS
+CREATE PROC [apps].[sp_FilterAndPaginateSubmissionsSummaries_new] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
 BEGIN
 	
 	-- get regulator user nation id
@@ -33,7 +22,7 @@ WHERE
 
 -- Initial Filter CTE
 ;WITH InitialFilter AS (
-    SELECT *
+    SELECT distinct SubmissionId,	OrganisationId,	ComplianceSchemeId,	OrganisationName,	OrganisationReference,	OrganisationType,	ProducerType,	UserId,	FirstName,	LastName,	Email,	Telephone,	ServiceRole,	FileId,	SubmissionYear,	Combined_SubmissionCode as SubmissionCode,	Combined_ActualSubmissionPeriod as ActualSubmissionPeriod,	SubmissionPeriod,	SubmittedDate,	Decision,	IsResubmissionRequired,	Comments,	IsResubmission,	PreviousRejectionComments,	NationId
     FROM apps.SubmissionsSummaries
     WHERE
         (
@@ -52,8 +41,9 @@ WHERE
                 OR
                 (@OrganisationType = 'Direct Producer' AND ComplianceSchemeId IS NULL)
             )
-      AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR RIGHT(SubmissionPeriod, 4) IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
-      AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
+	  AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR SubmissionYear IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
+	  AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
+	  AND (ISNULL(@ActualSubmissionPeriodsCommaSeperated, '') = '' OR ActualSubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@ActualSubmissionPeriodsCommaSeperated, ',')))
 )
 
     ,RankedJsonParsedUpdates AS (
@@ -120,6 +110,9 @@ WHERE
      [Telephone],
      [ServiceRole],
      [FileId],
+	 [SubmissionYear],	
+	 [SubmissionCode],	
+	 [ActualSubmissionPeriod],
      [SubmissionPeriod],
      [SubmittedDate],
      [UpdatedDecision] AS Decision,
