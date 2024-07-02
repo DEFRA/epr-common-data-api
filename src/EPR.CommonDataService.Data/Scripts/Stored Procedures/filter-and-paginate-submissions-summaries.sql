@@ -37,9 +37,9 @@ WHERE
         (
                 (@OrganisationType IS NULL OR @OrganisationType = 'All' OR @OrganisationType = '')
                 OR
-                (@OrganisationType = 'Compliance Scheme' AND ComplianceSchemeId IS NOT NULL)
+                (@OrganisationType = 'ComplianceScheme' AND ComplianceSchemeId IS NOT NULL)
                 OR
-                (@OrganisationType = 'Direct Producer' AND ComplianceSchemeId IS NULL)
+                (@OrganisationType = 'DirectProducer' AND ComplianceSchemeId IS NULL)
             )
 	  AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR SubmissionYear IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
 	  AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
