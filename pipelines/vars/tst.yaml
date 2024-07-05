@@ -1,8 +1,8 @@
 variables:
   azureSubscription: 'AZD-RWD-TST1'
-  docker.imageName: 'backendaccountserviceregistry'
+  docker.imageName: 'eprcommondataregistry'
   acr.azureContainerRegistryName: 'tstrwdinfac1401'
-  acr.repositoryName: 'backendaccountserviceregistry'
+  acr.repositoryName: 'eprcommondataregistry'
   serviceName: 'tstrwdwebwa1415'
   kvName: TSTRWDINFKV1401
   sqlDBserver: tstrwddbssq1401.database.windows.net
