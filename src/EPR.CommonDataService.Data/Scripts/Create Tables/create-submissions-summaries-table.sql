@@ -1,5 +1,7 @@
-﻿IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[SubmissionsSummaries]') AND type in (N'U'))
+﻿IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[SubmissionsSummaries]') AND type in (N'U'))
 BEGIN
+	DROP TABLE [apps].[SubmissionsSummaries]
+END;
 
 CREATE TABLE [apps].[SubmissionsSummaries]
 (
@@ -37,5 +39,4 @@ WITH
 	CLUSTERED COLUMNSTORE INDEX
 );
 
-END;
 GO
