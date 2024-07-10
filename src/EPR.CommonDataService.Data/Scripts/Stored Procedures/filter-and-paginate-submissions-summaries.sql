@@ -3,7 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp
 DROP PROCEDURE [apps].[sp_FilterAndPaginateSubmissionsSummaries];
 GO
 
-CREATE PROC [apps].[sp_FilterAndPaginateSubmissionsSummaries_new] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
+CREATE PROC [apps].[sp_FilterAndPaginateSubmissionsSummaries] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
 BEGIN
 	
 	-- get regulator user nation id
