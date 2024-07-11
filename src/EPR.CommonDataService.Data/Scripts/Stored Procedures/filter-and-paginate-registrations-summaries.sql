@@ -3,18 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp
 DROP PROCEDURE [apps].[sp_FilterAndPaginateRegistrationsSummaries];
 GO
 
-CREATE PROCEDURE apps.sp_FilterAndPaginateRegistrationsSummaries
-    @OrganisationName NVARCHAR(255),
-    @OrganisationReference NVARCHAR(255),
-    @RegulatorUserId NVARCHAR(50),
-    @StatusesCommaSeperated NVARCHAR(50),
-	@OrganisationType NVARCHAR(50),
-    @PageSize INT,
-    @PageNumber INT,
-    @DecisionsDelta NVARCHAR(MAX),
-    @SubmissionYearsCommaSeperated NVARCHAR(1000),
-    @SubmissionPeriodsCommaSeperated NVARCHAR(1500)
-AS
+CREATE PROC [apps].[sp_FilterAndPaginateRegistrationsSummaries] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
 BEGIN
 	
 -- get regulator user nation id
@@ -52,13 +41,13 @@ WHERE
                 OR
                 (@OrganisationType = 'DirectProducer' AND ComplianceSchemeId IS NULL)
             )
-      AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR RIGHT(SubmissionPeriod, 4) IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
-      AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
+	   AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR RIGHT(SubmissionPeriod, 4) IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
+	   AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
 )
 
     ,RankedJsonParsedUpdates AS (
         SELECT
-            JSON_VALUE([value], '$.FileId,') AS CompanyDetailsFileId,
+            JSON_VALUE([value], '$.FileId') AS CompanyDetailsFileId,
             JSON_VALUE([value], '$.Decision') AS Decision,
             JSON_VALUE([value], '$.Comments') AS Comments,
             ROW_NUMBER() OVER (PARTITION BY JSON_VALUE([value], '$.FileId') ORDER BY (SELECT NULL)) AS rn
@@ -129,10 +118,13 @@ WHERE
      [ServiceRole],
      [CompanyDetailsFileId],
      [CompanyDetailsFileName],
+     [CompanyDetailsBlobName],
      [PartnershipFileId],
      [PartnershipFileName],
+     [PartnershipBlobName],
      [BrandsFileId],
      [BrandsFileName],
+     [BrandsBlobName],
      [SubmissionPeriod],
      [RegistrationDate],
      [UpdatedDecision] AS Decision,
@@ -147,3 +139,4 @@ WHERE
  ORDER BY RowNum;
 
 END;
+GO
