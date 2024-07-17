@@ -353,4 +353,4 @@ INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
 INNER JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
 INNER JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
 LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
-WHERE o.IsDeleted = 0;
+WHERE o.IsDeleted = 0 and poc.IsDeleted = 0;
