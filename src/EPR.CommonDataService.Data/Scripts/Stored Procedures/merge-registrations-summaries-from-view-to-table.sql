@@ -3,8 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp
 DROP PROCEDURE [apps].[sp_AggregateAndMergeRegistrationData];
 GO
 
-CREATE PROCEDURE apps.sp_AggregateAndMergeRegistrationData
-AS
+CREATE PROC [apps].[sp_AggregateAndMergeRegistrationData] AS
 BEGIN
 	IF OBJECT_ID('tempdb..#RegistrationsSummariesTemp') IS NOT NULL
 DROP TABLE #RegistrationsSummariesTemp;
@@ -38,10 +37,13 @@ CREATE TABLE #RegistrationsSummariesTemp
     [ServiceRole] NVARCHAR(4000),
     [CompanyDetailsFileId] NVARCHAR(4000),
     [CompanyDetailsFileName] NVARCHAR(4000),
+    [CompanyDetailsBlobName] NVARCHAR(4000),
     [PartnershipFileId] NVARCHAR(4000),
     [PartnershipFileName] NVARCHAR(4000),
+    [PartnershipBlobName] NVARCHAR(4000),
     [BrandsFileId] NVARCHAR(4000),
     [BrandsFileName] NVARCHAR(4000),
+    [BrandsBlobName] NVARCHAR(4000),
     [SubmissionPeriod] NVARCHAR(4000),
     [RegistrationDate] NVARCHAR(4000),
     [Decision] NVARCHAR(4000),
@@ -79,10 +81,13 @@ SELECT
     [ServiceRole],
     [CompanyDetailsFileId],
     [CompanyDetailsFileName],
+    [CompanyDetailsBlobName],
     [PartnershipFileId],
     [PartnershipFileName],
+    [PartnershipBlobName],
     [BrandsFileId],
     [BrandsFileName],
+    [BrandsBlobName],
     [SubmissionPeriod],
     [RegistrationDate],
     [Decision],
@@ -123,10 +128,13 @@ MERGE INTO apps.RegistrationsSummaries AS Target
             Target.ServiceRole = Source.ServiceRole,
             Target.CompanyDetailsFileId = Source.CompanyDetailsFileId,
             Target.CompanyDetailsFileName = Source.CompanyDetailsFileName,
+            Target.CompanyDetailsBlobName = Source.CompanyDetailsBlobName,
             Target.PartnershipFileId = Source.PartnershipFileId,
             Target.PartnershipFileName = Source.PartnershipFileName,
+            Target.PartnershipBlobName = Source.PartnershipBlobName,
             Target.BrandsFileId = Source.BrandsFileId,
             Target.BrandsFileName = Source.BrandsFileName,
+            Target.BrandsBlobName = Source.BrandsBlobName,
             Target.SubmissionPeriod = Source.SubmissionPeriod,
             Target.RegistrationDate = Source.RegistrationDate,
             Target.Decision = Source.Decision,
@@ -162,10 +170,13 @@ MERGE INTO apps.RegistrationsSummaries AS Target
         [ServiceRole],
         [CompanyDetailsFileId],
         [CompanyDetailsFileName],
+        [CompanyDetailsBlobName],
         [PartnershipFileId],
         [PartnershipFileName],
+        [PartnershipBlobName],
         [BrandsFileId],
         [BrandsFileName],
+        [BrandsBlobName],
         [SubmissionPeriod],
         [RegistrationDate],
         [Decision],
@@ -201,10 +212,13 @@ MERGE INTO apps.RegistrationsSummaries AS Target
         Source.ServiceRole,
         Source.CompanyDetailsFileId,
         Source.CompanyDetailsFileName,
+        Source.CompanyDetailsBlobName,
         Source.PartnershipFileId,
         Source.PartnershipFileName,
+        Source.PartnershipBlobName,
         Source.BrandsFileId,
         Source.BrandsFileName,
+        Source.BrandsBlobName,
         Source.SubmissionPeriod,
         Source.RegistrationDate,
         Source.Decision,
@@ -219,4 +233,3 @@ MERGE INTO apps.RegistrationsSummaries AS Target
 DROP TABLE #RegistrationsSummariesTemp;
 
 END;
-GO
