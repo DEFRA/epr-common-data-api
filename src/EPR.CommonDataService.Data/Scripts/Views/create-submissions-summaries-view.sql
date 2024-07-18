@@ -149,7 +149,7 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
         jsd.DecisionDate,
 		jsd.SubmittedUserId,
         ROW_NUMBER() OVER(
-        PARTITION BY s.SubmissionId, jsd.FileId--to match the count with power bi
+        PARTITION BY s.SubmissionId --, jsd.FileId (commented out to fix incorrect ressubmission details issue) -- to match the count with power bi
         ORDER BY jsd.SubmittedDate DESC
         ) as RowNum -- original row number based on submitted date
         FROM JoinedSubmittedAndDecisionsCTE jsd
