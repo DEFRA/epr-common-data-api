@@ -54,8 +54,8 @@ namespace EPR.CommonDataService.Api.UnitTests.HealthChecks
             var result = HealthCheckOptionBuilder.Build();
 
             // Assert
-            result.ResultStatusCodes.ContainsKey(HealthStatus.Unhealthy).Should().BeFalse();
-            result.ResultStatusCodes.ContainsKey(HealthStatus.Degraded).Should().BeFalse();
+            result.ResultStatusCodes[HealthStatus.Degraded].Should().Be(StatusCodes.Status200OK);
+            result.ResultStatusCodes[HealthStatus.Unhealthy].Should().Be(StatusCodes.Status503ServiceUnavailable);
         }
     }
 }
