@@ -35,4 +35,10 @@
     <Compile Remove="Migrations\20230425091756_AddLAOrganisationType.Designer.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <SonarQubeSetting Include="sonar.exclusions">
+      <Value>**/*.sql</Value>
+    </SonarQubeSetting>
+  </ItemGroup>
+  
 </Project>
