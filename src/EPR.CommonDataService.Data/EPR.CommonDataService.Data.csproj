@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -33,24 +33,6 @@
   <ItemGroup>
     <Compile Remove="Migrations\20230425091756_AddLAOrganisationType.cs" />
     <Compile Remove="Migrations\20230425091756_AddLAOrganisationType.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <SonarQubeSetting Include="sonar.coverage.exclusions">
-      <Value>Infrastructure/AccountsDbContext.cs,Migrations/*,Scripts/*,**/*.sql</Value>
-    </SonarQubeSetting>
-  </ItemGroup>
-  
-  <ItemGroup>
-    <SonarQubeSetting Include="sonar.cpd.exclusions">
-      <Value>Migrations/*.cs,Scripts/migrations.sql</Value>
-    </SonarQubeSetting>
-  </ItemGroup>
-
-  <ItemGroup>
-    <SonarQubeSetting Include="sonar.cpd.exclusions">
-      <Value>Migrations/*.cs,Scripts/migrations.sql,**/create-registrations-summaries-table.sql,**/merge-registrations-summaries-from-view-to-table.sql</Value>
-    </SonarQubeSetting>
   </ItemGroup>
 
 </Project>
