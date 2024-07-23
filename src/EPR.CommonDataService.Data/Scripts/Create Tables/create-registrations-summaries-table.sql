@@ -1,5 +1,8 @@
-IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[RegistrationsSummaries]') AND type in (N'U'))
+﻿﻿IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[RegistrationsSummaries]') AND type in (N'U'))
 BEGIN
+	DROP TABLE [apps].RegistrationsSummaries
+END;
+
 
     CREATE TABLE apps.RegistrationsSummaries (
         [SubmissionId] NVARCHAR(4000),
@@ -46,4 +49,3 @@ BEGIN
     );
 
 END;
-Go
