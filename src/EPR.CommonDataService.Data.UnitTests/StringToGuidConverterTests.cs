@@ -9,7 +9,8 @@ using FluentAssertions;
 [TestClass]
 public class StringToGuidConverterTests
 {
-    private Fixture _fixture;
+    //This is being initialised as part of setup
+    private Fixture _fixture = null!;
 
     [TestInitialize]
     public void Setup()
@@ -49,11 +50,11 @@ public class StringToGuidConverterTests
     public void Given_EmptyStringValue_When_ConvertedToGuid_Should_ReturnNull()
     {
         // Arrange
-        string stringValue = "";
+        const string EmptyStringValue = "";
         var converter = StringToGuidConverter.Get();
 
         // Act
-        var result = converter.ConvertFromProvider(stringValue);
+        var result = converter.ConvertFromProvider(EmptyStringValue);
 
         // Assert
         result.Should().BeNull();
@@ -62,8 +63,8 @@ public class StringToGuidConverterTests
     [TestMethod]
     public void Given_NullStringValue_When_ConvertedToGuid_Should_ReturnNull()
     {
-        // Arrange
-        string stringValue = null;
+        // Arrange null test
+        string stringValue = null!;
         var converter = StringToGuidConverter.Get();
 
         // Act
@@ -93,11 +94,11 @@ public class StringToGuidConverterTests
     public void Given_InvalidStringValue_When_ConvertedToGuid_Should_ThrowFormatException()
     {
         // Arrange
-        string stringValue = "invalid-guid-string";
+        const string InvalidGuidString = "invalid-guid-string";
         var converter = StringToGuidConverter.Get();
 
         // Act
-        var result = converter.ConvertFromProvider(stringValue);
+        _ = converter.ConvertFromProvider(InvalidGuidString);
 
         // Assert - should be handled by expected exception attribute
     }

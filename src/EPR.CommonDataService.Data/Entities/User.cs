@@ -1,8 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 
 namespace EPR.CommonDataService.Data.Entities;
+
+[ExcludeFromCodeCoverage]
 [Table("users", Schema = "rpd")]
 public class User
 {
@@ -23,12 +26,12 @@ public class User
     public string? Email { get; set; }
 
     public Person Person { get; set; } = null!;
-    
+
     public bool IsDeleted { get; set; }
-    
+
     [MaxLength(100)]
     public string? InviteToken { get; set; }
-    
+
     [MaxLength(254)]
     public string? InvitedBy { get; set; }
 }

@@ -2,10 +2,7 @@
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace EPR.CommonDataService.Api.Extensions;
 

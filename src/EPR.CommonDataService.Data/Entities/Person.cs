@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Data.Entities;
 
+[ExcludeFromCodeCoverage]
 [Table("persons",Schema = "rpd")]
 public class Person
 {

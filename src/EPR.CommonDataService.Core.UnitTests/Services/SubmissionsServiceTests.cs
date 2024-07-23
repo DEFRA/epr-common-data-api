@@ -1,7 +1,6 @@
 ﻿using AutoFixture;
 using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Services;
-using EPR.CommonDataService.Core.UnitTests.TestHelpers;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Moq;

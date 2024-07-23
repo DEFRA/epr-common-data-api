@@ -6,28 +6,37 @@ GO
 DROP VIEW IF EXISTS [apps].[get_latest_org_file_submitted]
 GO
 
-CREATE VIEW [apps].[get_latest_org_file_submitted] AS with OrgFiles_CTE as
-(
+CREATE VIEW [apps].[get_latest_org_file_submitted] AS
+    WITH OrgFiles_CTE AS (
+        SELECT
+            [OrganisationId],
+            [SubmissionId],
+            [FileId],
+            [BlobName],
+            [FileType],
+            [created],
+            [SubmissionPeriod],
+            [SubmissionType],
+            [FileName],
+            [ComplianceSchemeId],
+            ROW_NUMBER() OVER (
+                PARTITION BY [OrganisationId]
+                ORDER BY CAST([created] AS DATETIME2) DESC
+            ) AS RowNum
+        FROM [dbo].[v_cosmos_file_metadata]
+        WHERE [FileType] = 'CompanyDetails'
+    )
     SELECT
-        [OrganisationId]
-        ,[SubmissionId]
-        ,[FileId]
-        ,[BlobName]
-        ,[FileType]
-        ,[created]
-        ,[SubmissionPeriod]
-        ,[SubmissionType]
-        ,[FileName]
-        ,ComplianceSchemeId
-        ,ROW_NUMBER() OVER(
-            PARTITION BY OrganisationId
-            ORDER BY [OrganisationId] , Cast(Created as DATETIME2) DESC
-        ) as RowNum
-    FROM [dbo].[v_cosmos_file_metadata]
-    where FileType = 'CompanyDetails'
-)
-, LatestOrgFiles_CTE as
-    (select * from OrgFiles_CTE where RowNum = 1)
-
-select * from LatestOrgFiles_CTE;
-GO
+        [OrganisationId],
+        [SubmissionId],
+        [FileId],
+        [BlobName],
+        [FileType],
+        [created],
+        [SubmissionPeriod],
+        [SubmissionType],
+        [FileName],
+        [ComplianceSchemeId]
+    FROM OrgFiles_CTE
+    WHERE [RowNum] = 1;
+    GO
