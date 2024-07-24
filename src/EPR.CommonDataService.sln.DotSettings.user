@@ -5,5 +5,6 @@
     &lt;TestId&gt;MSTest::835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8::net6.0::EPR.CommonDataService.Data.UnitTests.SynapseContextFactoryTests&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;MSTest::012E709B-FE4A-4A99-B4BE-7CEF9C830771::net6.0::EPR.CommonDataService.Api.UnitTests.Controllers.ApiControllerBaseTests&lt;/TestId&gt;&#xD;
     &lt;TestId&gt;MSTest::835921D1-EBAF-4EB7-84BF-B1AA6D96A7B8::net6.0::EPR.CommonDataService.Data.UnitTests.StringToGuidConverterTests&lt;/TestId&gt;&#xD;
+    &lt;TestId&gt;MSTest::AAE1D4B6-0D75-4D6D-968D-16D36859E5F5::net6.0::EPR.CommonDataService.Core.UnitTests.Services.SubmissionsServiceTests.GetSubmissionPomSummaries_returns_itemsCount_Of_Zero_when_Response_IsNull&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>

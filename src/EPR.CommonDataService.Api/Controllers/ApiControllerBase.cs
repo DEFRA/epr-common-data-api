@@ -47,7 +47,7 @@ public class ApiControllerBase : ControllerBase
         }
         else
         {
-            validationProblem = ProblemDetailsFactory?.CreateValidationProblemDetails(
+            validationProblem = ProblemDetailsFactory.CreateValidationProblemDetails(
                 HttpContext,
                 modelStateDictionary,
                 statusCode: statusCode,
@@ -65,7 +65,7 @@ public class ApiControllerBase : ControllerBase
 
         return new ObjectResult(validationProblem)
         {
-            StatusCode = validationProblem?.Status
+            StatusCode = validationProblem.Status
         };
     }
 
