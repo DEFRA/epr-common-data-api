@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.CodeAnalysis;
+// ReSharper disable UnusedAutoPropertyAccessor.Local
 
 namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
-[Table("persons",Schema = "rpd")]
+[Table("persons", Schema = "rpd")]
 public class Person
 {
     public int Id { get; set; }
@@ -25,10 +26,12 @@ public class Person
     public int? UserId { get; set; }
 
     public bool IsDeleted { get; set; }
-    
+
     public string ExternalId { get; set; }
 
+#pragma warning disable S1144
     public string CreatedOn { get; private set; }
 
     public string LastUpdatedOn { get; private set; }
+#pragma warning restore S1144
 }

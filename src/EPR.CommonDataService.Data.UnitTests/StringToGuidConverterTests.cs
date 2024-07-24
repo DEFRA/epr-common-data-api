@@ -1,10 +1,7 @@
-namespace EPR.CommonDataService.Data.UnitTests;
-
-using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 using AutoFixture;
-using StringToGuidConverter = Converters.StringToGuidConverter;
-using FluentAssertions;
+using EPR.CommonDataService.Data.Converters;
+
+namespace EPR.CommonDataService.Data.UnitTests;
 
 [TestClass]
 public class StringToGuidConverterTests
