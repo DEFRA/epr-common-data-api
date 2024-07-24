@@ -155,6 +155,61 @@ public class ApiControllerBaseTests
         returnedProblemDetails.Title.Should().Be("Validation Error");
     }
 
+    [TestMethod]
+    public void ValidationProblem_UsesProblemDetailsFactory()
+    {
+        // Arrange
+        var modelStateDictionary = new ModelStateDictionary();
+        modelStateDictionary.AddModelError("key", "error");
+
+        var validationProblemDetails = new ValidationProblemDetails(modelStateDictionary)
+        {
+            Status = 400,
+            Title = "Validation Error",
+            Detail = "Some detail",
+            Instance = "/test/instance"
+        };
+
+        var stubProblemDetailsFactory = new StubProblemDetailsFactory(validationProblemDetails);
+        _controller.ProblemDetailsFactory = stubProblemDetailsFactory;
+
+        // Act
+        var result = _controller.ValidationProblem(modelStateDictionary: modelStateDictionary);
+
+        // Assert
+        var objectResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        var returnedProblemDetails = objectResult.Value.Should().BeOfType<ValidationProblemDetails>().Subject;
+        returnedProblemDetails.Title.Should().Be("Validation Error");
+        returnedProblemDetails.Detail.Should().Be("Some detail");
+        returnedProblemDetails.Instance.Should().Be("/test/instance");
+        returnedProblemDetails.Status.Should().Be(400);
+    }
+
+    [TestMethod]
+    public void ValidationProblem_ReturnsObjectResultWithCorrectStatusCode()
+    {
+        // Arrange
+        var modelStateDictionary = new ModelStateDictionary();
+        modelStateDictionary.AddModelError("key", "error");
+
+        var validationProblemDetails = new ValidationProblemDetails(modelStateDictionary)
+        {
+            Status = 422,
+            Title = "Validation Error"
+        };
+
+        var stubProblemDetailsFactory = new StubProblemDetailsFactory(validationProblemDetails);
+        _controller.ProblemDetailsFactory = stubProblemDetailsFactory;
+
+        // Act
+        var result = _controller.ValidationProblem(modelStateDictionary: modelStateDictionary);
+
+        // Assert
+        var objectResult = result.Should().BeOfType<ObjectResult>().Subject;
+        var returnedProblemDetails = objectResult.Value.Should().BeOfType<ValidationProblemDetails>().Subject;
+        objectResult.StatusCode.Should().Be(422);
+        returnedProblemDetails.Status.Should().Be(422);
+    }
 
     [TestMethod]
     public void Problem_ShouldReturnObjectResult_WithExpectedType()
