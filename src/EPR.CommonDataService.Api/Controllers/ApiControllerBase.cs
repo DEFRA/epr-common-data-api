@@ -53,7 +53,7 @@ public class ApiControllerBase : ControllerBase
         string? title = null)
     {
         var exceptionName = type.GetType().Name;
-        title = title ?? exceptionName;
+        title ??= exceptionName;
 
         return base.Problem(detail, instance, statusCode, title, $"{_baseProblemTypePath}{exceptionName}".ToLower());
     }
