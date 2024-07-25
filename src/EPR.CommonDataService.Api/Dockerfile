@@ -13,7 +13,11 @@ COPY ["EPR.CommonDataService.Api/EPR.CommonDataService.Api.csproj", "EPR.CommonD
 COPY ["EPR.CommonDataService.Core/EPR.CommonDataService.Core.csproj", "EPR.CommonDataService.Core/"]
 COPY ["EPR.CommonDataService.Data/EPR.CommonDataService.Data.csproj", "EPR.CommonDataService.Data/"]
 RUN dotnet restore "EPR.CommonDataService.Api/EPR.CommonDataService.Api.csproj"
-COPY . .
+
+COPY --chown=dotnet:dotnet EPR.CommonDataService.Api/. ./EPR.CommonDataService.Api/.
+COPY --chown=dotnet:dotnet EPR.CommonDataService.Core/. ./EPR.CommonDataService.Core/.
+COPY --chown=dotnet:dotnet EPR.CommonDataService.Data/. ./EPR.CommonDataService.Data/.
+
 WORKDIR "/src/EPR.CommonDataService.Api"
 RUN dotnet build "EPR.CommonDataService.Api.csproj" -c Release /p:AzureBuild=true -o /app/build
 

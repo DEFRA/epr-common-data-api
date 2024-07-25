@@ -1,8 +1,0 @@
-﻿<wpf:ResourceDictionary xml:space="preserve" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:s="clr-namespace:System;assembly=mscorlib" xmlns:ss="urn:shemas-jetbrains-com:settings-storage-xaml" xmlns:wpf="http://schemas.microsoft.com/winfx/2006/xaml/presentation">
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=b25785d3_002Deda0_002D443f_002Db58e_002D9a80f927f841/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;Or&gt;&#xD;
-    &lt;Project Location="C:\DATA\Source\DEFRA\epr-common-data-api\src\EPR.CommonDataService.Api.UnitTests" Presentation="&amp;lt;EPR.CommonDataService.Api.UnitTests&amp;gt;" /&gt;&#xD;
-    &lt;Project Location="C:\DATA\Source\DEFRA\epr-common-data-api\src\EPR.CommonDataService.Core.UnitTests" Presentation="&amp;lt;EPR.CommonDataService.Core.UnitTests&amp;gt;" /&gt;&#xD;
-    &lt;Project Location="C:\DATA\Source\DEFRA\epr-common-data-api\src\EPR.CommonDataService.Data.UnitTests" Presentation="&amp;lt;EPR.CommonDataService.Data.UnitTests&amp;gt;" /&gt;&#xD;
-  &lt;/Or&gt;&#xD;
-&lt;/SessionState&gt;</s:String></wpf:ResourceDictionary>
