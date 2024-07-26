@@ -1,6 +1,5 @@
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
-using Microsoft.EntityFrameworkCore;
 
 namespace EPR.CommonDataService.Core.UnitTests.TestHelpers;
 

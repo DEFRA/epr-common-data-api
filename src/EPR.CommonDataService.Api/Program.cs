@@ -1,31 +1,38 @@
+using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Api.Extensions;
 using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
 
-var builder = WebApplication.CreateBuilder(args);
+namespace EPR.CommonDataService.Api;
 
-builder.Services
-    .AddApplicationInsightsTelemetry()
-    .RegisterWebComponents(builder.Configuration)
-    .RegisterDataComponents(builder.Configuration)
-    .AddEndpointsApiExplorer()
-    .AddSwaggerGen()
-    .AddHealthChecks()
-    .AddDbContextCheck<SynapseContext>();
+[ExcludeFromCodeCoverage]
+public static class Program
+{
+    public static void Main(string[] args)
+    {
+        var builder = WebApplication.CreateBuilder(args);
 
-var app = builder.Build();
+        builder.Services
+            .AddApplicationInsightsTelemetry()
+            .RegisterWebComponents(builder.Configuration)
+            .RegisterDataComponents(builder.Configuration)
+            .AddEndpointsApiExplorer()
+            .AddSwaggerGen()
+            .AddHealthChecks()
+            .AddDbContextCheck<SynapseContext>();
 
-app.UseSwagger();
-app.UseSwaggerUI();
+        var app = builder.Build();
 
-app.UseExceptionHandler("/error");
-app.MapControllers();
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
-app.MapHealthChecks(
-    builder.Configuration.GetValue<string>("HealthCheckPath"),
-    HealthCheckOptionBuilder.Build()).AllowAnonymous();
+        app.UseExceptionHandler("/error");
+        app.MapControllers();
 
-app.Run();
+        app.MapHealthChecks(
+            builder.Configuration.GetValue<string>("HealthCheckPath"),
+            HealthCheckOptionBuilder.Build()).AllowAnonymous();
+
+        app.Run();
+    }
+}

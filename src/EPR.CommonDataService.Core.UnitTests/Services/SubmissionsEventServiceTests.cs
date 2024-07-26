@@ -1,5 +1,4 @@
 using EPR.CommonDataService.Core.Services;
-using System.ComponentModel.DataAnnotations;
 using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.UnitTests.TestHelpers;
 using EPR.CommonDataService.Data.Infrastructure;

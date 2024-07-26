@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -13,17 +13,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.1.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.15">
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.32">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.15" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.15">
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.32" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.32">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.55.0.65544">
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="9.30.0.95878">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
@@ -36,21 +36,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <SonarQubeSetting Include="sonar.coverage.exclusions">
-      <Value>Infrastructure/AccountsDbContext.cs,Migrations/*,Scripts/*</Value>
+    <SonarQubeSetting Include="sonar.exclusions">
+      <Value>**/*.sql</Value>
     </SonarQubeSetting>
   </ItemGroup>
   
-  <ItemGroup>
-    <SonarQubeSetting Include="sonar.cpd.exclusions">
-      <Value>Migrations/*.cs,Scripts/migrations.sql</Value>
-    </SonarQubeSetting>
-  </ItemGroup>
-
-  <ItemGroup>
-    <SonarQubeSetting Include="sonar.cpd.exclusions">
-      <Value>Migrations/*.cs,Scripts/migrations.sql,**/create-registrations-summaries-table.sql,**/merge-registrations-summaries-from-view-to-table.sql</Value>
-    </SonarQubeSetting>
-  </ItemGroup>
-
 </Project>

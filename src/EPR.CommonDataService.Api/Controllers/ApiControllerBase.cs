@@ -22,6 +22,7 @@ public class ApiControllerBase : ControllerBase
 
     [NonAction]
     public override ActionResult ValidationProblem(
+        // ReSharper disable once MethodOverloadWithOptionalParameter
         string? detail = null,
         string? instance = null,
         int? statusCode = null,
@@ -29,44 +30,7 @@ public class ApiControllerBase : ControllerBase
         string? type = null,
         [ActionResultObjectValue] ModelStateDictionary? modelStateDictionary = null)
     {
-        modelStateDictionary ??= ModelState;
-        type = type ?? $"{_baseProblemTypePath}validation";
-
-        ValidationProblemDetails? validationProblem;
-        if (ProblemDetailsFactory == null)
-        {
-            // ProblemDetailsFactory may be null in unit testing scenarios. Improvise to make this more testable.
-            validationProblem = new ValidationProblemDetails(modelStateDictionary)
-            {
-                Detail = detail,
-                Instance = instance,
-                Status = statusCode,
-                Title = title,
-                Type = type,
-            };
-        }
-        else
-        {
-            validationProblem = ProblemDetailsFactory?.CreateValidationProblemDetails(
-                HttpContext,
-                modelStateDictionary,
-                statusCode: statusCode,
-                title: title,
-                type: type,
-                detail: detail,
-                instance: instance);
-        }
-
-        if (validationProblem is { Status: 400 })
-        {
-            // For compatibility with 2.x, continue producing BadRequestObjectResult instances if the status code is 400.
-            return new BadRequestObjectResult(validationProblem);
-        }
-
-        return new ObjectResult(validationProblem)
-        {
-            StatusCode = validationProblem?.Status
-        };
+        return base.ValidationProblem(detail, instance, statusCode, title, $"{_baseProblemTypePath}validation", modelStateDictionary);
     }
 
     [NonAction]
@@ -89,13 +53,8 @@ public class ApiControllerBase : ControllerBase
         string? title = null)
     {
         var exceptionName = type.GetType().Name;
-        title = title ?? exceptionName;
+        title ??= exceptionName;
 
-        return base.Problem(
-            detail, 
-            instance, 
-            statusCode, 
-            title,
-            $"{_baseProblemTypePath}{exceptionName}".ToLower());
+        return base.Problem(detail, instance, statusCode, title, $"{_baseProblemTypePath}{exceptionName}".ToLower());
     }
 }

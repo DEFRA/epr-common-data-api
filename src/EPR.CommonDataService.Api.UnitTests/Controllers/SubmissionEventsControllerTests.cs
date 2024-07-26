@@ -1,13 +1,9 @@
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Api.Controllers;
 using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.Services;
-using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
-using Microsoft.Identity.Client;
 
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
