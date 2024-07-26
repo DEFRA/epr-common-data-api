@@ -3,7 +3,7 @@ variables:
   docker.imageName: 'eprcommondataregistry'
   acr.azureContainerRegistryName: 'devrwdinfac1401'
   acr.repositoryName: 'eprcommondataregistry'
-  serviceName: 'devrwdwebwa3415'
+  serviceName: 'devrwdwebwa1415'
   kvName: DEVRWDINFKV1401
   sqlDBserver: 'devrwddbssq1401.database.windows.net'
   sqlDB: 'dev1_accounts'
