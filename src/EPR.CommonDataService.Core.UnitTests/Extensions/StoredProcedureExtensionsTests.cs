@@ -75,8 +75,9 @@ public class StoredProcedureExtensionsTests
         var result = request.ToProcParams();
 
         // Assert
-        var decisionDelta = result.Single(x => x.ParameterName == "@DecisionsDelta");
-        decisionDelta.Value.Should().Be("[]");
+        var decisionDelta = result.SingleOrDefault(x => x.ParameterName == "@DecisionsDelta");
+        decisionDelta.Should().NotBeNull();
+        decisionDelta!.Value.Should().Be("[]");
     }
 
     [TestMethod]
@@ -91,7 +92,8 @@ public class StoredProcedureExtensionsTests
         var result = request.ToProcParams();
 
         // Assert
-        var decisionDelta = result.Single(x => x.ParameterName == "@DecisionsDelta");
-        decisionDelta.Value.Should().Be("[]");
+        var decisionDelta = result.SingleOrDefault(x => x.ParameterName == "@DecisionsDelta");
+        decisionDelta.Should().NotBeNull();
+        decisionDelta!.Value.Should().Be("[]");
     }
 }

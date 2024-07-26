@@ -47,11 +47,10 @@ public class StringToGuidConverterTests
     public void Given_EmptyStringValue_When_ConvertedToGuid_Should_ReturnNull()
     {
         // Arrange
-        const string EmptyStringValue = "";
         var converter = StringToGuidConverter.Get();
 
         // Act
-        var result = converter.ConvertFromProvider(EmptyStringValue);
+        var result = converter.ConvertFromProvider(string.Empty);
 
         // Assert
         result.Should().BeNull();
