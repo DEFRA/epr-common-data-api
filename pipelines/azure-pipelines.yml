@@ -37,6 +37,8 @@ variables:
     value: false
   - name: NUGET_PACKAGES
     value: $(Pipeline.Workspace)/.nuget/packages
+  - name: dotnetVersion
+    value: dotnetVersion8
 
 resources:
   repositories:
@@ -61,3 +63,4 @@ extends:
     runNugetTasks: ${{ variables.runNugetTasks }}
     serviceName: $(serviceName)
     sonarqubeInstance: ${{ parameters.sonarqubeInstance }}
+    dotnetVersion: ${{ variables.dotnetVersion }}

@@ -10,7 +10,7 @@ Restful API providing EPR data for reporting purposes.
 
 In order to run the service you will need the following dependencies
 
-- .NET 6
+- .NET 8
 
 ### Run
 
