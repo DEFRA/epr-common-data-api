@@ -1,3 +1,4 @@
+using System.Globalization;
 using AutoFixture;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
@@ -22,7 +23,7 @@ public class SubmissionsControllerTests
     public void Setup()
     {
         _fixture = new Fixture();
-        
+
         _apiConfigOptionsMock
             .Setup(x => x.Value)
             .Returns(new ApiConfig
@@ -30,7 +31,7 @@ public class SubmissionsControllerTests
                 BaseProblemTypePath = "https://dummytest/"
             });
 
-        _submissionsController = new SubmissionsController(_submissionsService.Object, 
+        _submissionsController = new SubmissionsController(_submissionsService.Object,
             _apiConfigOptionsMock.Object)
         {
             ControllerContext = new ControllerContext
@@ -39,14 +40,14 @@ public class SubmissionsControllerTests
             }
         };
     }
-    
+
     [TestMethod]
     public async Task GetPomSubmissionsSummaries_ReturnsResponse()
     {
         // Arrange
         var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorPomDecision>>();
         var serviceResponse = _fixture.Create<PaginatedResponse<PomSubmissionSummary>>();
-        
+
         _submissionsService.Setup(service => service.GetSubmissionPomSummaries(request))
             .ReturnsAsync(serviceResponse);
 
@@ -57,14 +58,14 @@ public class SubmissionsControllerTests
         result.Should().NotBeNull();
         result?.Value.Should().BeEquivalentTo(serviceResponse);
     }
-    
+
     [TestMethod]
     public async Task GetRegistrationSubmissionsSummaries_ReturnsResponse()
     {
         // Arrange
         var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorRegistrationDecision>>();
         var serviceResponse = _fixture.Create<PaginatedResponse<RegistrationSubmissionSummary>>();
-        
+
         _submissionsService.Setup(service => service.GetSubmissionRegistrationSummaries(request))
             .ReturnsAsync(serviceResponse);
 
@@ -74,5 +75,37 @@ public class SubmissionsControllerTests
         // Assert
         result.Should().NotBeNull();
         result?.Value.Should().BeEquivalentTo(serviceResponse);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissions_WhenValidDateString_ReturnsOk()
+    {
+        // Arrange
+        var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
+
+        _submissionsService
+            .Setup(x => x.GetApprovedSubmissions(It.IsAny<DateTime>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissions(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<OkObjectResult>();
+        ((OkObjectResult)result).Value.Should().Be(expectedResponse);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissions_WhenInvalidDateString_ReturnsBadRequest()
+    {
+        // Arrange
+        var expectedError = new Dictionary<string, string[]> { { "approvedAfterDateString", new[] { "Invalid datetime provided; please make sure it's a valid UTC datetime" } } };
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissions("invalid date string");
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<BadRequestObjectResult>();
+        ((BadRequestObjectResult)result).Value.Should().BeEquivalentTo(expectedError);
     }
 }
