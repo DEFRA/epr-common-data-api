@@ -46,4 +46,11 @@ public class SubmissionsService : ISubmissionsService
 
         return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", approvedAfter));
     }
+
+    public async Task<IList<PomObligationEntity>> GetAggregatedPomData(Guid submissionId)
+    {
+        var sql = "EXECUTE rpd.sp_GetAggregatedPomData @SubmissionId";
+
+        return await _synapseContext.RunSqlAsync<PomObligationEntity>(sql, new SqlParameter("@SubmissionId", submissionId));
+    }
 }

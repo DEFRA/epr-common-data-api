@@ -69,4 +69,25 @@ public class SubmissionsController : ApiControllerBase
             return BadRequest(ModelState);
         }
     }
+
+    [HttpGet("pom/data/{submissionIdString}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetAggregatedPomData(string submissionIdString)
+    {
+        if (Guid.TryParse(submissionIdString, out var submissionId))
+        {
+            var aggregatedPomData = await _submissionsService.GetAggregatedPomData(submissionId);
+
+            return Ok(aggregatedPomData);
+        }
+        else
+        {
+            ModelState.AddModelError(nameof(submissionIdString), "Invalid GUID provided; please make sure it's a correctly formatted GUID");
+
+            return BadRequest(ModelState);
+        }
+    }
 }
