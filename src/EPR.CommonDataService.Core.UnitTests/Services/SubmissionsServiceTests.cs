@@ -128,4 +128,30 @@ public class SubmissionsServiceTests
         result.Count.Should().Be(10);
         sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", approvedAfter) });
     }
+
+    [TestMethod]
+    public async Task GetAggregatedPomData_WhenPomFileExists_ReturnsAggregation()
+    {
+        // Arrange
+        var expectedResult = _fixture
+            .Build<PomObligationEntity>()
+            .CreateMany(10).ToList();
+
+        var submissionId = Guid.NewGuid();
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<PomObligationEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        // Act 
+        var result = await _sut.GetAggregatedPomData(submissionId);
+
+        // Arrange
+        result.Should().NotBeNull();
+        result.Count.Should().Be(10);
+        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@SubmissionId", submissionId) });
+    }
 }

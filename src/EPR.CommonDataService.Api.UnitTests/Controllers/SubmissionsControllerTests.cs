@@ -108,4 +108,36 @@ public class SubmissionsControllerTests
         result.Should().NotBeNull().And.BeOfType<BadRequestObjectResult>();
         ((BadRequestObjectResult)result).Value.Should().BeEquivalentTo(expectedError);
     }
+
+    [TestMethod]
+    public async Task GetAggregatedPomData_WhenValidsubmissionIdString_ReturnsOk()
+    {
+        // Arrange
+        var expectedResponse = _fixture.Create<IList<PomObligationEntity>>();
+
+        _submissionsService
+            .Setup(x => x.GetAggregatedPomData(It.IsAny<Guid>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _submissionsController.GetAggregatedPomData(Guid.NewGuid().ToString());
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<OkObjectResult>();
+        ((OkObjectResult)result).Value.Should().Be(expectedResponse);
+    }
+
+    [TestMethod]
+    public async Task GetAggregatedPomData_WhenInvalidsubmissionIdString_ReturnsBadRequest()
+    {
+        // Arrange
+        var expectedError = new Dictionary<string, string[]> { { "submissionIdString", new[] { "Invalid GUID provided; please make sure it's a correctly formatted GUID" } } };
+
+        // Act
+        var result = await _submissionsController.GetAggregatedPomData("invalid Guid string");
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<BadRequestObjectResult>();
+        ((BadRequestObjectResult)result).Value.Should().BeEquivalentTo(expectedError);
+    }
 }
