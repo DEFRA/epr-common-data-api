@@ -32,7 +32,7 @@ BEGIN
 	FROM rpd.Pom
 	WHERE [FileName] = @FileName
 	GROUP BY 
-		p.submission_period,
-		p.packaging_material
+		submission_period,
+		packaging_material
 END
 GO
