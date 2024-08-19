@@ -28,11 +28,13 @@ BEGIN
 	SELECT 
 		submission_period,
 		packaging_material,
-		SUM(packaging_material_weight) AS packaging_material_weight
+		SUM(packaging_material_weight) AS packaging_material_weight,
+		organisation_id
 	FROM rpd.Pom
 	WHERE [FileName] = @FileName
 	GROUP BY 
 		submission_period,
-		packaging_material
+		packaging_material,
+		organisation_id
 END
 GO

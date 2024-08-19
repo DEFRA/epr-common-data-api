@@ -10,6 +10,6 @@ BEGIN
 	SELECT [SubmissionId]
 	FROM [rpd].[SubmissionEvents]
 	WHERE TRY_CAST([Created] AS datetime2) > @ApprovedAfter
-	AND RegulatorDecision = 'Accepted'
+	AND Decision = 'Accepted'
 END
 GO
