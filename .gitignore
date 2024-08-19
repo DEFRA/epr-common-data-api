@@ -408,3 +408,8 @@ FodyWeavers.xsd
 **/obj
 
 **/appsettings.Development.json
+**/appsettings.Development*.json
+/.vs/epr-common-data-api/v17
+/src/.vs/EPR.CommonDataService
+/.vs
+/src/.vs/ProjectEvaluation
