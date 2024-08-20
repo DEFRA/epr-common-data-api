@@ -7,6 +7,10 @@ namespace EPR.CommonDataService.Core.Services;
 public interface ISubmissionsService
 {
     Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request);
-    
+
     Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
+
+    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissions(DateTime approvedAfter);
+
+    Task<IList<PomObligationEntity>> GetAggregatedPomData(Guid submissionId);
 }
