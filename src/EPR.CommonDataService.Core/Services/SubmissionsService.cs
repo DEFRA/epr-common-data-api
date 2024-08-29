@@ -40,17 +40,10 @@ public class SubmissionsService : ISubmissionsService
         return response.ToPaginatedResponse<RegistrationsSubmissionSummaryRow, T, RegistrationSubmissionSummary>(request, itemsCount);
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissions(DateTime approvedAfter)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
     {
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissions @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
 
         return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", approvedAfter));
-    }
-
-    public async Task<IList<PomObligationEntity>> GetAggregatedPomData(Guid submissionId)
-    {
-        var sql = "EXECUTE rpd.sp_GetAggregatedPomData @SubmissionId";
-
-        return await _synapseContext.RunSqlAsync<PomObligationEntity>(sql, new SqlParameter("@SubmissionId", submissionId));
     }
 }

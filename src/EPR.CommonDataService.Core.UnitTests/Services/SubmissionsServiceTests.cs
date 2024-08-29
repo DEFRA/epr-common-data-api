@@ -104,7 +104,7 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissions_WhenApprovedSubmissionsExist_ReturnsThem()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsExist_ReturnsThem()
     {
         // Arrange
         var expectedResult = _fixture
@@ -121,7 +121,7 @@ public class SubmissionsServiceTests
             .ReturnsAsync(expectedResult);
 
         // Act 
-        var result = await _sut.GetApprovedSubmissions(approvedAfter);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
 
         // Arrange
         result.Should().NotBeNull();
@@ -130,28 +130,24 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetAggregatedPomData_WhenPomFileExists_ReturnsAggregation()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoesNotExist_ReturnsEmpty()
     {
         // Arrange
-        var expectedResult = _fixture
-            .Build<PomObligationEntity>()
-            .CreateMany(10).ToList();
-
-        var submissionId = Guid.NewGuid();
+        var approvedAfter = DateTime.UtcNow;
 
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<PomObligationEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
-            .ReturnsAsync(expectedResult);
+            .ReturnsAsync(Array.Empty<ApprovedSubmissionEntity>());
 
         // Act 
-        var result = await _sut.GetAggregatedPomData(submissionId);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
 
         // Arrange
         result.Should().NotBeNull();
-        result.Count.Should().Be(10);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@SubmissionId", submissionId) });
+        result.Count.Should().Be(0);
+        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", approvedAfter) });
     }
 }

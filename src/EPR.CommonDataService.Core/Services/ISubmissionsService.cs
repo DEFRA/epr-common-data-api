@@ -10,7 +10,5 @@ public interface ISubmissionsService
 
     Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
 
-    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissions(DateTime approvedAfter);
-
-    Task<IList<PomObligationEntity>> GetAggregatedPomData(Guid submissionId);
+    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter);
 }
