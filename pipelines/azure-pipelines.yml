@@ -14,7 +14,7 @@ parameters:
   - name: sonarqubeInstance
     displayName: 'Select SonarQube for v9.9 or SonarQubeLatest for 10.4'
     type: string
-    default: 'SonarQube'
+    default: 'SonarQubeLatest'
     values:
     - 'SonarQube'
     - 'SonarQubeLatest'
