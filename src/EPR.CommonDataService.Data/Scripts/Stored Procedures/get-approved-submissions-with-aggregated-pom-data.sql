@@ -37,14 +37,14 @@ BEGIN
         JOIN [rpd].[cosmos_file_metadata] fm ON f.FileId = fm.FileId
     )
     SELECT 
-        f.SubmissionId,
-        p.submission_period,
-        p.packaging_material,
-        SUM(p.packaging_material_weight) AS packaging_material_weight,
-        p.organisation_id
+        CAST(f.SubmissionId AS uniqueidentifier) AS SubmissionId,
+        p.submission_period AS SubmissionPeriod,
+        p.packaging_material AS PackagingMaterial,
+        SUM(p.packaging_material_weight) AS PackagingMaterialWeight,
+        p.organisation_id AS OrganisationId
     FROM FileNames f
     JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
-    WHERE LEFT(p.submission_period, 4) = CAST(YEAR(@ApprovedDate) AS VARCHAR(4))
+    WHERE LEFT(p.submission_period, 4) = CAST(YEAR(@ApprovedAfter) AS VARCHAR(4))
     GROUP BY 
         f.SubmissionId,
         p.submission_period,
