@@ -1,14 +1,16 @@
 ﻿using AutoFixture;
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Requests;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace EPR.CommonDataService.Core.UnitTests.Extensions;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class StoredProcedureExtensionsTests
 {
-    private IFixture _fixture;
+    private Fixture _fixture;
 
     [TestInitialize]
     public void Setup()
@@ -85,7 +87,7 @@ public class StoredProcedureExtensionsTests
     {
         // Arrange
         var request = _fixture.Build<SubmissionsSummariesRequest<RegulatorPomDecision>>()
-            .With(x => x.DecisionsDelta, Array.Empty<RegulatorPomDecision>())
+            .With(x => x.DecisionsDelta, [])
             .Create();
 
         // Act

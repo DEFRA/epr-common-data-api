@@ -1,8 +1,10 @@
 using AutoFixture;
 using EPR.CommonDataService.Data.Converters;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Data.UnitTests;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class StringToGuidConverterTests
 {

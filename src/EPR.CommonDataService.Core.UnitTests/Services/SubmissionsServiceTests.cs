@@ -5,15 +5,17 @@ using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
 using Moq;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionsServiceTests
 {
     private Mock<SynapseContext> _mockSynapseContext = null!;
     private SubmissionsService _sut = null!;
-    private IFixture _fixture = null!;
+    private Fixture _fixture = null!;
 
     [TestInitialize]
     public void Setup()

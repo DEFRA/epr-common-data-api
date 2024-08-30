@@ -1,4 +1,3 @@
-using System.Globalization;
 using AutoFixture;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
@@ -9,17 +8,19 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionsControllerTests
 {
     private SubmissionsController _submissionsController = null!;
     private readonly Mock<ISubmissionsService> _submissionsService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
-    private IFixture _fixture;
+    private Fixture _fixture;
 
     [TestInitialize]
     public void Setup()
@@ -121,14 +122,15 @@ public class SubmissionsControllerTests
 
         var errors = modelState["approvedAfterDateString"].Errors;
         errors.Should().ContainSingle();
-        errors.First().ErrorMessage.Should().Be(expectedErrorMessage);
+        errors.FirstOrDefault().ErrorMessage.Should().Be(expectedErrorMessage);
     }
 
     [TestMethod]
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenInvalidDateString_ReturnsBadRequest()
     {
         // Arrange
-        var expectedError = new Dictionary<string, string[]> { { "approvedAfterDateString", new[] { "Invalid datetime provided; please make sure it's a valid UTC datetime" } } };
+        string[] expectedErrorMessage = new[] { "Invalid datetime provided; please make sure it's a valid UTC datetime" };
+        var expectedError = new Dictionary<string, string[]> { { "approvedAfterDateString", expectedErrorMessage } };
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData("invalid date string");
