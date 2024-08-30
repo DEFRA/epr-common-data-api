@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace EPR.CommonDataService.Core.Services;
 
@@ -44,6 +45,6 @@ public class SubmissionsService : ISubmissionsService
     {
         var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
 
-        return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", approvedAfter));
+        return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
     }
 }

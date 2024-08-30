@@ -1,4 +1,3 @@
-using System.Globalization;
 using AutoFixture;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;

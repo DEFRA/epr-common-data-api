@@ -44,7 +44,7 @@ BEGIN
         p.organisation_id
     FROM FileNames f
     JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
-    WHERE LEFT(p.submission_period, 4) = CAST(YEAR(@ApprovedDate) AS VARCHAR(4))
+    WHERE LEFT(p.submission_period, 4) = CAST(YEAR(@ApprovedAfter) AS VARCHAR(4))
     GROUP BY 
         f.SubmissionId,
         p.submission_period,

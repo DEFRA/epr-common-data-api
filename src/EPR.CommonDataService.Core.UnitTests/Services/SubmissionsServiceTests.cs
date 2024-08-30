@@ -5,6 +5,7 @@ using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
 using Moq;
+using System.Data;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
@@ -126,7 +127,7 @@ public class SubmissionsServiceTests
         // Arrange
         result.Should().NotBeNull();
         result.Count.Should().Be(10);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", approvedAfter) });
+        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
     }
 
     [TestMethod]
@@ -148,6 +149,6 @@ public class SubmissionsServiceTests
         // Arrange
         result.Should().NotBeNull();
         result.Count.Should().Be(0);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", approvedAfter) });
+        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
     }
 }
