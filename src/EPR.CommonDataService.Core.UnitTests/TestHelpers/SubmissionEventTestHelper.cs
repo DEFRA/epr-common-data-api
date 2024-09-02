@@ -1,8 +1,10 @@
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Core.UnitTests.TestHelpers;
 
+[ExcludeFromCodeCoverage]
 public static class SubmissionEventTestHelper
 {
     public static void SetupDatabaseForSubmissionEvents(SynapseContext setupContext)
@@ -12,12 +14,11 @@ public static class SubmissionEventTestHelper
 
         var submissionEvents = new List<SubmissionEvent>
         {
-            new SubmissionEvent
-            {
+            new() {
                 SubmissionEventId = Guid.NewGuid().ToString(),
                 LastSyncTime = DateTime.Today
             },
-            new SubmissionEvent{
+            new() {
                 SubmissionEventId = Guid.NewGuid().ToString(),
                 LastSyncTime = DateTime.Today.AddDays(-1)
             }

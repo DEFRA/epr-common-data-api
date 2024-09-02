@@ -4,9 +4,11 @@ using EPR.CommonDataService.Core.UnitTests.TestHelpers;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionEventServiceTests
 {

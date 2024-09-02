@@ -4,17 +4,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
-public class StubProblemDetailsFactory : ProblemDetailsFactory
+[ExcludeFromCodeCoverage]
+public class StubProblemDetailsFactory(ValidationProblemDetails validationProblemDetails) : ProblemDetailsFactory
 {
-    private readonly ValidationProblemDetails _validationProblemDetails;
-
-    public StubProblemDetailsFactory(ValidationProblemDetails validationProblemDetails)
-    {
-        _validationProblemDetails = validationProblemDetails;
-    }
+    private readonly ValidationProblemDetails _validationProblemDetails = validationProblemDetails;
 
     public override ValidationProblemDetails CreateValidationProblemDetails(
         HttpContext httpContext,
@@ -48,6 +45,7 @@ public class StubProblemDetailsFactory : ProblemDetailsFactory
     }
 }
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class ApiControllerBaseTests
 {
@@ -118,7 +116,6 @@ public class ApiControllerBaseTests
     public void ValidationProblem_ProblemDetailsFactoryIsNull_CreatesValidationProblemDetailsManually()
     {
         // Arrange
-        //_controller.ProblemDetailsFactory = null!;
         var modelStateDictionary = new ModelStateDictionary();
         modelStateDictionary.AddModelError("key", "error");
 
