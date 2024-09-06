@@ -48,7 +48,7 @@ public class SubmissionsController : ApiControllerBase
     /// </summary>
     /// <param name="approvedAfterDateString">String representing a valid [cref="System.DateTime"] in UTC</param>
     /// <returns>a [cref="System.Collections.Generic.IList&lt;T&gt;"] of [cref="EPR.CommonDataService.Data.Entities.ApprovedSubmissionEntity"]</returns>
-    [HttpGet("pom/approved/{approvedAfterDateString}")]
+    [HttpGet("v1/pom/approved/{approvedAfterDateString}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

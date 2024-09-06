@@ -17,7 +17,7 @@ public class SubmissionEventsController : ApiControllerBase
         _submissionEventService = submissionEventService;
     }
     
-    [HttpGet("get-last-sync-time")]
+    [HttpGet("v1/get-last-sync-time")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
