@@ -4,7 +4,6 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace EPR.CommonDataService.Core.Services;
@@ -12,10 +11,12 @@ namespace EPR.CommonDataService.Core.Services;
 public class SubmissionsService : ISubmissionsService
 {
     private readonly SynapseContext _synapseContext;
+    private readonly IDatabaseTimeoutService _databaseTimeoutService;
 
-    public SubmissionsService(SynapseContext accountsDbContext)
+    public SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService)
     {
         _synapseContext = accountsDbContext;
+        _databaseTimeoutService = databaseTimeoutService;
     }
 
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
@@ -48,7 +49,7 @@ public class SubmissionsService : ISubmissionsService
 
         try
         {
-            _synapseContext.Database.SetCommandTimeout(120);
+            _databaseTimeoutService.SetCommandTimeout(_synapseContext, 120);
 
             return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
         }
