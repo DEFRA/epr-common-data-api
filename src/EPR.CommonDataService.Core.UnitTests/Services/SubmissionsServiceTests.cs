@@ -14,7 +14,7 @@ public class SubmissionsServiceTests
 {
     private Mock<SynapseContext> _mockSynapseContext = null!;
     private SubmissionsService _sut = null!;
-    private IFixture _fixture = null!;
+    private Fixture _fixture = null!;
 
     [TestInitialize]
     public void Setup()

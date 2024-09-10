@@ -4,9 +4,11 @@ using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionEventsControllerTests
 {

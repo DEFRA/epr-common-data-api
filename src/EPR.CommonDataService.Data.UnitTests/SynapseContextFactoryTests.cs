@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Data.UnitTests;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class SynapseContextFactoryTests
 {

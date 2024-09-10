@@ -2,12 +2,14 @@
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Data.Entities;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Core.UnitTests.Extensions;
 
+[ExcludeFromCodeCoverage]
 public class PaginatedResponseExtensionsTests
 {
-    private IFixture _fixture;
+    private Fixture _fixture;
     
     [TestInitialize]
     public void Setup()
