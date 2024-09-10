@@ -62,14 +62,25 @@ public class SubmissionsController : ApiControllerBase
             return BadRequest(ModelState);
         }
 
-        var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
-
-        if (!approvedSubmissions.Any())
+        try
         {
-            ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
-            return NotFound(ModelState);
-        }
+            var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
 
-        return Ok(approvedSubmissions);
+            if (!approvedSubmissions.Any())
+            {
+                ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
+                return NotFound(ModelState);
+            }
+
+            return Ok(approvedSubmissions);
+        }
+        catch (TimeoutException ex)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 }

@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 
 namespace EPR.CommonDataService.Core.Services;
@@ -43,8 +44,17 @@ public class SubmissionsService : ISubmissionsService
 
     public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
     {
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData3 @ApprovedAfter";
 
-        return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+        try
+        {
+            _synapseContext.Database.SetCommandTimeout(120);
+
+            return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
     }
 }
