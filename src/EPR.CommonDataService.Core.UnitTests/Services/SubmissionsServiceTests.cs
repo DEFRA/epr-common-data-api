@@ -4,26 +4,27 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using Moq;
-using System.Diagnostics.CodeAnalysis;
 using System.Data;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
-[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionsServiceTests
 {
     private Mock<SynapseContext> _mockSynapseContext = null!;
     private SubmissionsService _sut = null!;
     private Fixture _fixture = null!;
+    private Mock<IDatabaseTimeoutService> _databaseTimeoutService = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _fixture = new Fixture();
         _mockSynapseContext = new Mock<SynapseContext>();
-        _sut = new SubmissionsService(_mockSynapseContext.Object);
+        _databaseTimeoutService = new Mock<IDatabaseTimeoutService>();
+        _sut = new SubmissionsService(_mockSynapseContext.Object, _databaseTimeoutService.Object);
     }
 
     [TestMethod]
@@ -122,6 +123,8 @@ public class SubmissionsServiceTests
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(expectedResult);
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
 
         // Act 
         var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
@@ -130,6 +133,7 @@ public class SubmissionsServiceTests
         result.Should().NotBeNull();
         result.Count.Should().Be(10);
         sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
     [TestMethod]
@@ -144,6 +148,8 @@ public class SubmissionsServiceTests
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(Array.Empty<ApprovedSubmissionEntity>());
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
 
         // Act 
         var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
@@ -152,5 +158,6 @@ public class SubmissionsServiceTests
         result.Should().NotBeNull();
         result.Count.Should().Be(0);
         sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 }

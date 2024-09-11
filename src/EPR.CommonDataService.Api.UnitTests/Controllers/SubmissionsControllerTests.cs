@@ -139,4 +139,42 @@ public class SubmissionsControllerTests
         result.Should().NotBeNull().And.BeOfType<BadRequestObjectResult>();
         ((BadRequestObjectResult)result).Value.Should().BeEquivalentTo(expectedError);
     }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenTimeoutExceptionThrown_ReturnsGatewayTimeout()
+    {
+        // Arrange
+        var expectedErrorMessage = "The operation has timed out.";
+
+        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<ObjectResult>();
+        var objectResult = (ObjectResult)result;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+        objectResult.Value.Should().Be(expectedErrorMessage);
+    }
+
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionThrown_ReturnsInternalServerError()
+    {
+        // Arrange
+        var expectedErrorMessage = "An unexpected error occurred.";
+
+        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>())).ThrowsAsync(new Exception(expectedErrorMessage));
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<ObjectResult>();
+        var objectResult = (ObjectResult)result;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        objectResult.Value.Should().Be(expectedErrorMessage);
+    }
+
 }

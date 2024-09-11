@@ -53,6 +53,8 @@ public class SubmissionsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetApprovedSubmissionsWithAggregatedPomData(string approvedAfterDateString)
     {
         if (!DateTime.TryParse(approvedAfterDateString, CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.AssumeUniversal, out var approvedAfter))
@@ -62,14 +64,25 @@ public class SubmissionsController : ApiControllerBase
             return BadRequest(ModelState);
         }
 
-        var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
-
-        if (!approvedSubmissions.Any())
+        try
         {
-            ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
-            return NotFound(ModelState);
-        }
+            var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
 
-        return Ok(approvedSubmissions);
+            if (!approvedSubmissions.Any())
+            {
+                ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
+                return NotFound(ModelState);
+            }
+
+            return Ok(approvedSubmissions);
+        }
+        catch (TimeoutException ex)
+        {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 }

@@ -1,8 +1,8 @@
-﻿using System.Text.Json.Serialization;
-using EPR.CommonDataService.Api.Configuration;
+﻿using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json.Serialization;
 
 namespace EPR.CommonDataService.Api.Extensions;
 
@@ -54,5 +54,6 @@ public static class ServiceProviderExtensions
     {
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
+        services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
     }
 }

@@ -11,10 +11,12 @@ namespace EPR.CommonDataService.Core.Services;
 public class SubmissionsService : ISubmissionsService
 {
     private readonly SynapseContext _synapseContext;
+    private readonly IDatabaseTimeoutService _databaseTimeoutService;
 
-    public SubmissionsService(SynapseContext accountsDbContext)
+    public SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService)
     {
         _synapseContext = accountsDbContext;
+        _databaseTimeoutService = databaseTimeoutService;
     }
 
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
@@ -43,8 +45,17 @@ public class SubmissionsService : ISubmissionsService
 
     public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
     {
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData3 @ApprovedAfter";
 
-        return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+        try
+        {
+            _databaseTimeoutService.SetCommandTimeout(_synapseContext, 120);
+
+            return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
     }
 }
