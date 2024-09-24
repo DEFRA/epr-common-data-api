@@ -45,7 +45,7 @@ public class SubmissionsService : ISubmissionsService
 
     public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
     {
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData3 @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
 
         try
         {
