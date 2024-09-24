@@ -1,11 +1,11 @@
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomData]'))
-BEGIN
-    DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomData]
-END
+SET ANSI_NULLS ON
 GO
-
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE PROC [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomData] @ApprovedAfter [DATETIME2] AS
 BEGIN
+
+    SET NOCOUNT ON;
     IF OBJECT_ID('tempdb..#ApprovedSubmissions') IS NOT NULL
         DROP TABLE #ApprovedSubmissions;
 
@@ -58,25 +58,31 @@ BEGIN
         p.packaging_material,
         p.organisation_id;
 
-SELECT 
+    SELECT 
     CAST(f.SubmissionId AS uniqueidentifier) AS SubmissionId,
     p.submission_period AS SubmissionPeriod,
-    p.packaging_material AS PackagingMaterial,
+    CASE 
+        WHEN p.packaging_material IN ('PC', 'FC') THEN 'PC'
+        ELSE p.packaging_material
+    END AS PackagingMaterial,
     SUM(p.packaging_material_weight) AS PackagingMaterialWeight,
     p.organisation_id AS OrganisationId
-FROM #FileNames f
-JOIN [rpd].[Pom] p 
-  ON p.[FileName] = f.[FileName]
-JOIN #MaxCreated m 
-  ON p.submission_period = m.SubmissionPeriod
- AND p.packaging_material = m.PackagingMaterial
- AND p.organisation_id = m.OrganisationId
- AND f.Created = m.MaxCreated
-WHERE LEFT(p.submission_period, 4) = CAST(YEAR(@ApprovedAfter) AS VARCHAR(4))
-GROUP BY 
+    FROM #FileNames f
+    JOIN [rpd].[Pom] p 
+    ON p.[FileName] = f.[FileName]
+    JOIN #MaxCreated m 
+    ON p.submission_period = m.SubmissionPeriod
+    AND p.packaging_material = m.PackagingMaterial
+    AND p.organisation_id = m.OrganisationId
+    AND f.Created = m.MaxCreated
+    WHERE LEFT(p.submission_period, 4) = CAST(YEAR(@ApprovedAfter) AS VARCHAR(4))
+    GROUP BY 
     f.SubmissionId,
     p.submission_period,
-    p.packaging_material,
+    CASE 
+        WHEN p.packaging_material IN ('PC', 'FC') THEN 'PC'
+        ELSE p.packaging_material
+    END,
     p.organisation_id;
 
 
