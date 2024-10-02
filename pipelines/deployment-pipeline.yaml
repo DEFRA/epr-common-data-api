@@ -66,6 +66,11 @@ resources:
       type: git
       ref: ${{ replace(replace(contains(parameters.imageTag, 'RELEASE'),'True',replace('refs/tags/RELEASETAG','RELEASETAG', parameters.imageTag)),'False','main') }}
 
+    - repository: AutomationTesting #this repo contain the automation testing script
+      name: RWD-CPR-EPR4P-ADO/epr-playwright-bdd
+      type: git
+      ref: main
+
 extends:
   template: epr-deployment-pipeline.yaml@CommonTemplates
   parameters:
