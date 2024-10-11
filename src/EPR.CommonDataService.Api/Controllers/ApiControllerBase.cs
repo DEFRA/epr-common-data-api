@@ -11,7 +11,7 @@ public class ApiControllerBase : ControllerBase
 
     public ApiControllerBase(IOptions<ApiConfig> baseApiConfigOptions)
     {
-        _baseProblemTypePath= baseApiConfigOptions.Value.BaseProblemTypePath;
+        _baseProblemTypePath = baseApiConfigOptions.Value.BaseProblemTypePath;
     }
 
     [NonAction]

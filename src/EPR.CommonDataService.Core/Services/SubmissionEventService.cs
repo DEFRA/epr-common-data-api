@@ -4,6 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EPR.CommonDataService.Core.Services;
 
+public interface ISubmissionEventService
+{
+    Task<SubmissionEventsLastSync> GetLastSyncTimeAsync();
+}
+
 public class SubmissionEventService : ISubmissionEventService
 {
     private readonly SynapseContext _synapseContext;
