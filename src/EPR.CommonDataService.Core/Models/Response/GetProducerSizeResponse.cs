@@ -4,5 +4,5 @@ public class GetProducerSizeResponse
 {
     public Guid OrganisationId { get; set; }
 
-    public string ProducerSize { get; set; }
+    public string ProducerSize { get; set; } = string.Empty;
 }

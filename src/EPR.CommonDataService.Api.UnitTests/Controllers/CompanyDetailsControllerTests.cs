@@ -10,9 +10,9 @@ namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 [TestClass]
 public class CompanyDetailsControllerTests
 {
-    private Mock<ICompanyDetailsService> _companyDetailsServiceMock;
-    private Mock<IOptions<ApiConfig>> _apiConfigOptionsMock;
-    private CompanyDetailsController _controller;
+    private Mock<ICompanyDetailsService> _companyDetailsServiceMock = null!;
+    private Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = null!;
+    private CompanyDetailsController _controller = null!;
 
     [TestInitialize]
     public void Setup()
@@ -38,7 +38,7 @@ public class CompanyDetailsControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(null);
+        var result = await _controller.GetOnlineMarketplaceFlag(null!);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -56,7 +56,7 @@ public class CompanyDetailsControllerTests
 
         _companyDetailsServiceMock
             .Setup(service => service.GetOnlineMarketplaceFlag(request))
-            .ReturnsAsync((GetOnlineMarketplaceFlagResponse)null); // Simulating no result
+            .ReturnsAsync((GetOnlineMarketplaceFlagResponse)null!); // Simulating no result
 
         // Act
         var result = await _controller.GetOnlineMarketplaceFlag(request);

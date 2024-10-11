@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Controllers;
 
+[ApiController]
+[Route("api/producer-properties")]
 public class ProducerPropertiesController(
     IOptions<ApiConfig> baseApiConfigOptions, 
     IProducerPropertiesService producerPropertiesService)

@@ -9,7 +9,7 @@ public static class PaginatedResponseExtensions
     {
         return new PaginatedResponse<TOut>()
         {
-            Items = rows.Select(x => x as TOut).ToList(),
+            Items = rows.Cast<TOut>().ToList(),
             CurrentPage = request.PageNumber,
             PageSize = request.PageSize,
             TotalItems = count

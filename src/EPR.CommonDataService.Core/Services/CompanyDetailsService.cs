@@ -9,7 +9,7 @@ namespace EPR.CommonDataService.Core.Services;
 
 public interface ICompanyDetailsService
 {
-    Task<GetOnlineMarketplaceFlagResponse> GetOnlineMarketplaceFlag(GetOnlineMarketplaceFlagRequest request);
+    Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(GetOnlineMarketplaceFlagRequest request);
 }
 
 public class CompanyDetailsService(SynapseContext synapseContext) : ICompanyDetailsService

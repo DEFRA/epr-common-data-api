@@ -20,7 +20,7 @@ public class SubmissionsControllerTests
     private SubmissionsController _submissionsController = null!;
     private readonly Mock<ISubmissionsService> _submissionsService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
-    private Fixture _fixture;
+    private Fixture _fixture = null!;
 
     [TestInitialize]
     public void Setup()
@@ -118,11 +118,11 @@ public class SubmissionsControllerTests
         var modelState = notFoundResult.Value as ModelStateDictionary;
 
         modelState.Should().NotBeNull();
-        modelState.ContainsKey("approvedAfterDateString").Should().BeTrue();
+        modelState!.ContainsKey("approvedAfterDateString").Should().BeTrue();
 
-        var errors = modelState["approvedAfterDateString"].Errors;
+        var errors = modelState["approvedAfterDateString"]!.Errors;
         errors.Should().ContainSingle();
-        errors.FirstOrDefault().ErrorMessage.Should().Be(expectedErrorMessage);
+        errors.FirstOrDefault()!.ErrorMessage.Should().Be(expectedErrorMessage);
     }
 
     [TestMethod]

@@ -10,8 +10,8 @@ namespace EPR.CommonDataService.Core.UnitTests.Services;
 [TestClass]
 public class ProducerPropertiesServiceTests
 {
-    private Mock<SynapseContext> _synapseContextMock;
-    private ProducerPropertiesService _service;
+    private Mock<SynapseContext> _synapseContextMock = null!;
+    private ProducerPropertiesService _service = null!;
 
     [TestInitialize]
     public void Setup()

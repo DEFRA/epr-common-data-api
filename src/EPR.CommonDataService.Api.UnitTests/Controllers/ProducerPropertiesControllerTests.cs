@@ -10,9 +10,9 @@ namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 [TestClass]
 public class ProducerPropertiesControllerTests
 {
-    private Mock<IProducerPropertiesService> _producerPropertiesServiceMock;
-    private Mock<IOptions<ApiConfig>> _apiConfigOptionsMock;
-    private ProducerPropertiesController _controller;
+    private Mock<IProducerPropertiesService> _producerPropertiesServiceMock = null!;
+    private Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = null!;
+    private ProducerPropertiesController _controller = null!;
 
     [TestInitialize]
     public void Setup()
@@ -38,7 +38,7 @@ public class ProducerPropertiesControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerSize(null);
+        var result = await _controller.GetProducerSize(null!);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -56,7 +56,7 @@ public class ProducerPropertiesControllerTests
 
         _producerPropertiesServiceMock
             .Setup(service => service.GetProducerSize(request))
-            .ReturnsAsync((GetProducerSizeResponse)null); // Simulating no result
+            .ReturnsAsync((GetProducerSizeResponse)null!); // Simulating no result
 
         // Act
         var result = await _controller.GetProducerSize(request);

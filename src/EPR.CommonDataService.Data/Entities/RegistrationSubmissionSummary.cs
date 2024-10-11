@@ -22,5 +22,5 @@ public class RegistrationSubmissionSummary : SubmissionSummaryModel
     public Guid? BrandsFileId { get; set; }
     public string BrandsFileName { get; set; }
     public string BrandsBlobName { get; set; }
-    public string? RegistrationDate { get; set; }
+    public string RegistrationDate { get; set; }
 }

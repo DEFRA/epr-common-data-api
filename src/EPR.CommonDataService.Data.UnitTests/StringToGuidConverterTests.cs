@@ -89,7 +89,6 @@ public class StringToGuidConverterTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(FormatException))]
     public void Given_InvalidStringValue_When_ConvertedToGuid_Should_ThrowFormatException()
     {
         // Arrange

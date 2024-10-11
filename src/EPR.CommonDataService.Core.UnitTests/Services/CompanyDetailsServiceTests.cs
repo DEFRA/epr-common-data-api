@@ -10,15 +10,15 @@ namespace EPR.CommonDataService.Core.UnitTests.Services;
 [TestClass]
 public class CompanyDetailsServiceTests
 {
-    private Mock<SynapseContext> _synapseContextMock;
-    private CompanyDetailsService _service;
+    private Mock<SynapseContext> _synapseContextMock = null!;
+    private CompanyDetailsService _service = null!;
 
-    [TestInitialize]
-    public void Setup()
-    {
-        _synapseContextMock = new Mock<SynapseContext>();
-        _service = new CompanyDetailsService(_synapseContextMock.Object);
-    }
+        [TestInitialize]
+        public void Setup()
+        {
+            _synapseContextMock = new Mock<SynapseContext>();
+            _service = new CompanyDetailsService(_synapseContextMock.Object);
+        }
 
     [TestMethod]
     public async Task GetOnlineMarketplaceFlag_ValidRequestWithData_ReturnsResponse()

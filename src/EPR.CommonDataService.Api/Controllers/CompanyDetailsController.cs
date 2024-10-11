@@ -7,6 +7,8 @@ using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Controllers;
 
+[ApiController]
+[Route("api/company-details")]
 public class CompanyDetailsController(
     IOptions<ApiConfig> baseApiConfigOptions,
     ICompanyDetailsService companyDetailsService)
