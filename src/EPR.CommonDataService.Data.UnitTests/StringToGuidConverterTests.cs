@@ -1,6 +1,7 @@
 using AutoFixture;
 using EPR.CommonDataService.Data.Converters;
 using System.Diagnostics.CodeAnalysis;
+using FluentAssertions;
 
 namespace EPR.CommonDataService.Data.UnitTests;
 
@@ -96,8 +97,9 @@ public class StringToGuidConverterTests
         var converter = StringToGuidConverter.Get();
 
         // Act
-        _ = converter.ConvertFromProvider(InvalidGuidString);
+        var act = () => converter.ConvertFromProvider(InvalidGuidString);
 
+        act.Should().Throw<FormatException>();
         // Assert - should be handled by expected exception attribute
     }
 }
