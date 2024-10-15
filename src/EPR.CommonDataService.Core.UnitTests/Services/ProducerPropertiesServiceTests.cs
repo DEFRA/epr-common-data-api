@@ -1,4 +1,3 @@
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -24,16 +23,13 @@ public class ProducerPropertiesServiceTests
     public async Task GetProducerSize_ValidRequestWithData_ReturnsResponse()
     {
         // Arrange
-        var request = new GetProducerSizeRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         var expectedData = new List<ProducerPropertiesModel>
         {
             new ProducerPropertiesModel
             {
-                OrganisationId = request.OrganisationId,
+                OrganisationId = organisationId,
                 ProducerSize = "Large"
             }
         };
@@ -43,22 +39,19 @@ public class ProducerPropertiesServiceTests
             .ReturnsAsync(expectedData);
 
         // Act
-        var result = await _service.GetProducerSize(request);
+        var result = await _service.GetProducerSize(organisationId);
 
         // Assert
         result.Should().NotBeNull();
         result!.ProducerSize.Should().Be("Large");
-        result.OrganisationId.Should().Be(request.OrganisationId);
+        result.OrganisationId.Should().Be(organisationId);
     }
 
     [TestMethod]
     public async Task GetProducerSize_ValidRequestNoData_ReturnsNull()
     {
         // Arrange
-        var request = new GetProducerSizeRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         var emptyData = new List<ProducerPropertiesModel>();
 
@@ -67,7 +60,7 @@ public class ProducerPropertiesServiceTests
             .ReturnsAsync(emptyData);
 
         // Act
-        var result = await _service.GetProducerSize(request);
+        var result = await _service.GetProducerSize(organisationId);
 
         // Assert
         result.Should().BeNull();
@@ -77,17 +70,14 @@ public class ProducerPropertiesServiceTests
     public async Task GetProducerSize_ExceptionThrown_ReturnsNull()
     {
         // Arrange
-        var request = new GetProducerSizeRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         _synapseContextMock
             .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
-        var result = await _service.GetProducerSize(request);
+        var result = await _service.GetProducerSize(organisationId);
 
         // Assert
         result.Should().BeNull();

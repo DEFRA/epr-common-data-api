@@ -2,7 +2,7 @@
 
 public static class GuidExtensions
 {
-    public static bool IsInvalidValidGuid(this Guid guidValue)
+    public static bool IsInvalidGuid(this Guid guidValue)
     {
         return (!Guid.TryParse(guidValue.ToString(), out var validUserId)) || validUserId == Guid.Empty;
     }

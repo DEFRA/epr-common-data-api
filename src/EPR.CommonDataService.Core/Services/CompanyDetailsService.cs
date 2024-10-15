@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -9,12 +8,12 @@ namespace EPR.CommonDataService.Core.Services;
 
 public interface ICompanyDetailsService
 {
-    Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(GetOnlineMarketplaceFlagRequest request);
+    Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(Guid organisationId);
 }
 
 public class CompanyDetailsService(SynapseContext synapseContext) : ICompanyDetailsService
 {
-    public async Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(GetOnlineMarketplaceFlagRequest request)
+    public async Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(Guid organisationId)
     {
         IList<CompanyDetailsModel> response;
         try
@@ -24,7 +23,7 @@ public class CompanyDetailsService(SynapseContext synapseContext) : ICompanyDeta
             var sqlParameters = new List<SqlParameter>
             {
                 new ("@OrganisationId", SqlDbType.UniqueIdentifier, 255) {
-                    Value = request.OrganisationId
+                    Value = organisationId
                 }
             };
 

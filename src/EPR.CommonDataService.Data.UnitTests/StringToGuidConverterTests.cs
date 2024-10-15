@@ -1,7 +1,6 @@
 using AutoFixture;
 using EPR.CommonDataService.Data.Converters;
 using System.Diagnostics.CodeAnalysis;
-using FluentAssertions;
 
 namespace EPR.CommonDataService.Data.UnitTests;
 

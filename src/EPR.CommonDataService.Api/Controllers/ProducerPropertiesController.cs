@@ -1,6 +1,5 @@
 ﻿using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Extensions;
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -20,12 +19,12 @@ public class ProducerPropertiesController(
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProducerSize(GetProducerSizeRequest request)
+    public async Task<IActionResult> GetProducerSize(Guid organisationId)
     {
-        if (request == null || request.OrganisationId.IsInvalidValidGuid())
+        if (organisationId.IsInvalidGuid())
             return BadRequest("OrganisationId is invalid");
 
-        var result = await producerPropertiesService.GetProducerSize(request);
+        var result = await producerPropertiesService.GetProducerSize(organisationId);
 
         return result is null ? NotFound() : Ok(result);
     }

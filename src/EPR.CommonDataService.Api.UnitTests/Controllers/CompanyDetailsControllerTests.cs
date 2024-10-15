@@ -1,5 +1,4 @@
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -38,7 +37,7 @@ public class CompanyDetailsControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(null!);
+        var result = await _controller.GetOnlineMarketplaceFlag(Guid.Empty);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -49,17 +48,14 @@ public class CompanyDetailsControllerTests
     public async Task GetOnlineMarketplaceFlag_ValidRequest_NoResult_ReturnsNotFound()
     {
         // Arrange
-        var request = new GetOnlineMarketplaceFlagRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         _companyDetailsServiceMock
-            .Setup(service => service.GetOnlineMarketplaceFlag(request))
+            .Setup(service => service.GetOnlineMarketplaceFlag(organisationId))
             .ReturnsAsync((GetOnlineMarketplaceFlagResponse)null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(request);
+        var result = await _controller.GetOnlineMarketplaceFlag(organisationId);
 
         // Assert
         result.Should().BeOfType<NotFoundResult>();
@@ -70,19 +66,15 @@ public class CompanyDetailsControllerTests
     {
         // Arrange
         var organisationId = Guid.NewGuid();
-        var request = new GetOnlineMarketplaceFlagRequest
-        {
-            OrganisationId = organisationId
-        };
-
+        
         var expectedResult = new GetOnlineMarketplaceFlagResponse { IsOnlineMarketPlace = true, OrganisationId = organisationId }; // Mock result
 
         _companyDetailsServiceMock
-            .Setup(service => service.GetOnlineMarketplaceFlag(request))
+            .Setup(service => service.GetOnlineMarketplaceFlag(organisationId))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(request);
+        var result = await _controller.GetOnlineMarketplaceFlag(organisationId);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

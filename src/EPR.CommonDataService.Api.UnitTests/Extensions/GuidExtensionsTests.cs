@@ -6,25 +6,25 @@ namespace EPR.CommonDataService.Api.UnitTests.Extensions;
 public class GuidExtensionsTests
 {
     [TestMethod]
-    public void CheckValidGuid_ValidGuid_ReturnsTrue()
+    public void CheckInvalidGuid_InvalidGuid_ReturnsFalse()
     {
         // Arrange
         var userGuid = Guid.NewGuid();
 
         // Act
-        var result = userGuid.IsInvalidValidGuid();
+        var result = userGuid.IsInvalidGuid();
                         
         // Assert
         result.Should().Be(false);
     }
 
     [TestMethod]
-    public void CheckValidGuid_EmptyGuid_ReturnsFalse()
+    public void CheckInvalidGuid_EmptyGuid_ReturnsTrue()
     {
         var userGuid = Guid.Empty;
 
         // Act
-        var result = userGuid.IsInvalidValidGuid();
+        var result = userGuid.IsInvalidGuid();
 
         // Assert
         result.Should().Be(true);

@@ -1,5 +1,4 @@
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -38,7 +37,7 @@ public class ProducerPropertiesControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerSize(null!);
+        var result = await _controller.GetProducerSize(Guid.Empty);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -49,17 +48,14 @@ public class ProducerPropertiesControllerTests
     public async Task GetProducerSize_ValidRequest_NoResult_ReturnsNotFound()
     {
         // Arrange
-        var request = new GetProducerSizeRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         _producerPropertiesServiceMock
-            .Setup(service => service.GetProducerSize(request))
+            .Setup(service => service.GetProducerSize(organisationId))
             .ReturnsAsync((GetProducerSizeResponse)null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetProducerSize(request);
+        var result = await _controller.GetProducerSize(organisationId);
 
         // Assert
         result.Should().BeOfType<NotFoundResult>();
@@ -70,19 +66,15 @@ public class ProducerPropertiesControllerTests
     {
         // Arrange
         var organisationId = Guid.NewGuid();
-        var request = new GetProducerSizeRequest
-        {
-            OrganisationId = organisationId
-        };
-
+        
         var expectedResult = new GetProducerSizeResponse { ProducerSize = "Large", OrganisationId = organisationId }; // Mock result
 
         _producerPropertiesServiceMock
-            .Setup(service => service.GetProducerSize(request))
+            .Setup(service => service.GetProducerSize(organisationId))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetProducerSize(request);
+        var result = await _controller.GetProducerSize(organisationId);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

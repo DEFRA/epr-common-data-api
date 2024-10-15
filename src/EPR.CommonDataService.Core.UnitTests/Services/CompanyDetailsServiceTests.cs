@@ -1,4 +1,3 @@
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -24,16 +23,13 @@ public class CompanyDetailsServiceTests
     public async Task GetOnlineMarketplaceFlag_ValidRequestWithData_ReturnsResponse()
     {
         // Arrange
-        var request = new GetOnlineMarketplaceFlagRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         var expectedData = new List<CompanyDetailsModel>
         {
             new CompanyDetailsModel
             {
-                OrganisationId = request.OrganisationId,
+                OrganisationId = organisationId,
                 IsOnlineMarketplace = true
             }
         };
@@ -43,22 +39,19 @@ public class CompanyDetailsServiceTests
             .ReturnsAsync(expectedData);
 
         // Act
-        var result = await _service.GetOnlineMarketplaceFlag(request);
+        var result = await _service.GetOnlineMarketplaceFlag(organisationId);
 
         // Assert
         result.Should().NotBeNull();
         result!.IsOnlineMarketPlace.Should().BeTrue();
-        result.OrganisationId.Should().Be(request.OrganisationId);
+        result.OrganisationId.Should().Be(organisationId);
     }
 
     [TestMethod]
     public async Task GetOnlineMarketplaceFlag_ValidRequestNoData_ReturnsNull()
     {
         // Arrange
-        var request = new GetOnlineMarketplaceFlagRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         var emptyData = new List<CompanyDetailsModel>();
 
@@ -67,7 +60,7 @@ public class CompanyDetailsServiceTests
             .ReturnsAsync(emptyData);
 
         // Act
-        var result = await _service.GetOnlineMarketplaceFlag(request);
+        var result = await _service.GetOnlineMarketplaceFlag(organisationId);
 
         // Assert
         result.Should().BeNull();
@@ -77,17 +70,14 @@ public class CompanyDetailsServiceTests
     public async Task GetOnlineMarketplaceFlag_ExceptionThrown_ReturnsNull()
     {
         // Arrange
-        var request = new GetOnlineMarketplaceFlagRequest
-        {
-            OrganisationId = Guid.NewGuid()
-        };
+        var organisationId = Guid.NewGuid();
 
         _synapseContextMock
             .Setup(ctx => ctx.RunSqlAsync<CompanyDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
 
         // Act
-        var result = await _service.GetOnlineMarketplaceFlag(request);
+        var result = await _service.GetOnlineMarketplaceFlag(organisationId);
 
         // Assert
         result.Should().BeNull();

@@ -1,5 +1,4 @@
 ﻿using System.Data;
-using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -9,13 +8,13 @@ namespace EPR.CommonDataService.Core.Services;
 
 public interface IProducerPropertiesService
 {
-    Task<GetProducerSizeResponse?> GetProducerSize(GetProducerSizeRequest request);
+    Task<GetProducerSizeResponse?> GetProducerSize(Guid organisationId);
 }
 
 public class ProducerPropertiesService(SynapseContext synapseContext) : IProducerPropertiesService
 {
 
-    public async Task<GetProducerSizeResponse?> GetProducerSize(GetProducerSizeRequest request)
+    public async Task<GetProducerSizeResponse?> GetProducerSize(Guid organisationId)
     {
         IList<ProducerPropertiesModel> response;
         try
@@ -25,7 +24,7 @@ public class ProducerPropertiesService(SynapseContext synapseContext) : IProduce
             var sqlParameters = new List<SqlParameter>
             {
                 new ("@OrganisationId", SqlDbType.UniqueIdentifier, 255) {
-                    Value = request.OrganisationId
+                    Value = organisationId
                 }
             };
 
