@@ -9,16 +9,11 @@ namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController : ApiControllerBase
+public class SubmissionsController(
+    ISubmissionsService submissionsService,
+    IOptions<ApiConfig> baseApiConfigOptions)
+    : ApiControllerBase(baseApiConfigOptions)
 {
-    private readonly ISubmissionsService _submissionsService;
-
-    public SubmissionsController(ISubmissionsService submissionsService,
-        IOptions<ApiConfig> baseApiConfigOptions) : base(baseApiConfigOptions)
-    {
-        _submissionsService = submissionsService;
-    }
-
     [HttpPost("pom/summary")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -26,7 +21,7 @@ public class SubmissionsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)
     {
-        var result = await _submissionsService.GetSubmissionPomSummaries(request);
+        var result = await submissionsService.GetSubmissionPomSummaries(request);
 
         return Ok(result);
     }
@@ -38,7 +33,7 @@ public class SubmissionsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetRegistrationsSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorRegistrationDecision> request)
     {
-        var result = await _submissionsService.GetSubmissionRegistrationSummaries(request);
+        var result = await submissionsService.GetSubmissionRegistrationSummaries(request);
 
         return Ok(result);
     }
@@ -66,7 +61,7 @@ public class SubmissionsController : ApiControllerBase
 
         try
         {
-            var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
 
             if (!approvedSubmissions.Any())
             {

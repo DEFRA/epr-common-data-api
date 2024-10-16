@@ -58,7 +58,7 @@ public class ProducerPropertiesControllerTests
         var result = await _controller.GetProducerSize(organisationId);
 
         // Assert
-        result.Should().BeOfType<NotFoundResult>();
+        result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]

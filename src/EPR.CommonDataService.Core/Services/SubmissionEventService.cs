@@ -9,21 +9,16 @@ public interface ISubmissionEventService
     Task<SubmissionEventsLastSync> GetLastSyncTimeAsync();
 }
 
-public class SubmissionEventService : ISubmissionEventService
+public class SubmissionEventService(
+    SynapseContext accountsDbContext) 
+    : ISubmissionEventService
 {
-    private readonly SynapseContext _synapseContext;
-
-    public SubmissionEventService(SynapseContext accountsDbContext)
-    {
-        _synapseContext = accountsDbContext;
-    }
-    
     public async Task<SubmissionEventsLastSync> GetLastSyncTimeAsync()
     {
-        var lastSynctime =  await _synapseContext.SubmissionEvents.MaxAsync(se => se.LastSyncTime);
+        var lastSyncTime =  await accountsDbContext.SubmissionEvents.MaxAsync(se => se.LastSyncTime);
         return new SubmissionEventsLastSync
         {
-            LastSyncTime = lastSynctime
+            LastSyncTime = lastSyncTime
         };
     }
 }

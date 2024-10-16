@@ -18,7 +18,7 @@ public class ProducerPropertiesController(
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> GetProducerSize(Guid organisationId)
     {
         if (organisationId.IsInvalidGuid())
@@ -26,6 +26,6 @@ public class ProducerPropertiesController(
 
         var result = await producerPropertiesService.GetProducerSize(organisationId);
 
-        return result is null ? NotFound() : Ok(result);
+        return result is null ? NoContent() : Ok(result);
     }
 }

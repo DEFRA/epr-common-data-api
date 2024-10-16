@@ -9,7 +9,8 @@ public interface IDatabaseTimeoutService
 }
 
 [ExcludeFromCodeCoverage]
-public class DatabaseTimeoutService : IDatabaseTimeoutService
+public class DatabaseTimeoutService 
+    : IDatabaseTimeoutService
 {
     public void SetCommandTimeout(DbContext context, int timeout)
     {

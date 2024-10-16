@@ -11,7 +11,9 @@ public interface ICompanyDetailsService
     Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(Guid organisationId);
 }
 
-public class CompanyDetailsService(SynapseContext synapseContext) : ICompanyDetailsService
+public class CompanyDetailsService(
+    SynapseContext synapseContext) 
+    : ICompanyDetailsService
 {
     public async Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(Guid organisationId)
     {

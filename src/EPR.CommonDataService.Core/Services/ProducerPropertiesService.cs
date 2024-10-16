@@ -11,7 +11,9 @@ public interface IProducerPropertiesService
     Task<GetProducerSizeResponse?> GetProducerSize(Guid organisationId);
 }
 
-public class ProducerPropertiesService(SynapseContext synapseContext) : IProducerPropertiesService
+public class ProducerPropertiesService(
+    SynapseContext synapseContext) 
+    : IProducerPropertiesService
 {
 
     public async Task<GetProducerSizeResponse?> GetProducerSize(Guid organisationId)

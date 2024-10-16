@@ -58,7 +58,7 @@ public class CompanyDetailsControllerTests
         var result = await _controller.GetOnlineMarketplaceFlag(organisationId);
 
         // Assert
-        result.Should().BeOfType<NotFoundResult>();
+        result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
