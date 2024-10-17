@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -12,11 +13,14 @@ public interface ICompanyDetailsService
 }
 
 public class CompanyDetailsService(
-    SynapseContext synapseContext) 
+    SynapseContext synapseContext)
     : ICompanyDetailsService
 {
     public async Task<GetOnlineMarketplaceFlagResponse?> GetOnlineMarketplaceFlag(Guid organisationId)
     {
+        if (StoredProcedureExtensions.ReturnFakeData)
+            return new GetOnlineMarketplaceFlagResponse { OrganisationId = organisationId, IsOnlineMarketPlace = true };
+
         IList<CompanyDetailsModel> response;
         try
         {

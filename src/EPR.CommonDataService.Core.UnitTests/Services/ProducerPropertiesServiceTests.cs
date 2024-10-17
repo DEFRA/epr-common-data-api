@@ -1,3 +1,4 @@
+using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -20,6 +21,38 @@ public class ProducerPropertiesServiceTests
     }
 
     [TestMethod]
+    public async Task GetProducerSize_WhenValidRequestWithData_ReturnsLargeResponse()
+    {
+        // Arrange
+        var organisationId = Guid.NewGuid();
+
+        var expectedData = new List<ProducerPropertiesModel>
+        {
+            new ProducerPropertiesModel
+            {
+                OrganisationId = organisationId,
+                ProducerSize = "Large"
+            }
+        };
+        
+        StoredProcedureExtensions.ReturnFakeData = true;
+
+
+        // Act
+        var result = await _service.GetProducerSize(organisationId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.ProducerSize.Should().Be("Large");
+        result.OrganisationId.Should().Be(organisationId);
+
+        _synapseContextMock
+            .Verify(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
+                Times.Never);
+
+    }
+
+    [TestMethod]
     public async Task GetProducerSize_ValidRequestWithData_ReturnsResponse()
     {
         // Arrange
@@ -37,6 +70,8 @@ public class ProducerPropertiesServiceTests
         _synapseContextMock
             .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(expectedData);
+
+        StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
         var result = await _service.GetProducerSize(organisationId);
@@ -59,6 +94,8 @@ public class ProducerPropertiesServiceTests
             .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(emptyData);
 
+        StoredProcedureExtensions.ReturnFakeData = false;
+
         // Act
         var result = await _service.GetProducerSize(organisationId);
 
@@ -75,6 +112,8 @@ public class ProducerPropertiesServiceTests
         _synapseContextMock
             .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
+
+        StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
         var result = await _service.GetProducerSize(organisationId);

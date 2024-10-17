@@ -7,6 +7,7 @@ namespace EPR.CommonDataService.Core.Extensions;
 
 public static class StoredProcedureExtensions
 {
+    public static bool ReturnFakeData = true;
     public static SqlParameter[] ToProcParams<T>(this SubmissionsSummariesRequest<T> request)
     {
         var parameters = new List<SqlParameter>

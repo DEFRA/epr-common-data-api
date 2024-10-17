@@ -1,4 +1,5 @@
 ﻿using System.Data;
+using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -18,6 +19,9 @@ public class ProducerPropertiesService(
 
     public async Task<GetProducerSizeResponse?> GetProducerSize(Guid organisationId)
     {
+        if (StoredProcedureExtensions.ReturnFakeData)
+            return new GetProducerSizeResponse { OrganisationId = organisationId, ProducerSize = "Large" };
+
         IList<ProducerPropertiesModel> response;
         try
         {
