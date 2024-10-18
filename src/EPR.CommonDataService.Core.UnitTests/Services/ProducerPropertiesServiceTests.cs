@@ -26,17 +26,7 @@ public class ProducerPropertiesServiceTests
         // Arrange
         var organisationId = Guid.NewGuid();
 
-        var expectedData = new List<ProducerPropertiesModel>
-        {
-            new ProducerPropertiesModel
-            {
-                OrganisationId = organisationId,
-                ProducerSize = "Large"
-            }
-        };
-        
         StoredProcedureExtensions.ReturnFakeData = true;
-
 
         // Act
         var result = await _service.GetProducerSize(organisationId);

@@ -37,7 +37,18 @@ public class ProducerPropertiesControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerSize(Guid.Empty);
+        var result = await _controller.GetProducerSize(Guid.Empty.ToString());
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+        (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
+    }
+[TestMethod]
+    public async Task GetProducerSize_InvalidFormatRequest_ReturnsBadRequest()
+    {
+        // Arrange
+        // Act
+        var result = await _controller.GetProducerSize("bad data");
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -55,7 +66,7 @@ public class ProducerPropertiesControllerTests
             .ReturnsAsync((GetProducerSizeResponse)null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetProducerSize(organisationId);
+        var result = await _controller.GetProducerSize(organisationId.ToString());
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
@@ -74,7 +85,7 @@ public class ProducerPropertiesControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetProducerSize(organisationId);
+        var result = await _controller.GetProducerSize(organisationId.ToString());
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

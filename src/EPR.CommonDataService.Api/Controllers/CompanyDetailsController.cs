@@ -19,12 +19,12 @@ public class CompanyDetailsController(
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetOnlineMarketplaceFlag(Guid organisationId)
+    public async Task<IActionResult> GetOnlineMarketplaceFlag(string organisationId)
     {
-        if (organisationId.IsInvalidGuid())
+        if (organisationId.IsInvalidGuid(out var organisationIdGuid))
             return BadRequest("OrganisationId is invalid");
 
-        var result = await companyDetailsService.GetOnlineMarketplaceFlag(organisationId);
+        var result = await companyDetailsService.GetOnlineMarketplaceFlag(organisationIdGuid);
 
         return result is null ? NoContent() : Ok(result);
     }

@@ -37,7 +37,19 @@ public class CompanyDetailsControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(Guid.Empty);
+        var result = await _controller.GetOnlineMarketplaceFlag(Guid.Empty.ToString());
+
+        // Assert
+        result.Should().BeOfType<BadRequestObjectResult>();
+        (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
+    }
+    
+    [TestMethod]
+    public async Task GetOnlineMarketplaceFlag_InvalidFormatRequest_ReturnsBadRequest()
+    {
+        // Arrange
+        // Act
+        var result = await _controller.GetOnlineMarketplaceFlag("bad data");
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -55,7 +67,7 @@ public class CompanyDetailsControllerTests
             .ReturnsAsync((GetOnlineMarketplaceFlagResponse)null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(organisationId);
+        var result = await _controller.GetOnlineMarketplaceFlag(organisationId.ToString());
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
@@ -74,7 +86,7 @@ public class CompanyDetailsControllerTests
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetOnlineMarketplaceFlag(organisationId);
+        var result = await _controller.GetOnlineMarketplaceFlag(organisationId.ToString());
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

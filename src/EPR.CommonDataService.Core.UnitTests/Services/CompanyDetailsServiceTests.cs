@@ -26,14 +26,6 @@ public class CompanyDetailsServiceTests
         // Arrange
         var organisationId = Guid.NewGuid();
 
-        var expectedData = new List<CompanyDetailsModel>
-        {
-            new CompanyDetailsModel
-            {
-                OrganisationId = organisationId,
-                IsOnlineMarketplace = true
-            }
-        };
         StoredProcedureExtensions.ReturnFakeData = true;
 
         // Act
