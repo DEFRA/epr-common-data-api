@@ -1,5 +1,4 @@
 ﻿using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Api.Extensions;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -7,24 +6,24 @@ using Microsoft.Extensions.Options;
 namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
-[Route("api/producer-properties")]
-public class ProducerPropertiesController(
+[Route("api/producer-details")]
+public class ProducerDetailsController(
     IOptions<ApiConfig> baseApiConfigOptions, 
-    IProducerPropertiesService producerPropertiesService)
+    IProducerDetailsService producerDetailsService)
     : ApiControllerBase(baseApiConfigOptions)
 
 {
-    [HttpGet("get-producer-size")]
+    [HttpGet("get-producer-details")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetProducerSize(string organisationId)
+    public async Task<IActionResult> GetProducerDetails(int organisationId)
     {
-        if (organisationId.IsInvalidGuid(out var organisationIdGuid))
+        if (organisationId <= 0)
             return BadRequest("OrganisationId is invalid");
 
-        var result = await producerPropertiesService.GetProducerSize(organisationIdGuid);
+        var result = await producerDetailsService.GetProducerDetails(organisationId);
 
         return result is null ? NoContent() : Ok(result);
     }

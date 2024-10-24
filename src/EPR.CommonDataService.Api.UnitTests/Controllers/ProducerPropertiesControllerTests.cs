@@ -7,16 +7,16 @@ using Microsoft.Extensions.Options;
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
 [TestClass]
-public class ProducerPropertiesControllerTests
+public class ProducerDetailsControllerTests
 {
-    private Mock<IProducerPropertiesService> _producerPropertiesServiceMock = null!;
+    private Mock<IProducerDetailsService> _producerDetailsServiceMock = null!;
     private Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = null!;
-    private ProducerPropertiesController _controller = null!;
+    private ProducerDetailsController _controller = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _producerPropertiesServiceMock = new Mock<IProducerPropertiesService>();
+        _producerDetailsServiceMock = new Mock<IProducerDetailsService>();
         _apiConfigOptionsMock = new Mock<IOptions<ApiConfig>>();
 
         _apiConfigOptionsMock
@@ -26,29 +26,29 @@ public class ProducerPropertiesControllerTests
                 BaseProblemTypePath = "https://dummytest/"
             });
 
-        _controller = new ProducerPropertiesController(
+        _controller = new ProducerDetailsController(
             _apiConfigOptionsMock.Object,
-            _producerPropertiesServiceMock.Object
+            _producerDetailsServiceMock.Object
         );
     }
 
     [TestMethod]
-    public async Task GetProducerSize_InvalidRequest_ReturnsBadRequest()
+    public async Task GetProducerDetails_InvalidRequest_ReturnsBadRequest()
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerSize(Guid.Empty.ToString());
+        var result = await _controller.GetProducerDetails(0);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
     }
 [TestMethod]
-    public async Task GetProducerSize_InvalidFormatRequest_ReturnsBadRequest()
+    public async Task GetProducerDetails_InvalidFormatRequest_ReturnsBadRequest()
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerSize("bad data");
+        var result = await _controller.GetProducerDetails(-1);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -56,36 +56,36 @@ public class ProducerPropertiesControllerTests
     }
 
     [TestMethod]
-    public async Task GetProducerSize_ValidRequest_NoResult_ReturnsNotFound()
+    public async Task GetProducerDetails_ValidRequest_NoResult_ReturnsNotFound()
     {
         // Arrange
-        var organisationId = Guid.NewGuid();
+        const int OrganisationId = 1234;
 
-        _producerPropertiesServiceMock
-            .Setup(service => service.GetProducerSize(organisationId))
-            .ReturnsAsync((GetProducerSizeResponse)null!); // Simulating no result
+        _producerDetailsServiceMock
+            .Setup(service => service.GetProducerDetails(OrganisationId))
+            .ReturnsAsync((GetProducerDetailsResponse)null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetProducerSize(organisationId.ToString());
+        var result = await _controller.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
-    public async Task GetProducerSize_ValidRequest_WithResult_ReturnsOk()
+    public async Task GetProducerDetails_ValidRequest_WithResult_ReturnsOk()
     {
         // Arrange
-        var organisationId = Guid.NewGuid();
+        const int OrganisationId = 1234;
         
-        var expectedResult = new GetProducerSizeResponse { ProducerSize = "Large", OrganisationId = organisationId }; // Mock result
+        var expectedResult = new GetProducerDetailsResponse { ProducerSize = "Large", OrganisationId = OrganisationId }; // Mock result
 
-        _producerPropertiesServiceMock
-            .Setup(service => service.GetProducerSize(organisationId))
+        _producerDetailsServiceMock
+            .Setup(service => service.GetProducerDetails(OrganisationId))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetProducerSize(organisationId.ToString());
+        var result = await _controller.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

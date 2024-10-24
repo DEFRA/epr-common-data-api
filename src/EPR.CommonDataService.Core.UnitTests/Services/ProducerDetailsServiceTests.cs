@@ -8,36 +8,36 @@ using Moq;
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
 [TestClass]
-public class ProducerPropertiesServiceTests
+public class ProducerDetailsServiceTests
 {
     private Mock<SynapseContext> _synapseContextMock = null!;
-    private ProducerPropertiesService _service = null!;
+    private ProducerDetailsService _service = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _synapseContextMock = new Mock<SynapseContext>();
-        _service = new ProducerPropertiesService(_synapseContextMock.Object);
+        _service = new ProducerDetailsService(_synapseContextMock.Object);
     }
 
     [TestMethod]
     public async Task GetProducerSize_WhenValidRequestWithData_ReturnsLargeResponse()
     {
         // Arrange
-        var organisationId = Guid.NewGuid();
+        const int OrganisationId = 123;
 
         StoredProcedureExtensions.ReturnFakeData = true;
 
         // Act
-        var result = await _service.GetProducerSize(organisationId);
+        var result = await _service.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().NotBeNull();
         result!.ProducerSize.Should().Be("Large");
-        result.OrganisationId.Should().Be(organisationId);
+        result.OrganisationId.Should().Be(OrganisationId);
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
+            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
                 Times.Never);
 
     }
@@ -46,48 +46,48 @@ public class ProducerPropertiesServiceTests
     public async Task GetProducerSize_ValidRequestWithData_ReturnsResponse()
     {
         // Arrange
-        var organisationId = Guid.NewGuid();
+        const int OrganisationId = 1234;
 
-        var expectedData = new List<ProducerPropertiesModel>
+        var expectedData = new List<ProducerDetailsModel>
         {
-            new ProducerPropertiesModel
+            new ProducerDetailsModel
             {
-                OrganisationId = organisationId,
+                OrganisationId = OrganisationId,
                 ProducerSize = "Large"
             }
         };
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(expectedData);
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetProducerSize(organisationId);
+        var result = await _service.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().NotBeNull();
         result!.ProducerSize.Should().Be("Large");
-        result.OrganisationId.Should().Be(organisationId);
+        result.OrganisationId.Should().Be(OrganisationId);
     }
 
     [TestMethod]
     public async Task GetProducerSize_ValidRequestNoData_ReturnsNull()
     {
         // Arrange
-        var organisationId = Guid.NewGuid();
+        const int OrganisationId = 1234;
 
-        var emptyData = new List<ProducerPropertiesModel>();
+        var emptyData = new List<ProducerDetailsModel>();
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(emptyData);
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetProducerSize(organisationId);
+        var result = await _service.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().BeNull();
@@ -97,16 +97,16 @@ public class ProducerPropertiesServiceTests
     public async Task GetProducerSize_ExceptionThrown_ReturnsNull()
     {
         // Arrange
-        var organisationId = Guid.NewGuid();
+        const int OrganisationId = 1234;
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerPropertiesModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetProducerSize(organisationId);
+        var result = await _service.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().BeNull();
