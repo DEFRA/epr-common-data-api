@@ -88,7 +88,6 @@ public class StringToGuidConverterTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(FormatException))]
     public void Given_InvalidStringValue_When_ConvertedToGuid_Should_ThrowFormatException()
     {
         // Arrange
@@ -96,8 +95,9 @@ public class StringToGuidConverterTests
         var converter = StringToGuidConverter.Get();
 
         // Act
-        _ = converter.ConvertFromProvider(InvalidGuidString);
+        var act = () => converter.ConvertFromProvider(InvalidGuidString);
 
+        act.Should().Throw<FormatException>();
         // Assert - should be handled by expected exception attribute
     }
 }

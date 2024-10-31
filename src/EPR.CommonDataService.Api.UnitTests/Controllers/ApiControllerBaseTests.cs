@@ -11,28 +11,26 @@ namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 [ExcludeFromCodeCoverage]
 public class StubProblemDetailsFactory(ValidationProblemDetails validationProblemDetails) : ProblemDetailsFactory
 {
-    private readonly ValidationProblemDetails _validationProblemDetails = validationProblemDetails;
-
     public override ValidationProblemDetails CreateValidationProblemDetails(
         HttpContext httpContext,
         ModelStateDictionary modelStateDictionary,
         int? statusCode = null,
-        string title = null,
-        string type = null,
-        string detail = null,
-        string instance = null)
+        string? title = null,
+        string? type = null,
+        string? detail = null,
+        string? instance = null)
     {
         //this is just a stub class and specific input or output are not relevant for scope of testing
-        return _validationProblemDetails;
+        return validationProblemDetails;
     }
 
     public override ProblemDetails CreateProblemDetails(
         HttpContext httpContext,
         int? statusCode = null,
-        string title = null,
-        string type = null,
-        string detail = null,
-        string instance = null)
+        string? title = null,
+        string? type = null,
+        string? detail = null,
+        string? instance = null)
     {
         return new ProblemDetails
         {
@@ -49,8 +47,8 @@ public class StubProblemDetailsFactory(ValidationProblemDetails validationProble
 [TestClass]
 public class ApiControllerBaseTests
 {
-    private Mock<IOptions<ApiConfig>> _mockOptions;
-    private ApiControllerBase _controller;
+    private Mock<IOptions<ApiConfig>> _mockOptions = null!;
+    private ApiControllerBase _controller = null!;
 
     [TestInitialize]
     public void TestInitialize()

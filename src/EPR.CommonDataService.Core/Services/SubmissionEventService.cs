@@ -4,21 +4,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EPR.CommonDataService.Core.Services;
 
-public class SubmissionEventService : ISubmissionEventService
+public interface ISubmissionEventService
 {
-    private readonly SynapseContext _synapseContext;
+    Task<SubmissionEventsLastSync> GetLastSyncTimeAsync();
+}
 
-    public SubmissionEventService(SynapseContext accountsDbContext)
-    {
-        _synapseContext = accountsDbContext;
-    }
-    
+public class SubmissionEventService(
+    SynapseContext accountsDbContext) 
+    : ISubmissionEventService
+{
     public async Task<SubmissionEventsLastSync> GetLastSyncTimeAsync()
     {
-        var lastSynctime =  await _synapseContext.SubmissionEvents.MaxAsync(se => se.LastSyncTime);
+        var lastSyncTime =  await accountsDbContext.SubmissionEvents.MaxAsync(se => se.LastSyncTime);
         return new SubmissionEventsLastSync
         {
-            LastSyncTime = lastSynctime
+            LastSyncTime = lastSyncTime
         };
     }
 }

@@ -7,16 +7,11 @@ namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submission-events")]
-public class SubmissionEventsController : ApiControllerBase
+public class SubmissionEventsController(
+    ISubmissionEventService submissionEventService,
+    IOptions<ApiConfig> baseApiConfigOptions)
+    : ApiControllerBase(baseApiConfigOptions)
 {
-    private readonly ISubmissionEventService _submissionEventService;
-
-    public SubmissionEventsController(ISubmissionEventService submissionEventService,
-        IOptions<ApiConfig> baseApiConfigOptions) : base(baseApiConfigOptions)
-    {
-        _submissionEventService = submissionEventService;
-    }
-    
     [HttpGet("get-last-sync-time")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -24,7 +19,7 @@ public class SubmissionEventsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetLastSyncTime()
     {
-        var result = await _submissionEventService.GetLastSyncTimeAsync();
+        var result = await submissionEventService.GetLastSyncTimeAsync();
 
         return Ok(result);
     }
