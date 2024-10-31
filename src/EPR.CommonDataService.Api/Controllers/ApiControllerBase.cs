@@ -5,14 +5,11 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Controllers;
-public class ApiControllerBase : ControllerBase
+public class ApiControllerBase(
+    IOptions<ApiConfig> baseApiConfigOptions) 
+    : ControllerBase
 {
-    private readonly string _baseProblemTypePath;
-
-    public ApiControllerBase(IOptions<ApiConfig> baseApiConfigOptions)
-    {
-        _baseProblemTypePath= baseApiConfigOptions.Value.BaseProblemTypePath;
-    }
+    private readonly string _baseProblemTypePath = baseApiConfigOptions.Value.BaseProblemTypePath;
 
     [NonAction]
     public override ActionResult ValidationProblem()

@@ -9,7 +9,7 @@ namespace EPR.CommonDataService.Api.Extensions;
 [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
 public static class ServiceProviderExtensions
 {
-    private const string baseProblemTypePath = "ApiConfig:BaseProblemTypePath";
+    private const string BaseProblemTypePath = "ApiConfig:BaseProblemTypePath";
     public static IServiceCollection RegisterWebComponents(this IServiceCollection services, IConfiguration configuration)
     {
         AddControllers(services, configuration);
@@ -27,7 +27,7 @@ public static class ServiceProviderExtensions
 
     private static void AddControllers(IServiceCollection services, IConfiguration configuration)
     {
-        var baseProblemPath = configuration.GetValue<string>(baseProblemTypePath);
+        var baseProblemPath = configuration.GetValue<string>(BaseProblemTypePath);
 
         services
             .AddControllers()
@@ -52,6 +52,7 @@ public static class ServiceProviderExtensions
 
     private static void RegisterServices(IServiceCollection services)
     {
+        services.AddScoped<IProducerDetailsService, ProducerDetailsService>();
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();

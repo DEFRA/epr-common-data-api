@@ -9,16 +9,12 @@ namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController : ApiControllerBase
+public class SubmissionsController(
+    ISubmissionsService submissionsService,
+    IOptions<ApiConfig> baseApiConfigOptions)
+    : ApiControllerBase(baseApiConfigOptions)
 {
-    private readonly ISubmissionsService _submissionsService;
     private const string Periods = "P1,P4"; //will be added to config in future story
-
-    public SubmissionsController(ISubmissionsService submissionsService,
-        IOptions<ApiConfig> baseApiConfigOptions) : base(baseApiConfigOptions)
-    {
-        _submissionsService = submissionsService;
-    }
 
     [HttpPost("pom/summary")]
     [Produces("application/json")]
@@ -27,7 +23,7 @@ public class SubmissionsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)
     {
-        var result = await _submissionsService.GetSubmissionPomSummaries(request);
+        var result = await submissionsService.GetSubmissionPomSummaries(request);
 
         return Ok(result);
     }
@@ -39,7 +35,7 @@ public class SubmissionsController : ApiControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetRegistrationsSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorRegistrationDecision> request)
     {
-        var result = await _submissionsService.GetSubmissionRegistrationSummaries(request);
+        var result = await submissionsService.GetSubmissionRegistrationSummaries(request);
 
         return Ok(result);
     }

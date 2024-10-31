@@ -8,24 +8,27 @@ using System.Data;
 
 namespace EPR.CommonDataService.Core.Services;
 
-public class SubmissionsService : ISubmissionsService
+public interface ISubmissionsService
 {
-    private readonly SynapseContext _synapseContext;
-    private readonly IDatabaseTimeoutService _databaseTimeoutService;
+    Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request);
 
-    public SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService)
-    {
-        _synapseContext = accountsDbContext;
-        _databaseTimeoutService = databaseTimeoutService;
-    }
+    Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
 
+    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods);
+}
+
+public class SubmissionsService(
+    SynapseContext accountsDbContext, 
+    IDatabaseTimeoutService databaseTimeoutService)
+    : ISubmissionsService
+{
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {
         var sql = "EXECUTE apps.sp_FilterAndPaginateSubmissionsSummaries @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
 
         var sqlParameters = request.ToProcParams();
 
-        var response = await _synapseContext.RunSqlAsync<PomSubmissionSummaryRow>(sql, sqlParameters);
+        var response = await accountsDbContext.RunSqlAsync<PomSubmissionSummaryRow>(sql, sqlParameters);
         var itemsCount = response.FirstOrDefault()?.TotalItems ?? 0;
 
         return response.ToPaginatedResponse<PomSubmissionSummaryRow, T, PomSubmissionSummary>(request, itemsCount);
@@ -37,7 +40,7 @@ public class SubmissionsService : ISubmissionsService
 
         var sqlParameters = request.ToProcParams();
 
-        var response = await _synapseContext.RunSqlAsync<RegistrationsSubmissionSummaryRow>(sql, sqlParameters);
+        var response = await accountsDbContext.RunSqlAsync<RegistrationsSubmissionSummaryRow>(sql, sqlParameters);
         var itemsCount = response.FirstOrDefault()?.TotalItems ?? 0;
 
         return response.ToPaginatedResponse<RegistrationsSubmissionSummaryRow, T, RegistrationSubmissionSummary>(request, itemsCount);
@@ -49,9 +52,9 @@ public class SubmissionsService : ISubmissionsService
 
         try
         {
-            _databaseTimeoutService.SetCommandTimeout(_synapseContext, 120);
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
 
-            return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+            return await synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
         }

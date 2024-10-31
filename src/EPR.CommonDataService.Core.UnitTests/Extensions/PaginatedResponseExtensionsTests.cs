@@ -9,7 +9,7 @@ namespace EPR.CommonDataService.Core.UnitTests.Extensions;
 [ExcludeFromCodeCoverage]
 public class PaginatedResponseExtensionsTests
 {
-    private Fixture _fixture;
+    private Fixture _fixture = null!;
     
     [TestInitialize]
     public void Setup()
