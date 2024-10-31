@@ -116,6 +116,7 @@ public class SubmissionsServiceTests
             .CreateMany(10).ToList();
 
         var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
 
         var sqlParameters = Array.Empty<object>();
 
@@ -127,12 +128,16 @@ public class SubmissionsServiceTests
             .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
 
-        // Arrange
+        // Assert
         result.Should().NotBeNull();
         result.Count.Should().Be(10);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
@@ -141,6 +146,7 @@ public class SubmissionsServiceTests
     {
         // Arrange
         var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
 
         var sqlParameters = Array.Empty<object>();
 
@@ -152,12 +158,17 @@ public class SubmissionsServiceTests
             .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
 
-        // Arrange
+        // Assert
         result.Should().NotBeNull();
         result.Count.Should().Be(0);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
+
 }

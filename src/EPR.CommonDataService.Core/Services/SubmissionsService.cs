@@ -43,15 +43,17 @@ public class SubmissionsService : ISubmissionsService
         return response.ToPaginatedResponse<RegistrationsSubmissionSummaryRow, T, RegistrationSubmissionSummary>(request, itemsCount);
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods)
     {
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataV2 @ApprovedAfter, @Periods";
 
         try
         {
             _databaseTimeoutService.SetCommandTimeout(_synapseContext, 120);
 
-            return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+            return await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+                new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
         }
         catch (SqlException ex) when (ex.Number == -2)
         {

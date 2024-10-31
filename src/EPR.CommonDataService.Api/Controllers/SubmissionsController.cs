@@ -12,6 +12,7 @@ namespace EPR.CommonDataService.Api.Controllers;
 public class SubmissionsController : ApiControllerBase
 {
     private readonly ISubmissionsService _submissionsService;
+    private const string Periods = "P1,P4"; //will be added to config in future story
 
     public SubmissionsController(ISubmissionsService submissionsService,
         IOptions<ApiConfig> baseApiConfigOptions) : base(baseApiConfigOptions)
@@ -66,7 +67,7 @@ public class SubmissionsController : ApiControllerBase
 
         try
         {
-            var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+            var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, Periods);
 
             if (!approvedSubmissions.Any())
             {
