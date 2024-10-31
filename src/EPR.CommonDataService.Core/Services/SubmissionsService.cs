@@ -18,7 +18,7 @@ public interface ISubmissionsService
 }
 
 public class SubmissionsService(
-    SynapseContext accountsDbContext, 
+    SynapseContext accountsDbContext,
     IDatabaseTimeoutService databaseTimeoutService)
     : ISubmissionsService
 {
@@ -54,7 +54,7 @@ public class SubmissionsService(
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
 
-            return await synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+            return await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
         }

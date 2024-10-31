@@ -63,7 +63,7 @@ public class SubmissionsController(
 
         try
         {
-            var approvedSubmissions = await _submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, Periods);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, Periods);
 
             if (!approvedSubmissions.Any())
             {
