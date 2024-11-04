@@ -205,7 +205,7 @@ public class SubmissionsServiceTests
         // Arrange
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
         var approvedAfter = DateTime.UtcNow;
-        string periods = null; // Null periods
+        string? periods = null;
 
         var sqlParameters = Array.Empty<object>();
 
@@ -219,7 +219,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods!);
 
         // Assert
         result.Should().NotBeNull();
