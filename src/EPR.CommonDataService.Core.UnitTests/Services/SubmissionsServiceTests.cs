@@ -124,8 +124,10 @@ public class SubmissionsServiceTests
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(expectedResult);
+
         _databaseTimeoutService
-            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
 
         // Act 
         var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
@@ -135,14 +137,14 @@ public class SubmissionsServiceTests
         result.Count.Should().Be(10);
         sqlParameters.Should().BeEquivalentTo(new object[]
         {
-        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
-        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
         });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoesNotExist_ReturnsEmpty()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoNotExist_ReturnsEmpty()
     {
         // Arrange
         var approvedAfter = DateTime.UtcNow;
@@ -154,8 +156,10 @@ public class SubmissionsServiceTests
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(Array.Empty<ApprovedSubmissionEntity>());
+
         _databaseTimeoutService
-            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
 
         // Act 
         var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
@@ -165,35 +169,33 @@ public class SubmissionsServiceTests
         result.Count.Should().Be(0);
         sqlParameters.Should().BeEquivalentTo(new object[]
         {
-        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
-        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
         });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
     [TestMethod]
     [ExpectedException(typeof(DataException))]
-    public async Task RunSqlAsync_WhenSqlExceptionOccurs_ShouldThrowDataException()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionOccurs_ShouldThrowDataException()
     {
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
 
-        var sqlParameters = Array.Empty<object>();
-
+        // Set up the mock to throw a generic exception when RunSqlAsync is called
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
-            .Callback<string, object[]>((_, o) => sqlParameters = o)
-            .ThrowsAsync(new DataException());
+            .ThrowsAsync(new Exception("Simulated exception"));
 
         _databaseTimeoutService
             .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
             .Verifiable();
 
-        // Act 
+        // Act
         await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
 
-        // Assert 
+        // Assert - This will be handled by the ExpectedException attribute
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 

@@ -58,7 +58,7 @@ public class SubmissionsService(
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
         }
-        catch (SqlException ex)
+        catch (Exception ex)
         {
             throw new DataException("An error occurred while accessing the database.", ex);
         }
