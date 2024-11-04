@@ -58,9 +58,9 @@ public class SubmissionsService(
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
         }
-        catch (SqlException ex) when (ex.Number == -2)
+        catch (SqlException ex)
         {
-            throw new TimeoutException("The request timed out while accessing the database.", ex);
+            throw new DataException("An error occurred while accessing the database.", ex);
         }
     }
 }

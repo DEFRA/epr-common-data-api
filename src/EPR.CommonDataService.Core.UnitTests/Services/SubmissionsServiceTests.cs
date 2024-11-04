@@ -171,4 +171,30 @@ public class SubmissionsServiceTests
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
+    [TestMethod]
+    [ExpectedException(typeof(DataException))]
+    public async Task RunSqlAsync_WhenSqlExceptionOccurs_ShouldThrowDataException()
+    {
+        // Arrange
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ThrowsAsync(new DataException());
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act 
+        await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+
+        // Assert 
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
 }
