@@ -199,4 +199,69 @@ public class SubmissionsServiceTests
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenPeriodsIsNull_ExecutesWithNullParameter()
+    {
+        // Arrange
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
+        var approvedAfter = DateTime.UtcNow;
+        string periods = null; // Null periods
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act 
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(5);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = DBNull.Value } // Check for DBNull when periods is null
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenPeriodsIsEmpty_ExecutesWithEmptyParameter()
+    {
+        // Arrange
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
+        var approvedAfter = DateTime.UtcNow;
+        var periods = ""; // Empty periods
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act 
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(3);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods } // Check for empty string when periods is empty
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
 }
