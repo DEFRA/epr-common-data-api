@@ -2,7 +2,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROC [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomData] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX) AS
+CREATE PROC [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX) AS
 BEGIN
 
     SET NOCOUNT ON;
@@ -147,7 +147,7 @@ BEGIN
 	SELECT 
 	@Year AS SubmissionPeriod,  -- Hardcoded variable
 	PackagingMaterial AS PackagingMaterial,
-	SUM(PackagingMaterialWeight) AS PackagingMaterialWeight,
+	SUM(PackagingMaterialWeight) / 1000.0 AS PackagingMaterialWeight,
 	OrganisationId
 	FROM 
 	#AggregatedMaterials
