@@ -9,8 +9,8 @@ BEGIN
     IF OBJECT_ID('tempdb..#ApprovedSubmissions') IS NOT NULL
         DROP TABLE #ApprovedSubmissions;
 
-    IF OBJECT_ID('tempdb..#FileIds') IS NOT NULL
-        DROP TABLE #FileIds;
+    IF OBJECT_ID('tempdb..#FileIdss') IS NOT NULL
+        DROP TABLE #FileIdss;
 
     IF OBJECT_ID('tempdb..#FileNames') IS NOT NULL
         DROP TABLE #FileNames;
@@ -20,6 +20,10 @@ BEGIN
 		
 	IF OBJECT_ID('tempdb..#PeriodYearTable') IS NOT NULL
 		DROP TABLE #PeriodYearTable;	
+
+    IF OBJECT_ID('tempdb..#DuplicateMaterials') IS NOT NULL
+     DROP TABLE #DuplicateMaterials;	    
+
 		
 	--Get start date from approved after date which will be used to get all data from the start of the year
 	DECLARE @Year VARCHAR(4) = CAST(YEAR(@ApprovedAfter) AS VARCHAR(4));
@@ -87,28 +91,22 @@ BEGIN
         p.organisation_id;
 		
 	
-    --gets duplicate materials for organisation id
-	WITH Duplicates AS (
-		SELECT OrganisationId, PackagingMaterial
-		FROM #MaxCreated
-		GROUP BY OrganisationId, PackagingMaterial
-		HAVING COUNT(*) = 2
-	),
-	--gets all other information for each duplicate
-	DuplicateMaterials AS (
-		SELECT MC.OrganisationId, MC.PackagingMaterial, MC.MaxCreated, MC.SubmissionPeriod
-		FROM #MaxCreated AS MC
-		JOIN Duplicates AS D
-		ON MC.OrganisationId = D.OrganisationId
-		AND MC.PackagingMaterial = D.PackagingMaterial
-	)
-	--validate that duplicate materials for organisation have all the periods required to be valid
-	SELECT dm.OrganisationId, dm.PackagingMaterial, dm.MaxCreated, p.period
-	INTO #ValidDuplicateMaterials
-	FROM #PeriodYearTable AS p
-	JOIN DuplicateMaterials AS dm
-	ON p.period = dm.SubmissionPeriod
+    -- Step 1: Identify duplicate materials based on #PeriodYearTable
+    SELECT OrganisationId, PackagingMaterial
+    INTO #DuplicateMaterials
+    FROM #MaxCreated
+    WHERE SubmissionPeriod IN (SELECT period FROM #PeriodYearTable)
+    GROUP BY OrganisationId, PackagingMaterial
+    HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable);
 
+    -- Step 2: Insert valid records into #ValidDuplicateMaterials based on #DuplicateMaterials
+    SELECT mc.OrganisationId, mc.PackagingMaterial, mc.MaxCreated, mc.SubmissionPeriod
+    INTO #ValidDuplicateMaterials
+    FROM #MaxCreated AS mc
+    JOIN #DuplicateMaterials AS dm
+    ON mc.OrganisationId = dm.OrganisationId
+    AND mc.PackagingMaterial = dm.PackagingMaterial
+    WHERE mc.SubmissionPeriod IN (SELECT period FROM #PeriodYearTable);
 
 
     --aggregate material weight for each submission for each org id also aggregat PC and FC
@@ -126,7 +124,7 @@ BEGIN
     JOIN [rpd].[Pom] p 
     ON p.[FileName] = f.[FileName]
     JOIN #ValidDuplicateMaterials m 
-    ON p.submission_period = m.[Period]
+    ON p.submission_period = m.SubmissionPeriod
     AND p.packaging_material = m.PackagingMaterial
     AND p.organisation_id = m.OrganisationId
     AND f.Created = m.MaxCreated
@@ -163,5 +161,6 @@ BEGIN
 	DROP TABLE #PeriodYearTable;
 	DROP TABLE #ValidDuplicateMaterials;
 	DROP TABLE #AggregatedMaterials;
+    DROP TABLE #DuplicateMaterials;
 END
 GO
