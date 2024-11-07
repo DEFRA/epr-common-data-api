@@ -1,19 +1,22 @@
+#nullable disable
+
+using Azure.Core;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System.Globalization;
 
 namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController(
-    ISubmissionsService submissionsService,
-    IOptions<ApiConfig> baseApiConfigOptions)
-    : ApiControllerBase(baseApiConfigOptions)
+public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> baseApiConfigOptions, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(baseApiConfigOptions)
 {
+    private readonly string logPrefix = config["LogPrefix"];
+
     [HttpPost("pom/summary")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -21,8 +24,11 @@ public class SubmissionsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)
     {
+        logger.LogInformation("{Logprefix}: SubmissionsController: Api Route 'pom/summary'", logPrefix);
+        logger.LogInformation("{Logprefix}: SubmissionsController - GetPomSubmissionsSummaries: Get Pom Submissions for given Regulator {PomSubmissions}", logPrefix, JsonConvert.SerializeObject(request));
         var result = await submissionsService.GetSubmissionPomSummaries(request);
 
+        logger.LogInformation("{Logprefix}: SubmissionsController - GetPomSubmissionsSummaries: Pom Submissions returned {SubmissionPomSummaries}", logPrefix, result);
         return Ok(result);
     }
 
@@ -33,8 +39,11 @@ public class SubmissionsController(
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetRegistrationsSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorRegistrationDecision> request)
     {
+        logger.LogInformation("{Logprefix}: SubmissionsController: Api Route 'registrations/summary'", logPrefix);
+        logger.LogInformation("{Logprefix}: SubmissionsController - GetRegistrationsSubmissionsSummaries: Get Registration Submissions for given Regulator {RegulatorSubmissions}", logPrefix, JsonConvert.SerializeObject(request));
         var result = await submissionsService.GetSubmissionRegistrationSummaries(request);
 
+        logger.LogInformation("{Logprefix}: SubmissionsController - GetRegistrationsSubmissionsSummaries: Registration Submissions returned {SubmissionRegistrationSummaries}", logPrefix, result);
         return Ok(result);
     }
 
@@ -52,31 +61,36 @@ public class SubmissionsController(
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetApprovedSubmissionsWithAggregatedPomData(string approvedAfterDateString)
     {
+        logger.LogInformation("{Logprefix}: SubmissionsController: Api Route 'v1/pom/approved/{ApprovedAfterDateString}'", logPrefix, approvedAfterDateString);
+        logger.LogInformation("{Logprefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Get submissions approved after {ApprovedAfterDateString}", logPrefix, approvedAfterDateString);
         if (!DateTime.TryParse(approvedAfterDateString, CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.AssumeUniversal, out var approvedAfter))
         {
+            logger.LogError("{Logprefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Invalid datetime provided; please make sure it's a valid UTC datetime", logPrefix);
             ModelState.AddModelError(nameof(approvedAfterDateString), "Invalid datetime provided; please make sure it's a valid UTC datetime");
-
             return BadRequest(ModelState);
         }
 
         try
         {
             var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
-
             if (!approvedSubmissions.Any())
             {
+                logger.LogError("{Logprefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: The datetime provided did not return any submissions", logPrefix);
                 ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
                 return NotFound(ModelState);
             }
 
+            logger.LogInformation("{Logprefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Approved Submissions returned {ApprovedSubmissions}", logPrefix, approvedSubmissions);
             return Ok(approvedSubmissions);
         }
         catch (TimeoutException ex)
         {
+            logger.LogError(ex, "{Logprefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Get Approved Submissions request Timedout - Exception {Ex}", logPrefix, ex.Message);
             return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
         }
         catch (Exception ex)
         {
+            logger.LogError(ex, "{Logprefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Get Approved Submissions request Failed - Exception {Error}", logPrefix, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }

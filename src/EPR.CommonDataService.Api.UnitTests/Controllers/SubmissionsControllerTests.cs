@@ -7,6 +7,8 @@ using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -34,8 +36,11 @@ public class SubmissionsControllerTests
                 BaseProblemTypePath = "https://dummytest/"
             });
 
-        _submissionsController = new SubmissionsController(_submissionsService.Object,
-            _apiConfigOptionsMock.Object)
+        var mockLogger = new Mock<ILogger<SubmissionsController>>();
+        var configurationMock = new Mock<IConfiguration>();
+        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+
+        _submissionsController = new SubmissionsController(_submissionsService.Object, _apiConfigOptionsMock.Object, mockLogger.Object, configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {

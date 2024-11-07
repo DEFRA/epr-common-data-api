@@ -5,6 +5,8 @@ using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Moq;
 using System.Data;
 
@@ -24,7 +26,12 @@ public class SubmissionsServiceTests
         _fixture = new Fixture();
         _mockSynapseContext = new Mock<SynapseContext>();
         _databaseTimeoutService = new Mock<IDatabaseTimeoutService>();
-        _sut = new SubmissionsService(_mockSynapseContext.Object, _databaseTimeoutService.Object);
+
+        var mockLogger = new Mock<ILogger<SubmissionsService>>();
+        var configurationMock = new Mock<IConfiguration>();
+        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+
+        _sut = new SubmissionsService(_mockSynapseContext.Object, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
     }
 
     [TestMethod]
