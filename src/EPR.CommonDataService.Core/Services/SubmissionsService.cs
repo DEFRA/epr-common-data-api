@@ -1,5 +1,3 @@
-#nullable disable
-
 using Azure.Core;
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Requests;
@@ -25,7 +23,7 @@ public interface ISubmissionsService
 
 public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService, ILogger<SubmissionsService> logger, IConfiguration config) : ISubmissionsService
 {
-    private readonly string logPrefix = config["LogPrefix"];
+    private readonly string? logPrefix = config["LogPrefix"];
 
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {

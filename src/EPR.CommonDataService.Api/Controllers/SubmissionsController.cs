@@ -1,5 +1,3 @@
-#nullable disable
-
 using Azure.Core;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
@@ -15,7 +13,7 @@ namespace EPR.CommonDataService.Api.Controllers;
 [Route("api/submissions")]
 public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> baseApiConfigOptions, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(baseApiConfigOptions)
 {
-    private readonly string logPrefix = config["LogPrefix"];
+    private readonly string? logPrefix = config["LogPrefix"];
 
     [HttpPost("pom/summary")]
     [Produces("application/json")]
