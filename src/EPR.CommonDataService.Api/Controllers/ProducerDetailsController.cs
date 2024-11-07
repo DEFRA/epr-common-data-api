@@ -13,12 +13,12 @@ public class ProducerDetailsController(
     : ApiControllerBase(baseApiConfigOptions)
 
 {
-    [HttpGet("get-producer-details")]
+    [HttpGet("get-producer-details/{organisationId:int}", Name = nameof(GetProducerDetails))]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetProducerDetails(int organisationId)
+    public async Task<IActionResult> GetProducerDetails([FromRoute] int organisationId)
     {
         if (organisationId <= 0)
             return BadRequest("OrganisationId is invalid");
