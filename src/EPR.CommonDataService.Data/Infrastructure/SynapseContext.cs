@@ -66,7 +66,7 @@ public class SynapseContext : DbContext
         {
             if (Database.ProviderName == InMemoryProvider)
             {
-                entity.HasKey(e => e.SubmissionId);
+                entity.HasKey(e => e.OrganisationId);
             }
             else
             {

@@ -18,7 +18,7 @@ public interface ISubmissionsService
 
     Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
 
-    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter);
+    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods);
 }
 
 public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService, ILogger<SubmissionsService> logger, IConfiguration config) : ISubmissionsService
@@ -61,25 +61,27 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         return paginatedResponse;
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods)
     {
-        logger.LogInformation("{Logprefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}", logPrefix, approvedAfter.ToString());
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods}", logPrefix, approvedAfter.ToString(), periods);
 
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataV2 @ApprovedAfter, @Periods";
         logger.LogInformation("{Logprefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", logPrefix, sql);
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
-            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+                new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
 
             logger.LogInformation("{Logprefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", logPrefix, JsonConvert.SerializeObject(paginatedResponse));
             return paginatedResponse;
         }
-        catch (SqlException ex) when (ex.Number == -2)
+        catch (Exception ex)
         {
-            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get Approved Submissions request Timedout while querying database - {Ex}", logPrefix, ex.Message);
-            throw new TimeoutException("The request timed out while accessing the database.", ex);
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: An error occurred while accessing the database. - {Ex}", logPrefix, ex.Message);
+            throw new DataException("An error occurred while accessing the database.", ex);
         }
     }
 }
