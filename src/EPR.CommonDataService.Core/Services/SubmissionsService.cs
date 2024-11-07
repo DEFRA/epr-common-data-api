@@ -14,11 +14,11 @@ public interface ISubmissionsService
 
     Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
 
-    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter);
+    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods);
 }
 
 public class SubmissionsService(
-    SynapseContext accountsDbContext, 
+    SynapseContext accountsDbContext,
     IDatabaseTimeoutService databaseTimeoutService)
     : ISubmissionsService
 {
@@ -46,19 +46,21 @@ public class SubmissionsService(
         return response.ToPaginatedResponse<RegistrationsSubmissionSummaryRow, T, RegistrationSubmissionSummary>(request, itemsCount);
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods)
     {
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomData @ApprovedAfter";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataV2 @ApprovedAfter, @Periods";
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
 
-            return await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql, new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter });
+            return await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+                new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
         }
-        catch (SqlException ex) when (ex.Number == -2)
+        catch (Exception ex)
         {
-            throw new TimeoutException("The request timed out while accessing the database.", ex);
+            throw new DataException("An error occurred while accessing the database.", ex);
         }
     }
 }

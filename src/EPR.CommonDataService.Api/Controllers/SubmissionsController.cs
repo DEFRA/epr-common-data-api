@@ -14,6 +14,8 @@ public class SubmissionsController(
     IOptions<ApiConfig> baseApiConfigOptions)
     : ApiControllerBase(baseApiConfigOptions)
 {
+    private const string Periods = "P1,P4"; //will be added to config in future story
+
     [HttpPost("pom/summary")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -61,7 +63,7 @@ public class SubmissionsController(
 
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, Periods);
 
             if (!approvedSubmissions.Any())
             {

@@ -116,6 +116,7 @@ public class SubmissionsServiceTests
             .CreateMany(10).ToList();
 
         var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
 
         var sqlParameters = Array.Empty<object>();
 
@@ -123,24 +124,31 @@ public class SubmissionsServiceTests
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(expectedResult);
+
         _databaseTimeoutService
-            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
 
-        // Arrange
+        // Assert
         result.Should().NotBeNull();
         result.Count.Should().Be(10);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoesNotExist_ReturnsEmpty()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoNotExist_ReturnsEmpty()
     {
         // Arrange
         var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
 
         var sqlParameters = Array.Empty<object>();
 
@@ -148,16 +156,112 @@ public class SubmissionsServiceTests
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(Array.Empty<ApprovedSubmissionEntity>());
+
         _databaseTimeoutService
-            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>())).Verifiable();
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
 
-        // Arrange
+        // Assert
         result.Should().NotBeNull();
         result.Count.Should().Be(0);
-        sqlParameters.Should().BeEquivalentTo(new object[] { new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter } });
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(DataException))]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionOccurs_ShouldThrowDataException()
+    {
+        // Arrange
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+
+        // Set up the mock to throw a generic exception when RunSqlAsync is called
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .ThrowsAsync(new Exception("Simulated exception"));
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+
+        // Assert - This will be handled by the ExpectedException attribute
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenPeriodsIsNull_ExecutesWithNullParameter()
+    {
+        // Arrange
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
+        var approvedAfter = DateTime.UtcNow;
+        string? periods = null;
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act 
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods!);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(5);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = DBNull.Value } // Check for DBNull when periods is null
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenPeriodsIsEmpty_ExecutesWithEmptyParameter()
+    {
+        // Arrange
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
+        var approvedAfter = DateTime.UtcNow;
+        var periods = ""; // Empty periods
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act 
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(3);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+        new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+        new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods } // Check for empty string when periods is empty
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 }

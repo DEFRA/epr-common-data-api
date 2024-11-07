@@ -1,20 +1,18 @@
-using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Core.Models;
+using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Core.UnitTests.TestHelpers;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
-[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionEventServiceTests
 {
     private SynapseContext _synapseContext = null!;
     private SubmissionEventService _sut = null!;
-    
+
     private DbContextOptions<SynapseContext> _dbContextOptions = null!;
 
     [TestInitialize]
@@ -26,7 +24,7 @@ public class SubmissionEventServiceTests
             .Options;
         _synapseContext = new SynapseContext(_dbContextOptions);
         SubmissionEventTestHelper.SetupDatabaseForSubmissionEvents(_synapseContext);
-       
+
         _sut = new SubmissionEventService(_synapseContext);
     }
 
@@ -35,7 +33,7 @@ public class SubmissionEventServiceTests
     {
         //Act
         var result = await _sut.GetLastSyncTimeAsync();
-        
+
         //Assert
         result.Should().NotBeNull();
         result.Should().BeOfType<SubmissionEventsLastSync>();
