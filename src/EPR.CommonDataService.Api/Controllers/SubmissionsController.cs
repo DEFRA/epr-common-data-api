@@ -13,7 +13,7 @@ namespace EPR.CommonDataService.Api.Controllers;
 [Route("api/submissions")]
 public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> baseApiConfigOptions, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(baseApiConfigOptions)
 {
-    private readonly string? logPrefix = config["LogPrefix"];
+    private readonly string? logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
 
     private const string Periods = "P1,P4"; //will be added to config in future story
 
