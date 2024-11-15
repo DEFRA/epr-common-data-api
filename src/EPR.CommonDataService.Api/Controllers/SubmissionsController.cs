@@ -15,8 +15,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 {
     private readonly string? logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
 
-    private const string Periods = "P1,P4"; //will be added to config in future story
-
     [HttpPost("pom/summary")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -72,7 +70,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, Periods);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, baseApiConfigOptions.Value.PomDataSubmissionPeriods);
 
             if (!approvedSubmissions.Any())
             {
