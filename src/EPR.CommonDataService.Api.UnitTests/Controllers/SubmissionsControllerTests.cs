@@ -32,7 +32,7 @@ public class SubmissionsControllerTests
             .Returns(new ApiConfig
             {
                 BaseProblemTypePath = "https://dummytest/",
-                PomDataSubmissionPeriods = "P1,p4"
+                PomDataSubmissionPeriods = "P1,P4"
             });
 
         var mockLogger = new Mock<ILogger<SubmissionsController>>();
