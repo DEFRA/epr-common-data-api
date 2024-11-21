@@ -43,7 +43,7 @@ public class ProducerDetailsControllerTests
         result.Should().BeOfType<BadRequestObjectResult>();
         (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
     }
-[TestMethod]
+    [TestMethod]
     public async Task GetProducerDetails_InvalidFormatRequest_ReturnsBadRequest()
     {
         // Arrange
@@ -77,8 +77,8 @@ public class ProducerDetailsControllerTests
     {
         // Arrange
         const int OrganisationId = 1234;
-        
-        var expectedResult = new GetProducerDetailsResponse { ProducerSize = "Large", OrganisationId = OrganisationId }; // Mock result
+
+        var expectedResult = new GetProducerDetailsResponse { ProducerSize = "Large", NumberOfSubsidiaries = 10, NumberOfSubsidiariesBeingOnlineMarketPlace = 20 }; // Mock result
 
         _producerDetailsServiceMock
             .Setup(service => service.GetProducerDetails(OrganisationId))

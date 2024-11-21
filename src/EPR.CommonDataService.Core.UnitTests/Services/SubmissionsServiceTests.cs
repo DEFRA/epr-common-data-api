@@ -183,7 +183,6 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    [ExpectedException(typeof(DataException))]
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionOccurs_ShouldThrowDataException()
     {
         // Arrange
@@ -200,7 +199,9 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+        Func<Task> act = async () => await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods);
+
+        await act.Should().ThrowAsync<DataException>();
 
         // Assert - This will be handled by the ExpectedException attribute
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
