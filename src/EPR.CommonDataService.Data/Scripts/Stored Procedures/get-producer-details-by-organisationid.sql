@@ -9,37 +9,49 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-    WITH SubsidiaryCount AS (
+WITH LatestFile AS (
+    SELECT TOP 1
+        LTRIM(RTRIM([FileName])) AS LatestFileName
+    FROM 
+        [rpd].[cosmos_file_metadata] metadata INNER JOIN [rpd].[Organisations] ORG ON ORG.referenceNumber = metadata.OrganisationId
+    WHERE 
+        ORG.Id = @organisationId
+    ORDER BY 
+        CAST(Created AS DATETIME) DESC
+),
+SubsidiaryCount AS (
     SELECT 
-        organisation_id, 
+        CD.organisation_id, 
         COUNT(*) AS NumberOfSubsidiaries
     FROM 
-        rpd.companyDetails
+        [rpd].[CompanyDetails] CD INNER JOIN [rpd].[Organisations] ORG ON ORG.referenceNumber = CD.organisation_id
+    CROSS JOIN LatestFile LF -- Use the latest file name
     WHERE 
-        organisation_id = @organisationId 
-        AND subsidiary_id IS NULL
+        CD.organisation_id = @organisationId
+        AND LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName -- Match file name with the latest
+        AND CD.subsidiary_id IS NOT NULL
     GROUP BY 
-        organisation_id
+        CD.organisation_id
 )
-
 SELECT 
-    COUNT(cd.packaging_activity_om) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+    COUNT(CASE WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id,
     CASE 
         WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN CAST(1 AS BIT)
         ELSE CAST(0 AS BIT)
     END AS IsOnlineMarketplace,
-    pom.organisation_size AS 'ProducerSize',
+    pom.organisation_size AS ProducerSize,
     '' AS ApplicationReferenceNumber,
-    sc.NumberOfSubsidiaries
+    sc.NumberOfSubsidiaries,
+    N.NationCode AS Regulator
 FROM 
     rpd.companyDetails cd
     INNER JOIN rpd.Organisations org 
         ON org.referenceNumber = cd.organisation_id
     LEFT JOIN dbo.t_POM pom 
         ON pom.organisation_id = org.referenceNumber
-    LEFT JOIN dbo.t_POM_Submissions tps 
-        ON tps.organisation_id = cd.organisation_id
+    JOIN [rpd].[Nations] N 
+        ON N.Id = org.NationId
     INNER JOIN rpd.Submissions sub 
         ON sub.organisationid = org.externalid
     LEFT JOIN SubsidiaryCount sc 
@@ -50,7 +62,9 @@ GROUP BY
     cd.packaging_activity_om, 
     cd.organisation_id,
     pom.organisation_size,
+    N.NationCode,
     sc.NumberOfSubsidiaries;
+
     
 END;
 
