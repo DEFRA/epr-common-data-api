@@ -10,13 +10,13 @@ namespace EPR.CommonDataService.Core.UnitTests.Extensions;
 public class PaginatedResponseExtensionsTests
 {
     private Fixture _fixture = null!;
-    
+
     [TestInitialize]
     public void Setup()
     {
         _fixture = new Fixture();
     }
-    
+
     [TestMethod]
     public void ToPaginatedResponse_FirstPage_ShouldSetItemsCorrectly()
     {
@@ -32,7 +32,7 @@ public class PaginatedResponseExtensionsTests
             .Create();
 
         // Act
-        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow,RegulatorPomDecision,PomSubmissionSummary>(request, 100);
+        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow, RegulatorPomDecision, PomSubmissionSummary>(request, 100);
 
         // Assert
         response.Items.Should().HaveCount(10);
@@ -53,7 +53,7 @@ public class PaginatedResponseExtensionsTests
         };
 
         // Act
-        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow,RegulatorPomDecision,PomSubmissionSummary>(request, 10);
+        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow, RegulatorPomDecision, PomSubmissionSummary>(request, 10);
 
         // Assert
         response.TotalItems.Should().Be(0);

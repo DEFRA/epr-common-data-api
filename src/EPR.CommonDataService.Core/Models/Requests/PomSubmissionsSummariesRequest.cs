@@ -1,6 +1,6 @@
 ﻿namespace EPR.CommonDataService.Core.Models.Requests;
 
-public class SubmissionsSummariesRequest<T>
+public class SubmissionsSummariesRequest<T> : IPaginatedRequest
 {
     public Guid UserId { get; set; }
     

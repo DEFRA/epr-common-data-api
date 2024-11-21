@@ -9,6 +9,50 @@ public static class StoredProcedureExtensions
 {
     public static bool ReturnFakeData { get; set; } = true;
 
+    public static SqlParameter[] ToProcParams(this OrganisationRegistrationDetailRequest request)
+    {
+        return
+        [
+            new ("@SubmissionId", SqlDbType.UniqueIdentifier)
+            {
+                Value = request.SubmissionId
+            }
+        ];
+    }
+
+    public static SqlParameter[] ToProcParams(this OrganisationRegistrationFilterRequest request)
+    {
+        return
+        [
+            new ("@OrganisationNameCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.OrganisationNameCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@OrganisationReferenceCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.OrganisationIDCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@SubmissionYearsCommaSeparated ", SqlDbType.NVarChar, 255)
+            {
+                Value = request.RelevantYearCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@StatusesCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.SubmissionStatusCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@OrganisationTypeCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.OrganisationTypesCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@PageSize", SqlDbType.Int) {
+                Value = request.PageSize
+            },
+            new ("@PageNumber", SqlDbType.Int) {
+                Value = request.PageNumber
+            },
+        ];
+    }
+
     public static SqlParameter[] ToProcParams<T>(this SubmissionsSummariesRequest<T> request)
     {
         var parameters = new List<SqlParameter>
