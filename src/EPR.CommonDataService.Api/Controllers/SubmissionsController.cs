@@ -94,7 +94,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
     }
 
-    [HttpGet("v1/organisation-registrations/{NationId}")]
+    [HttpGet("organisation-registrations/{NationId}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -130,7 +130,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
     }
 
-    [HttpGet("v1/organisation-registration-submission/{SubmissionId}")]
+    [HttpGet("organisation-registration-submission/{SubmissionId}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

@@ -224,7 +224,7 @@ begin
         WHERE 
         ( 
 			1 = 1
-			--AND NationId = @NationId 
+			AND NationId = @NationId 
 		)
 		AND
 		(
