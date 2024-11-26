@@ -16,11 +16,10 @@ public class ProducerDetailsService(
     SynapseContext synapseContext)
     : IProducerDetailsService
 {
-
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
     {
         if (StoredProcedureExtensions.ReturnFakeData)
-            return new GetProducerDetailsResponse { OrganisationId = organisationId, ProducerSize = "Large", NumberOfSubsidiariesBeingOnlineMarketPlace = 29, IsOnlineMarketplace = true, NumberOfSubsidiaries = 54 };
+            return new GetProducerDetailsResponse { ProducerSize = "Large", NumberOfSubsidiariesBeingOnlineMarketPlace = 29, IsOnlineMarketplace = true, NumberOfSubsidiaries = 54 };
 
         IList<ProducerDetailsModel> response;
         try
@@ -47,7 +46,9 @@ public class ProducerDetailsService(
             new GetProducerDetailsResponse
             {
                 ProducerSize = firstItem.ProducerSize,
-                OrganisationId = firstItem.OrganisationId
+                IsOnlineMarketplace = firstItem.IsOnlineMarketplace,
+                NumberOfSubsidiaries = firstItem.NumberOfSubsidiaries,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = firstItem.NumberOfSubsidiariesBeingOnlineMarketPlace
             };
     }
 

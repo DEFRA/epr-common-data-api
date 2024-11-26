@@ -8,16 +8,16 @@ using Moq;
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
 [TestClass]
-public class ProducerDetailsServiceTests
+public class CsoMemberDetailsServiceTests
 {
     private Mock<SynapseContext> _synapseContextMock = null!;
-    private ProducerDetailsService _service = null!;
+    private CsoMemberDetailsService _service = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _synapseContextMock = new Mock<SynapseContext>();
-        _service = new ProducerDetailsService(_synapseContextMock.Object);
+        _service = new CsoMemberDetailsService(_synapseContextMock.Object);
     }
 
     [TestMethod]
@@ -29,17 +29,18 @@ public class ProducerDetailsServiceTests
         StoredProcedureExtensions.ReturnFakeData = true;
 
         // Act
-        var result = await _service.GetProducerDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId);
 
         // Assert
         result.Should().NotBeNull();
-        result!.ProducerSize.Should().Be("Large");
-        result.NumberOfSubsidiaries.Should().Be(54);
-        result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
-        result.IsOnlineMarketplace.Should().BeTrue();
+        result![0].MemberType.Should().Be("Large");
+        result[0].MemberId.Should().Be("5678");
+        result[0].IsOnlineMarketplace.Should().BeTrue();
+        result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(39);
+        result[0].NumberOfSubsidiaries.Should().Be(64);
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
+            .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
                 Times.Never);
 
     }
@@ -50,32 +51,34 @@ public class ProducerDetailsServiceTests
         // Arrange
         const int OrganisationId = 1234;
 
-        var expectedData = new List<ProducerDetailsModel>
+        var expectedData = new List<CsoMemberDetailsModel>
         {
-            new ProducerDetailsModel
+            new CsoMemberDetailsModel
             {
-                ProducerSize = "Large",
-                NumberOfSubsidiaries = 100,
-                NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
-                IsOnlineMarketplace = false
+                MemberId = "5678",
+                MemberType = "Large",
+                IsOnlineMarketplace = false,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
+                NumberOfSubsidiaries = 20
             }
         };
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(expectedData);
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetProducerDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId);
 
         // Assert
         result.Should().NotBeNull();
-        result!.ProducerSize.Should().Be("Large");
-        result.NumberOfSubsidiaries.Should().Be(100);
-        result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
-        result.IsOnlineMarketplace.Should().BeFalse();
+        result![0].MemberType.Should().Be("Large");
+        result[0].MemberId.Should().Be("5678");
+        result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(10);
+        result[0].NumberOfSubsidiaries.Should().Be(20);
+        result[0].IsOnlineMarketplace.Should().BeFalse();
     }
 
     [TestMethod]
@@ -84,19 +87,19 @@ public class ProducerDetailsServiceTests
         // Arrange
         const int OrganisationId = 1234;
 
-        var emptyData = new List<ProducerDetailsModel>();
+        var emptyData = new List<CsoMemberDetailsModel>();
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(emptyData);
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetProducerDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId);
 
         // Assert
-        result.Should().BeNull();
+        result.Should().BeEmpty();
     }
 
     [TestMethod]
@@ -106,13 +109,13 @@ public class ProducerDetailsServiceTests
         const int OrganisationId = 1234;
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetProducerDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId);
 
         // Assert
         result.Should().BeNull();

@@ -7,16 +7,16 @@ using Microsoft.Extensions.Options;
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
 [TestClass]
-public class ProducerDetailsControllerTests
+public class CsoMemberDetailsControllerTests
 {
-    private Mock<IProducerDetailsService> _producerDetailsServiceMock = null!;
+    private Mock<ICsoMemberDetailsService> _csoMemberDetailsServiceMock = null!;
     private Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = null!;
-    private ProducerDetailsController _controller = null!;
+    private CsoMemberDetailsController _controller = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _producerDetailsServiceMock = new Mock<IProducerDetailsService>();
+        _csoMemberDetailsServiceMock = new Mock<ICsoMemberDetailsService>();
         _apiConfigOptionsMock = new Mock<IOptions<ApiConfig>>();
 
         _apiConfigOptionsMock
@@ -26,29 +26,29 @@ public class ProducerDetailsControllerTests
                 BaseProblemTypePath = "https://dummytest/"
             });
 
-        _controller = new ProducerDetailsController(
+        _controller = new CsoMemberDetailsController(
             _apiConfigOptionsMock.Object,
-            _producerDetailsServiceMock.Object
+            _csoMemberDetailsServiceMock.Object
         );
     }
 
     [TestMethod]
-    public async Task GetProducerDetails_InvalidRequest_ReturnsBadRequest()
+    public async Task GetCsoMemberDetails_InvalidRequest_ReturnsBadRequest()
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerDetails(0);
+        var result = await _controller.GetCsoMemberDetails(0);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
         (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
     }
-    [TestMethod]
-    public async Task GetProducerDetails_InvalidFormatRequest_ReturnsBadRequest()
+[TestMethod]
+    public async Task GetCsoMemberDetails_InvalidFormatRequest_ReturnsBadRequest()
     {
         // Arrange
         // Act
-        var result = await _controller.GetProducerDetails(-1);
+        var result = await _controller.GetCsoMemberDetails(-1);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -56,36 +56,36 @@ public class ProducerDetailsControllerTests
     }
 
     [TestMethod]
-    public async Task GetProducerDetails_ValidRequest_NoResult_ReturnsNotFound()
+    public async Task GetCsoMemberDetails_ValidRequest_NoResult_ReturnsNotFound()
     {
         // Arrange
         const int OrganisationId = 1234;
 
-        _producerDetailsServiceMock
-            .Setup(service => service.GetProducerDetails(OrganisationId))
-            .ReturnsAsync((GetProducerDetailsResponse)null!); // Simulating no result
+        _csoMemberDetailsServiceMock
+            .Setup(service => service.GetCsoMemberDetails(OrganisationId))
+            .ReturnsAsync((GetCsoMemberDetailsResponse[])null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetProducerDetails(OrganisationId);
+        var result = await _controller.GetCsoMemberDetails(OrganisationId);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
-    public async Task GetProducerDetails_ValidRequest_WithResult_ReturnsOk()
+    public async Task GetCsoMemberDetails_ValidRequest_WithResult_ReturnsOk()
     {
         // Arrange
         const int OrganisationId = 1234;
+        
+        var expectedResult = new [] { new GetCsoMemberDetailsResponse { MemberType = "Large", MemberId = "5678" } }; // Mock result
 
-        var expectedResult = new GetProducerDetailsResponse { ProducerSize = "Large", NumberOfSubsidiaries = 10, NumberOfSubsidiariesBeingOnlineMarketPlace = 20 }; // Mock result
-
-        _producerDetailsServiceMock
-            .Setup(service => service.GetProducerDetails(OrganisationId))
+        _csoMemberDetailsServiceMock
+            .Setup(service => service.GetCsoMemberDetails(OrganisationId))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetProducerDetails(OrganisationId);
+        var result = await _controller.GetCsoMemberDetails(OrganisationId);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();

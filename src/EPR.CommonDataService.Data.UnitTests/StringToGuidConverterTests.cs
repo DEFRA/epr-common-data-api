@@ -1,4 +1,3 @@
-using AutoFixture;
 using EPR.CommonDataService.Data.Converters;
 using System.Diagnostics.CodeAnalysis;
 
@@ -8,15 +7,6 @@ namespace EPR.CommonDataService.Data.UnitTests;
 [TestClass]
 public class StringToGuidConverterTests
 {
-    //This is being initialised as part of setup
-    private Fixture _fixture = null!;
-
-    [TestInitialize]
-    public void Setup()
-    {
-        _fixture = new Fixture();
-    }
-
     [TestMethod]
     public void Given_NullGuidValue_When_ConvertedToString_Should_ReturnNull()
     {
@@ -35,7 +25,7 @@ public class StringToGuidConverterTests
     public void Given_ValidGuidValue_When_ConvertedToString_Should_ReturnCorrectString()
     {
         // Arrange
-        var guidValue = _fixture.Create<Guid>();
+        var guidValue = Guid.NewGuid();
         var converter = StringToGuidConverter.Get();
 
         // Act
@@ -76,7 +66,7 @@ public class StringToGuidConverterTests
     public void Given_ValidStringValue_When_ConvertedToGuid_Should_ReturnCorrectGuid()
     {
         // Arrange
-        var guidValue = _fixture.Create<Guid>();
+        var guidValue = Guid.NewGuid();
         var stringValue = guidValue.ToString();
         var converter = StringToGuidConverter.Get();
 
