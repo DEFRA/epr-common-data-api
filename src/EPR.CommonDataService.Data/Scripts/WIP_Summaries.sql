@@ -14,17 +14,18 @@ WITH
             org.Name as OrganisationName,
             org.ReferenceNumber as OrganisationReferenceNumber,
             org.NationId as ProducerNationId,
-            s.Created,
+			CASE org.NationId WHEN 1 then 'GB-ENG' WHEN 2 then 'GB-NIR' WHEN 3 then 'GB-SCT' WHEN 4 then 'GB-WLS' end as ProducerNationCode, -- this way for performance
+	        s.Created,
 		    s.SubmissionType,
             s.SubmissionPeriod,
 			CAST(SUBSTRING(s.SubmissionPeriod, PATINDEX('%[0-9][0-9][0-9][0-9]%', s.SubmissionPeriod), 4) AS INT) AS RelevantYear,
-            CASE 
+            CAST(CASE 
                 WHEN s.Created > DATEFROMPARTS(YEAR(S.Created), 4, 1) THEN 1
                 ELSE 0
-            END AS IsLateSubmission,
+            END AS BIT) AS IsLateSubmission,
 		    org.IsComplianceScheme,
 		    cd.organisation_size as ProducerSize,
-		    ApplicationReferenceNumber as ApplicationReferenceNumber,
+		    s.AppReferenceNumber as ApplicationReferenceNumber,
 		    s.UserId as SubmittedUserId,
             ROW_NUMBER() OVER (
                 PARTITION BY OrganisationId
@@ -33,7 +34,7 @@ WITH
 	    from [rpd].[Submissions] as s
         inner join [rpd].[Organisations] org on org.ExternalId = s.OrganisationId
             inner join [rpd].[CompanyDetails] cd on cd.organisation_id = org.Id
-	    where s.ApplicationReferenceNumber is not null
+	    where s.AppReferenceNumber is not null
 		and org.IsDeleted = 0
 	),
     LatestSubmittedRegistrationsCTE AS (
@@ -45,6 +46,7 @@ WITH
             OrganisationReferenceNumber,
             ApplicationReferenceNumber,
             ProducerNationId,
+			ProducerNationCode,
             Created as SubmittedDateTime,
             SubmissionType,
             SubmissionPeriod,
@@ -64,7 +66,12 @@ WITH
             decisions.Comments as RegulatorComment,
 		    decisions.RegistrationReferenceNumber as RegistrationReferenceNumber,   -- Where?
             decisions.Type as DecisionType,
-		    decisions.Decision as SubmissionStatus,
+			CASE decisions.Decision
+				when 'Accepted' then 'Granted'
+				when 'Rejected' then 'Cancelled'
+				else decisions.Decision
+			end as SubmissionStatus,
+		    --decisions.Decision as SubmissionStatus,
 			decisions.Created as RegulatorDecisionDate,
             decisions.UserId as RegulatorUserId,
             decisions.DecisionDate AS StatusPendingDate,   -- part of the new RegulatorRegistrationDecision event, Cancellation Date
@@ -87,13 +94,13 @@ WITH
             decisions.SubmissionId = registrations.SubmissionId
         inner join [rpd].[Organisations] O on O.ExternalId = registrations.OrganisationId
         WHERE decisions.Type = 'RegulatorRegistrationDecision'  -- a new Event type that will need to be trasnferred to synapse
-		and LTRIM(RTRIM(decisions.Decision)) in ('Granted', 'Pending', 'Cancelled', 'Queried','Refused')
+		--and LTRIM(RTRIM(decisions.Decision)) in ('Granted', 'Pending', 'Cancelled', 'Queried','Refused')
     ),
     LatestGrantedRegistrationEventCTE AS (
         select  top(1) SubmissionId,
                 RegistrationReferenceNumber
         from AllRelatedOrganisationRegistrationDecisionEventsCTE
-        where SubmissionStatus = 'Granted'
+        where SubmissionStatus in ('Granted', 'Accepted')
     ),
     LatestDecisionEventsCTE AS (
         SELECT SubmissionEventId,
@@ -158,6 +165,7 @@ WITH
             decisions.RegulatorDecisionDate,
 			producercomments.ProducerCommentDate,
 			submissions.ProducerNationId,
+			submissions.ProducerNationCode,
             decisions.RegulatorNationId
         from LatestSubmittedRegistrationsCTE as submissions 
             left join LatestDecisionEventsCTE as decisions
@@ -192,6 +200,7 @@ WITH
         ELSE submissions.DecisionRegistrationReferenceNumber
     END AS RegistrationReferenceNumber,
     submissions.ProducerNationId as NationId,
+	submissions.ProducerNationCode as NationCode,
     submissions.RegulatorUserId,
 	submissions.SubmittedUserId,
 	submissions.RegulatorDecisionDate,
@@ -199,12 +208,11 @@ WITH
     from AllRelatedSubmissionsDecisionsCommentsCTE as submissions ;
 GO
 
-
 -- filtering SP
+-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
 DROP PROCEDURE [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
 GO
-
 create proc [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries] 
     @OrganisationNameCommaSeparated[nvarchar](255),
     @OrganisationReferenceCommaSeparated [nvarchar](255),
@@ -212,16 +220,18 @@ create proc [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]
     @StatusesCommaSeparated [nvarchar](100),
     @OrganisationTypeCommaSeparated [nvarchar](255),
     @NationId int,
+	@AppRefNumbersCommaSeparated [nvarchar](2000),
     @PageSize [INT],
     @PageNumber [INT]
 AS
 begin
 	SET NOCOUNT ON;
 
-    with InitialFilterCTE as (
-        SELECT * 
-        from dbo.[v_OrganisationRegistrationSummaries]
-        WHERE 
+    with 
+	InitialFilterCTE as (
+    	SELECT * 
+        FROM dbo.[v_OrganisationRegistrationSummaries]
+		WHERE 
         ( 
 			1 = 1
 			AND NationId = @NationId 
@@ -316,6 +326,7 @@ SELECT
 	ProducerCommentDate,
 	RegulatorUserId,
     NationId,
+	NationCode,
     (SELECT COUNT(*) FROM SortedCTE) AS TotalItems
 FROM SortedCTE
 WHERE RowNum > (@PageSize * (@PageNumber - 1))
@@ -325,4 +336,3 @@ ORDER BY RowNum;
 END;
 
 GO
-

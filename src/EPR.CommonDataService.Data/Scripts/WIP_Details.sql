@@ -2,7 +2,6 @@
 DROP PROCEDURE [rpd].[sp_fetchOrganisationRegistrationSubmissionDetails];
 GO
 
-
 create proc [rpd].[sp_fetchOrganisationRegistrationSubmissionDetails]
     @SubmissionId UNIQUEIDENTIFIER
 AS
@@ -32,6 +31,7 @@ BEGIN
 					ELSE submission.ProducerSize
 				END AS OrganisationType,
 				submission.RelevantYear,
+				submission.IsLateSubmission,
 				submission.SubmittedDateTime,
 				submission.SubmissionStatus,
 				submission.SubmissionPeriod,
@@ -39,6 +39,7 @@ BEGIN
 				submission.ApplicationReferenceNumber,
 				RegistrationReferenceNumber,
 				submission.NationId,
+				submission.NationCode,
 				submission.RegulatorUserId,
 				submission.SubmittedUserId,
 				submission.RegulatorDecisionDate,
@@ -134,12 +135,14 @@ BEGIN
 				END AS OrganisationType,
 				submission.RelevantYear,
 				submission.SubmittedDateTime,
+				submission.IsLateSubmission,
 				submission.SubmissionPeriod,
 				submission.SubmissionStatus,
 				submission.StatusPendingDate,
 				submission.ApplicationReferenceNumber,
 				RegistrationReferenceNumber,
 				submission.NationId,
+				submission.NationCode,
 				submission.RegulatorUserId,
 				submission.SubmittedUserId,
 				submission.RegulatorDecisionDate,
@@ -235,12 +238,14 @@ BEGIN
 				END AS OrganisationType,
 				submission.RelevantYear,
 				submission.SubmittedDateTime,
+				submission.IsLateSubmission,
 				submission.SubmissionPeriod,
 				submission.SubmissionStatus,
 				submission.StatusPendingDate,
 				submission.ApplicationReferenceNumber,
 				submission.RegistrationReferenceNumber,
 				submission.NationId,
+				submission.NationCode,
 				submission.RegulatorUserId,
 				submission.SubmittedUserId,
 				submission.RegulatorDecisionDate,
@@ -299,13 +304,14 @@ BEGIN
 		r.SubmissionStatus,
 		r.StatusPendingDate,
 		r.SubmittedDateTime,
+		r.IsLateSubmission,
 		r.SubmissionPeriod,
 		r.RelevantYear,
 		r.IsComplianceScheme,
 		r.ProducerSize as OrganisationSize,
 		r.OrganisationType,
 		r.NationId,
-
+		r.NationCode,
 		r.RegulatorComment,
 		r.ProducerComment,
 		r.RegulatorDecisionDate,

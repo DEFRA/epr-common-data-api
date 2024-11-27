@@ -44,6 +44,10 @@ public static class StoredProcedureExtensions
             {
                 Value = request.OrganisationTypesCommaSeparated ?? (object)DBNull.Value
             },
+            new ("@AppRefNumbersCommaSeparated", SqlDbType.NVarChar, 2000)
+            {
+                Value = request.ApplicationReferenceNumbers ?? (object)DBNull.Value
+            },
             new ("@PageSize", SqlDbType.Int) {
                 Value = request.PageSize
             },

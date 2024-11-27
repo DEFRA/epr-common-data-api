@@ -15,6 +15,8 @@ namespace EPR.CommonDataService.Core.Models.Requests
         public string? SubmissionStatusCommaSeparated { get; set; }
         public string? OrganisationTypesCommaSeparated { get; set; }
 
+        public string? ApplicationReferenceNumbers { get; set; }
+
         [Required]
         public int PageNumber { get; set; }
         [Required]
