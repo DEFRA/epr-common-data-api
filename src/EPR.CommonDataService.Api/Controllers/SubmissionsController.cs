@@ -53,6 +53,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [HttpGet("v1/pom/approved/{approvedAfterDateString}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
@@ -76,7 +77,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: The datetime provided did not return any submissions", _logPrefix);
                 ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
-                return NotFound(ModelState);
+                return NoContent();
             }
 
             logger.LogInformation("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Approved Submissions returned {ApprovedSubmissions}", _logPrefix, approvedSubmissions);

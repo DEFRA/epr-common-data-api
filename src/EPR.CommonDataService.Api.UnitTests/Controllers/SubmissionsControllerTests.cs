@@ -106,8 +106,6 @@ public class SubmissionsControllerTests
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNotFound()
     {
         // Arrange
-        var expectedErrorMessage = "The datetime provided did not return any submissions";
-
         _submissionsService
             .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>()))
             .ReturnsAsync(new List<ApprovedSubmissionEntity>());
@@ -116,17 +114,7 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
 
         // Assert
-        result.Should().NotBeNull().And.BeOfType<NotFoundObjectResult>();
-        var notFoundResult = (NotFoundObjectResult)result;
-
-        var modelState = notFoundResult.Value as ModelStateDictionary;
-
-        modelState.Should().NotBeNull();
-        modelState!.ContainsKey("approvedAfterDateString").Should().BeTrue();
-
-        var errors = modelState["approvedAfterDateString"]!.Errors;
-        errors.Should().ContainSingle();
-        errors.FirstOrDefault()!.ErrorMessage.Should().Be(expectedErrorMessage);
+        result.Should().NotBeNull().And.BeOfType<NoContentResult>();
     }
 
     [TestMethod]
