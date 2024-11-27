@@ -552,7 +552,7 @@ public class SubmissionsServiceTests
             PageSize = PageSize
         };
 
-        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=DESKTOP-V3MGV4K\MSSQLSERVER01;Initial Catalog=Synapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
+        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=laptop\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
                         .LogTo(Console.WriteLine, LogLevel.Information)
                         .Options;
 
@@ -582,7 +582,7 @@ public class SubmissionsServiceTests
 
         var request = Guid.Parse("cf9b5bc0-e41a-47e3-bdbe-87388181f31c");
 
-        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=DESKTOP-V3MGV4K\MSSQLSERVER01;Initial Catalog=Synapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
+        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=localhost\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
                         .LogTo(Console.WriteLine, LogLevel.Debug)
                         .Options;
 

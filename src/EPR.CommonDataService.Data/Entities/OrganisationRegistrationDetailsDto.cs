@@ -23,6 +23,8 @@
         public string OrganisationType { get; set; }
         public int NationId { get; set; }
 
+        public string NationCode { get; set; }
+
         // organisation details
         public string? CompaniesHouseNumber { get; set; }
         public string? BuildingName { get; set; }
