@@ -19,9 +19,6 @@ public class ProducerDetailsService(
 
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
     {
-        if (StoredProcedureExtensions.ReturnFakeData)
-            return new GetProducerDetailsResponse { OrganisationId = organisationId, ProducerSize = "Large", NumberOfSubsidiariesBeingOnlineMarketPlace = 29, IsOnlineMarketplace = true, NumberOfSubsidiaries = 54 };
-
         IList<ProducerDetailsModel> response;
         try
         {
