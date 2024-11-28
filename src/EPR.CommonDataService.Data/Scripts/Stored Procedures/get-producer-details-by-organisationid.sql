@@ -15,7 +15,7 @@ WITH LatestFile AS (
     FROM 
         [rpd].[cosmos_file_metadata] metadata INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
     WHERE 
-        ORG.Id = 100009
+        ORG.Id = @organisationId
     ORDER BY 
         Created DESC
 ),
