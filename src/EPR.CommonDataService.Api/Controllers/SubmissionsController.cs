@@ -76,7 +76,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             if (!approvedSubmissions.Any())
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: The datetime provided did not return any submissions", _logPrefix);
-                ModelState.AddModelError(nameof(approvedAfterDateString), "The datetime provided did not return any submissions");
                 return NoContent();
             }
 

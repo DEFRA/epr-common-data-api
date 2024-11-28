@@ -103,7 +103,7 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNotFound()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNoContent()
     {
         // Arrange
         _submissionsService
