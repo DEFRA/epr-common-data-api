@@ -260,21 +260,21 @@ BEGIN
 				left join LatestProducerCommentEventsCTE producer on producer.SubmissionId = submission.SubmissionId
 		)
 		,LatestCompanyDetailsCTE AS ( 
-			select '1' as CompanyDetailsFileId,
-				   'CompanyDetailsFileName' as CompanyDetailsFileName,
+			select NewID() as CompanyDetailsFileId,
+				   'CompanyDetailsFileName.csv' as CompanyDetailsFileName,
 				   'abc' as CompanyDetailsBlobName,
 					'xyz' as RegistrationSetId
 		)
 		,LatestBrandDetailsCTE AS(
-			select '2' as BrandsFileId,
-				   'BrandsFileName' as BrandsFileName,
-				   'abc' as BrandsBlobName,
+			select NewID() as BrandsFileId,
+				   'BrandsFileName.csv' as BrandsFileName,
+				   'def' as BrandsBlobName,
 				   'xyz' as RegistrationSetId
 		)
 		,LatestPartnershipDetailsCTE AS (
-			select '3' as PartnershipFileId,
-				   'BrandsFileName' as PartnershipFileName,
-				   'abc' as PartnershipBlobName,
+			select NewID() as PartnershipFileId,
+				   'PartnershipFileName.csv' as PartnershipFileName,
+				   'ghi' as PartnershipBlobName,
 				   'xyz' as RegistrationSetId
 		)
 		,JoinDataWithPartnershipAndBrandsCTE AS (
@@ -290,7 +290,7 @@ BEGIN
 				partnerships.PartnershipFileId,
 				partnerships.PartnershipBlobName
 			FROM SubmissionOrganisationCommentDetailsCTE AS joinedSubmissions
-			left JOIN LatestCompanyDetailsCTE companyDetails ON companyDetails.CompanyDetailsFileId = 1
+			left JOIN LatestCompanyDetailsCTE companyDetails ON companyDetails.RegistrationSetId = 'xyz'
 			LEFT JOIN LatestBrandDetailsCTE brands ON brands.RegistrationSetId = companyDetails.RegistrationSetId
 			LEFT JOIN LatestPartnershipDetailsCTE partnerships ON partnerships.RegistrationSetId = brands.RegistrationSetId
 		)
