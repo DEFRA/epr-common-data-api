@@ -13,11 +13,11 @@ WITH LatestFile AS (
     SELECT TOP 1
         LTRIM(RTRIM([FileName])) AS LatestFileName
     FROM 
-        [rpd].[cosmos_file_metadata] metadata INNER JOIN [rpd].[Organisations] ORG ON ORG.referenceNumber = metadata.OrganisationId
+        [rpd].[cosmos_file_metadata] metadata INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
     WHERE 
-        ORG.Id = @organisationId
+        ORG.Id = 100009
     ORDER BY 
-        CAST(Created AS DATETIME) DESC
+        Created DESC
 ),
 SubsidiaryCount AS (
     SELECT 
@@ -41,18 +41,18 @@ SELECT
         ELSE CAST(0 AS BIT)
     END AS IsOnlineMarketplace,
     pom.organisation_size AS ProducerSize,
-    '' AS ApplicationReferenceNumber,
+    sub.appreferencenumber AS ApplicationReferenceNumber,
     sc.NumberOfSubsidiaries,
     N.NationCode AS Regulator
 FROM 
     rpd.companyDetails cd
     INNER JOIN rpd.Organisations org 
         ON org.referenceNumber = cd.organisation_id
-    LEFT JOIN dbo.t_POM pom 
-        ON pom.organisation_id = org.referenceNumber
+    LEFT JOIN [rpd].[Pom] pom 
+        ON pom.organisation_id = org.id
     JOIN [rpd].[Nations] N 
         ON N.Id = org.NationId
-    INNER JOIN rpd.Submissions sub 
+    LEFT JOIN [rpd].[Submissions] sub 
         ON sub.organisationid = org.externalid
     LEFT JOIN SubsidiaryCount sc 
         ON sc.organisation_id = cd.organisation_id
@@ -63,8 +63,8 @@ GROUP BY
     cd.organisation_id,
     pom.organisation_size,
     N.NationCode,
+	sub.appreferencenumber,
     sc.NumberOfSubsidiaries;
-
     
 END;
 
