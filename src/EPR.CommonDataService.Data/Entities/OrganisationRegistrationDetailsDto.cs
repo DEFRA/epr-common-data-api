@@ -12,18 +12,25 @@
         public string OrganisationReference { get; set; }
         public string ApplicationReferenceNumber { get; set; }
         public string? RegistrationReferenceNumber { get; set; }
+
         public string SubmissionStatus { get; set; }
         public string? StatusPendingDate { get; set; }
-        public string SubmittedDateTime { get; set; }
+        public string? SubmittedDateTime { get; set; }
         public bool IsLateSubmission { get; set; }
         public string SubmissionPeriod { get; set; }
         public int RelevantYear { get; set; }
+
         public bool IsComplianceScheme { get; set; }
         public string OrganisationSize { get; set; }
         public string OrganisationType { get; set; }
         public int NationId { get; set; }
-
         public string NationCode { get; set; }
+
+        public string? RegulatorComment { get; set; }
+        public string? ProducerComment { get; set; }
+        public string? RegulatorDecisionDate { get; set; }
+        public string? ProducerCommentDate { get; set; }
+        public Guid? RegulatorUserId { get; set; }
 
         // organisation details
         public string? CompaniesHouseNumber { get; set; }
@@ -46,12 +53,12 @@
         public string? Email { get; set; }
         public string? Telephone { get; set; }
         public string? ServiceRole { get; set; }
+        public int? ServiceRoleId { get; set; }
 
-        public string? RegulatorComment { get; set; }
-        public string? ProducerComment { get; set; }
-        public string? RegulatorDecisionDate { get; set; }
-        public string? ProducerCommentDate { get; set; }
-        public Guid? RegulatorUserId { get; set; }
+        // Paycal parameters
+        public bool IsOnlineMarketPlace { get; set; }
+        public int NumberOfSubsidiaries { get; set; }
+        public int NumberOfOnlineSubsidiaries { get; set; }
 
         public string CompanyDetailsFileId { get; set; }
         public string CompanyDetailsFileName { get; set; }
@@ -62,10 +69,5 @@
         public string? BrandsFileId { get; set; }
         public string? BrandsFileName { get; set; }
         public string? BrandsBlobName { get; set; }
-
-        // Paycal parameters
-        public bool IsOnlineMarketPlace { get; set; }
-        public int NumberOfSubsidiaries {  get; set; }
-        public int NumberOfOnlineSubsidiaries { get; set; }
     }
 }

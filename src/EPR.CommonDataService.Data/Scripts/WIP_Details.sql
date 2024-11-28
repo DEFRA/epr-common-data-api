@@ -208,7 +208,7 @@ BEGIN
 			select  top(1) SubmissionId,
 					RegistrationReferenceNumber
 			from AllRelatedRegulatorDecisionEventsCTE
-			where SubmissionStatus = 'Granted'
+			where SubmissionStatus in ('Accepted','Granted')
 		)
 		,LatestRegulatorDecisionEventsCTE AS (
 			SELECT decisions.SubmissionId,
@@ -336,6 +336,11 @@ BEGIN
 		p.Email,
 		p.Telephone,
 		sr.Name as ServiceRole,
+		sr.Id as ServiceRoleId,
+
+		r.IsOnlineMarketplace,
+		r.NumberOfSubsidiaries,
+		r.NumberOfSubsidiariesBeingOnlineMarketPlace as NumberOfOnlineSubsidiaries,
 
 		r.CompanyDetailsFileId,
 		r.CompanyDetailsFileName,
@@ -345,11 +350,7 @@ BEGIN
 		r.PartnershipBlobName,
 		r.BrandsFileId,
 		r.BrandsFileName,
-		r.BrandsBlobName,
-
-		r.IsOnlineMarketplace,
-		r.NumberOfSubsidiaries,
-		r.NumberOfSubsidiariesBeingOnlineMarketPlace as NumberOfOnlineSubsidiaries
+		r.BrandsBlobName
 	FROM JoinDataWithPartnershipAndBrandsCTE r
 	INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
 	INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId

@@ -210,6 +210,7 @@ GO
 
 -- filtering SP
 -- Dropping stored procedure if it exists
+-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
 DROP PROCEDURE [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
 GO
@@ -287,7 +288,7 @@ begin
             (SELECT TRIM(value) FROM STRING_SPLIT(@OrganisationTypeCommaSeparated, ','))
         )
         AND (ISNULL(@SubmissionYearsCommaSeparated, '') = '' OR RelevantYear IN 
-            (SELECT TRIM(value) FROM STRING_SPLIT(@SubmissionYearsCommaSeparated, ','))
+            (SELECT TRIM(value) FROM STRING_SPLIT(CONCAT('2025,', @SubmissionYearsCommaSeparated), ','))
         )
         AND (ISNULL(@StatusesCommaSeparated, '') = '' OR SubmissionStatus IN 
 			(SELECT TRIM(value) FROM STRING_SPLIT(@StatusesCommaSeparated, ','))
