@@ -68,8 +68,6 @@ GROUP BY
     N.NationCode,
     sub.appreferencenumber,
     sc.NumberOfSubsidiaries;
-
-    
 END;
 
 GO
