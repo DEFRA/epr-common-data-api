@@ -36,10 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="Scripts\WIP_PaycalParametersView.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
     <SonarQubeSetting Include="sonar.exclusions">
       <Value>**/*.sql</Value>
     </SonarQubeSetting>
