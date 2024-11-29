@@ -218,6 +218,7 @@ BEGIN
 			FROM
 				[rpd].[cosmos_file_metadata]
 				where FileType in ('Partnerships', 'Brands', 'CompanyDetails')
+				and IsSubmitted = 1
 				and SubmissionType = 'Registration'
 				and OrganisationId = @OrganisationUUIDForSubmission
 		),
@@ -303,69 +304,43 @@ BEGIN
 			FROM SubmissionOrganisationCommentsDetailsCTE AS joinedSubmissions
 			left join AllCombinedOrgFiles acof on acof.OrganisationId = joinedSubmissions.OrganisationId
 		)
-		,AllOrgFilesCTE as (
-			SELECT distinct
-				c.[OrganisationId]
-				,o.ExternalId
-				,c.[FileName]
-				,c.[FileType]
-				,c.submissionperiod as submission_period_desc
-				,c.created
-				--For a given Organisation, in a given submission period, finding the most recently accepted org file based on the submission date--
-				,Row_Number() Over(Partition by c.organisationid
-												,c.submissionperiod 
-											order by CONVERT(DATETIME, Substring(c.[created], 1, 23))  desc) 
-								as RowNumber
-			FROM rpd.organisations o
-			INNER JOIN [rpd].[cosmos_file_metadata] c ON c.organisationid = o.externalid AND FileType = 'CompanyDetails'
-			WHERE o.IsComplianceScheme = 1
+		,CompliancePaycalCTE as (
+			select 	CSOReference
+					,csm.OrganisationReference
+					,ppp.ProducerSize
+					, ppp.IsOnlineMarketPlace
+					, ppp.NumberOfSubsidiaries
+					, ppp.NumberOfSubsidiariesBeingOnlineMarketPlace
+					, csm.submission_period_desc
+			from dbo.v_ComplianceSchemeMembers csm
+				inner join dbo.v_ProducerPayCalParameters ppp
+					on ppp.OrganisationReference = csm.OrganisationReference
+			where csm.CSOReference	= @CSOReferenceNumber
 		)
-		,LatestOrgFileCTE as (
-			SELECT 
-			ExternalId,
-			OrganisationId,
-			FileName,
-			FileType,
-			submission_period_desc,
-			created
-			from AllOrgFilesCTE
-			where RowNumber = 1
-		) -- we don't need accepted Files, our journey is for the Regulator to Accept or Reject the files
-		,Accepted_CSO_org_files AS (
-			SELECT distinct
-				c.[OrganisationId]
-				,o.[ExternalId]
-				,c.[FileName]
-				,c.[FileType]
-				,c.submissionperiod as submission_period_desc
-				,c.created
-				--For a given Organisation, in a given submission period, finding the most recently accepted Pom file based on the submission date--
-				,Row_Number() Over(Partition by c.organisationid
-												, c.submissionperiod 
-								   order by CONVERT(DATETIME, Substring(c.[created], 1, 23))  desc) 
-							   as RowNumber
-				FROM rpd.organisations o
-				INNER JOIN [rpd].[cosmos_file_metadata] c ON c.organisationid = o.externalid
-				INNER JOIN [rpd].[submissionevents] se ON Trim(se.fileid) = Trim(c.fileid)
-														AND se.[type] = 'RegulatorRegistrationDecision'
-														AND se.decision = 'Accepted'
-														AND Trim(c.filetype) = 'CompanyDetails'
+		,JsonifiedCompliancePaycalCTE as (
+			SELECT
+				CSOReference
+				,OrganisationReference,
+				'{"MemberId": "' + CAST(OrganisationReference AS NVARCHAR(25)) + '", ' +
+				'"MemberType": "' + ProducerSize + '", ' +
+				'"IsOnlineMarketPlace": ' + 
+				CASE 
+					WHEN IsOnlineMarketPlace = 1 THEN 'true' 
+					ELSE 'false' 
+				END + ', ' +
+				'"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(MAX)) + ', ' +
+				'"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(MAX)) + ', ' +
+				'"SubmissionPeriodDescription": "' + submission_period_desc + '"}' AS OrganisationDetailsJsonString
+			   FROM 
+				CompliancePaycalCTE
 		)
-		,Latest_Accepted_CSO_Org_file as (
-			--From the CTE retrieve the Filename of the identified file--
-			SELECT DISTINCT ExternalId, OrganisationId, Filename,FileType,submission_period_desc,created
-			FROM Accepted_CSO_org_files acof
-			WHERE acof.RowNumber = 1
-		)
-		,Unaccepted_MemberOrgsCTE as (
-			SELECT DISTINCT lofc.ExternalId, organisation_id as OrganisationId
-			from [rpd].[CompanyDetails] cd
-			inner join LatestOrgFileCTE lofc on lofc.FileName = cd.FileName
-		)
-		,Accepted_MemberOrgsCTE as (
-			SELECT DISTINCT laofc.ExternalId, organisation_id as OrganisationId
-			from [rpd].[CompanyDetails] cd
-			inner join Latest_Accepted_CSO_Org_file laofc on laofc.FileName = cd.FileName
+		,AllCompliancePaycalParametersAsJSONCTE as (
+	
+			SELECT CSOReference
+				   ,'[' + STRING_AGG(OrganisationDetailsJsonString, ', ') + ']' as FinalJson
+			FROM JsonifiedCompliancePaycalCTE
+			WHERE CSOReference = @CSOReferenceNumber
+			GROUP BY CSOReference
 		)
 
 	SELECT
@@ -424,9 +399,12 @@ BEGIN
 		r.PartnershipBlobName,
 		r.BrandsFileId,
 		r.BrandsFileName,
-		r.BrandsBlobName
+		r.BrandsBlobName,
+		acpp.FinalJson as CSOJson
 	FROM JoinDataWithPartnershipAndBrandsCTE r
-	INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
+	INNER JOIN [rpd].[Organisations] o
+		LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp on acpp.CSOReference = o.ReferenceNumber
+	ON o.ExternalId = r.OrganisationId
 	INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
 	INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
 	INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
