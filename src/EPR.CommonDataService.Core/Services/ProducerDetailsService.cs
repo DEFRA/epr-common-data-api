@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using static EPR.CommonDataService.Core.Mapper.ProducerDetailsService;
 
 namespace EPR.CommonDataService.Core.Services;
 
@@ -12,7 +13,7 @@ public interface IProducerDetailsService
     Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId);
 }
 
-public class ProducerDetailsService(
+public partial class ProducerDetailsService(
     SynapseContext synapseContext)
     : IProducerDetailsService
 {
@@ -42,11 +43,12 @@ public class ProducerDetailsService(
 
             new GetProducerDetailsResponse
             {
-                ProducerSize = firstItem.ProducerSize,
+                ProducerSize = ProducerSizeMapper.Map(firstItem.ProducerSize),
                 IsOnlineMarketplace = firstItem.IsOnlineMarketplace,
                 NumberOfSubsidiaries = firstItem.NumberOfSubsidiaries,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = firstItem.NumberOfSubsidiariesBeingOnlineMarketPlace
             };
     }
+
 
 }
