@@ -67,8 +67,6 @@ as
         SELECT distinct organisation_id as OrganisationReference,
             organisation_size as OrganisationSize
         from OrganisationSizesCTE cd
-		inner join rpd.Organisations o 
-			on o.ReferenceNumber = cd.organisation_id
         where RowNum = 1
     ),
     OrganisationMarketPlaceInformationCTE AS (
@@ -89,7 +87,7 @@ as
             ISNULL(smp.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) as NumberOfSubsidiariesBeingOnlineMarketPlace
         FROM SubsidiaryAndMarketPlaceCountsCTE as smp
             left join MostRecentOrganisationSizeCTE mros ON mros.OrganisationReference = smp.OrganisationReference
-		INNER JOIN rpd.Organisations o on o.ReferenceNumber = smp.OrganisationReference
+		LEFT JOIN rpd.Organisations o on o.ReferenceNumber = smp.OrganisationReference
 	)
 select *
 from OrganisationMarketPlaceInformationCTE

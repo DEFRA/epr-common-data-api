@@ -88,9 +88,9 @@ BEGIN
 				submission.SubmittedUserId,
 				submission.RegulatorDecisionDate,
 				submission.ProducerCommentDate,
-				ppp.IsOnlineMarketplace,
-				ppp.NumberOfSubsidiaries,
-				ppp.NumberOfSubsidiariesBeingOnlineMarketPlace
+				ISNULL(ppp.IsOnlineMarketplace, 0) as IsOnlineMarketplace,
+				ISNULL(ppp.NumberOfSubsidiaries, 0) as NumberOfSubsidiaries,
+				ISNULL(ppp.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) as NumberOfSubsidiariesBeingOnlineMarketPlace
 				from SubmissionSummary as submission
 					left join ProducerPaycalParametersCTE ppp on ppp.ExternalId = submission.OrganisationId
 		)
