@@ -13,7 +13,7 @@ public interface IProducerDetailsService
     Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId);
 }
 
-public partial class ProducerDetailsService(
+public  class ProducerDetailsService(
     SynapseContext synapseContext)
     : IProducerDetailsService
 {
