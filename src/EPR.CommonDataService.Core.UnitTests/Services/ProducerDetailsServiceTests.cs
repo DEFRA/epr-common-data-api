@@ -26,8 +26,6 @@ public class ProducerDetailsServiceTests
         // Arrange
         const int OrganisationId = 123;
 
-        StoredProcedureExtensions.ReturnFakeData = true;
-
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
 
@@ -61,8 +59,6 @@ public class ProducerDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(expectedData);
 
-        StoredProcedureExtensions.ReturnFakeData = false;
-
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
 
@@ -84,8 +80,6 @@ public class ProducerDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(emptyData);
 
-        StoredProcedureExtensions.ReturnFakeData = false;
-
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
 
@@ -103,7 +97,6 @@ public class ProducerDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
 
-        StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
