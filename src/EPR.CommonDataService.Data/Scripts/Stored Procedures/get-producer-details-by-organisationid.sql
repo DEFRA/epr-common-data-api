@@ -13,10 +13,11 @@ WITH LatestFile AS (
     SELECT TOP 1
         LTRIM(RTRIM([FileName])) AS LatestFileName
     FROM 
-        [rpd].[cosmos_file_metadata] metadata INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
+        [rpd].[cosmos_file_metadata] metadata 
+        INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
     WHERE 
-        ORG.Id = @organisationId  AND
-		metadata.FileType= 'CompanyDetails'
+        ORG.Id = @organisationId AND
+        metadata.FileType = 'CompanyDetails'
     ORDER BY 
         Created DESC
 ),
@@ -25,11 +26,15 @@ SubsidiaryCount AS (
         CD.organisation_id, 
         COUNT(*) AS NumberOfSubsidiaries
     FROM 
-        [rpd].[CompanyDetails] CD INNER JOIN [rpd].[Organisations] ORG ON ORG.referenceNumber = CD.organisation_id
-    CROSS JOIN LatestFile LF -- Use the latest file name
+        [rpd].[CompanyDetails] CD 
+        INNER JOIN [rpd].[Organisations] ORG ON ORG.referenceNumber = CD.organisation_id
     WHERE 
         CD.organisation_id = @organisationId
-        AND LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName -- Match file name with the latest
+        AND EXISTS (
+            SELECT 1
+            FROM LatestFile LF
+            WHERE LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName
+        )
         AND CD.subsidiary_id IS NOT NULL
     GROUP BY 
         CD.organisation_id
@@ -46,17 +51,12 @@ SELECT
     sc.NumberOfSubsidiaries,
     N.NationCode AS Regulator
 FROM 
-    rpd.companyDetails cd
-    INNER JOIN rpd.Organisations org 
-        ON org.referenceNumber = cd.organisation_id
-    LEFT JOIN [rpd].[Pom] pom 
-        ON pom.organisation_id = org.id
-    JOIN [rpd].[Nations] N 
-        ON N.Id = org.NationId
-    LEFT JOIN [rpd].[Submissions] sub 
-        ON sub.organisationid = org.externalid
-    LEFT JOIN SubsidiaryCount sc 
-        ON sc.organisation_id = cd.organisation_id
+    rpd.companyDetails cd 
+    INNER JOIN [rpd].Organisations org ON org.referenceNumber = cd.organisation_id
+    LEFT JOIN [rpd].[Pom] pom ON pom.organisation_id = org.id 
+    INNER JOIN [rpd].[Nations] N ON N.Id = org.NationId
+    LEFT JOIN [rpd].[Submissions] sub ON sub.organisationid = org.externalid
+    LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
 GROUP BY 
@@ -64,7 +64,7 @@ GROUP BY
     cd.organisation_id,
     pom.organisation_size,
     N.NationCode,
-	sub.appreferencenumber,
+    sub.appreferencenumber,
     sc.NumberOfSubsidiaries;
     
 END;

@@ -22,7 +22,7 @@ public class ProducerDetailsService(
         IList<ProducerDetailsModel> response;
         try
         {
-            const string Sql = "EXECUTE apps.sp_GetProducerDetails @OrganisationId";
+            const string Sql = "EXECUTE apps.sp_GetProducerDetailsByOrganisationId @OrganisationId";
 
             var sqlParameters = new List<SqlParameter>
             {
