@@ -17,7 +17,9 @@ WITH LatestFile AS (
         INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
     WHERE 
         ORG.Id = @organisationId AND
-        metadata.FileType = 'CompanyDetails'
+        metadata.FileType = 'CompanyDetails' AND
+		metadata.isSubmitted = 1 AND
+		metadata.SubmissionType = 'Registration'
     ORDER BY 
         Created DESC
 ),
@@ -27,7 +29,7 @@ SubsidiaryCount AS (
         COUNT(*) AS NumberOfSubsidiaries
     FROM 
         [rpd].[CompanyDetails] CD 
-        INNER JOIN [rpd].[Organisations] ORG ON ORG.referenceNumber = CD.organisation_id
+
     WHERE 
         CD.organisation_id = @organisationId
         AND EXISTS (
@@ -39,33 +41,34 @@ SubsidiaryCount AS (
     GROUP BY 
         CD.organisation_id
 )
+
 SELECT 
     COUNT(CASE WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
-    cd.organisation_id,
+    cd.organisation_id as organisationId,
     CASE 
         WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN CAST(1 AS BIT)
         ELSE CAST(0 AS BIT)
     END AS IsOnlineMarketplace,
-    pom.organisation_size AS ProducerSize,
+    cd.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
     sc.NumberOfSubsidiaries,
     N.NationCode AS Regulator
 FROM 
     rpd.companyDetails cd 
     INNER JOIN [rpd].Organisations org ON org.referenceNumber = cd.organisation_id
-    LEFT JOIN [rpd].[Pom] pom ON pom.organisation_id = org.id 
-    INNER JOIN [rpd].[Nations] N ON N.Id = org.NationId
+    LEFT JOIN [rpd].[Nations] N ON N.Id = org.NationId
     LEFT JOIN [rpd].[Submissions] sub ON sub.organisationid = org.externalid
-    LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
+    INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
 GROUP BY 
     cd.packaging_activity_om, 
     cd.organisation_id,
-    pom.organisation_size,
+    cd.organisation_size,
     N.NationCode,
     sub.appreferencenumber,
     sc.NumberOfSubsidiaries;
+
     
 END;
 
