@@ -1,5 +1,8 @@
-﻿namespace EPR.CommonDataService.Core.Models.Requests;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace EPR.CommonDataService.Core.Models.Requests;
+
+[ExcludeFromCodeCoverage]
 public class RegulatorPomDecision
 {
     public Guid FileId { get; set; }

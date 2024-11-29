@@ -16,7 +16,6 @@ public class ProducerDetailsService(
     SynapseContext synapseContext)
     : IProducerDetailsService
 {
-
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
     {
         IList<ProducerDetailsModel> response;
@@ -44,7 +43,9 @@ public class ProducerDetailsService(
             new GetProducerDetailsResponse
             {
                 ProducerSize = firstItem.ProducerSize,
-                OrganisationId = firstItem.OrganisationId
+                IsOnlineMarketplace = firstItem.IsOnlineMarketplace,
+                NumberOfSubsidiaries = firstItem.NumberOfSubsidiaries,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = firstItem.NumberOfSubsidiariesBeingOnlineMarketPlace
             };
     }
 

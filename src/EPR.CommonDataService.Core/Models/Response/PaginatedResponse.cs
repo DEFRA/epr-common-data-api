@@ -1,5 +1,8 @@
-﻿namespace EPR.CommonDataService.Core.Models.Response;
+﻿using System.Diagnostics.CodeAnalysis;
 
+namespace EPR.CommonDataService.Core.Models.Response;
+
+[ExcludeFromCodeCoverage]
 public class PaginatedResponse<T>
 {
     public List<T> Items { get; set; } = null!;

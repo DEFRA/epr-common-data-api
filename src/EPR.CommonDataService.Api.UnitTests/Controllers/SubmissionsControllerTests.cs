@@ -7,13 +7,13 @@ using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
-[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionsControllerTests
 {
@@ -31,11 +31,15 @@ public class SubmissionsControllerTests
             .Setup(x => x.Value)
             .Returns(new ApiConfig
             {
-                BaseProblemTypePath = "https://dummytest/"
+                BaseProblemTypePath = "https://dummytest/",
+                PomDataSubmissionPeriods = "P1,P4"
             });
 
-        _submissionsController = new SubmissionsController(_submissionsService.Object,
-            _apiConfigOptionsMock.Object)
+        var mockLogger = new Mock<ILogger<SubmissionsController>>();
+        var configurationMock = new Mock<IConfiguration>();
+        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+
+        _submissionsController = new SubmissionsController(_submissionsService.Object, _apiConfigOptionsMock.Object, mockLogger.Object, configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -87,7 +91,7 @@ public class SubmissionsControllerTests
         var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
 
         _submissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
@@ -99,30 +103,18 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNotFound()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNoContent()
     {
         // Arrange
-        var expectedErrorMessage = "The datetime provided did not return any submissions";
-
         _submissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>()))
             .ReturnsAsync(new List<ApprovedSubmissionEntity>());
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
 
         // Assert
-        result.Should().NotBeNull().And.BeOfType<NotFoundObjectResult>();
-        var notFoundResult = (NotFoundObjectResult)result;
-
-        var modelState = notFoundResult.Value as ModelStateDictionary;
-
-        modelState.Should().NotBeNull();
-        modelState!.ContainsKey("approvedAfterDateString").Should().BeTrue();
-
-        var errors = modelState["approvedAfterDateString"]!.Errors;
-        errors.Should().ContainSingle();
-        errors.FirstOrDefault()!.ErrorMessage.Should().Be(expectedErrorMessage);
+        result.Should().NotBeNull().And.BeOfType<NoContentResult>();
     }
 
     [TestMethod]
@@ -146,7 +138,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "The operation has timed out.";
 
-        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
+        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -165,7 +157,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "An unexpected error occurred.";
 
-        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>())).ThrowsAsync(new Exception(expectedErrorMessage));
+        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));

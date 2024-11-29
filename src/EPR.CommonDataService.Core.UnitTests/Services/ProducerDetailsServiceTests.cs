@@ -32,7 +32,9 @@ public class ProducerDetailsServiceTests
         // Assert
         result.Should().NotBeNull();
         result!.ProducerSize.Should().Be("Large");
-        result.OrganisationId.Should().Be(OrganisationId);
+        result.NumberOfSubsidiaries.Should().Be(54);
+        result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
+        result.IsOnlineMarketplace.Should().BeTrue();
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
@@ -50,8 +52,10 @@ public class ProducerDetailsServiceTests
         {
             new ProducerDetailsModel
             {
-                OrganisationId = OrganisationId,
-                ProducerSize = "Large"
+                ProducerSize = "Large",
+                NumberOfSubsidiaries = 100,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
+                IsOnlineMarketplace = false
             }
         };
 
@@ -65,7 +69,9 @@ public class ProducerDetailsServiceTests
         // Assert
         result.Should().NotBeNull();
         result!.ProducerSize.Should().Be("Large");
-        result.OrganisationId.Should().Be(OrganisationId);
+        result.NumberOfSubsidiaries.Should().Be(100);
+        result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
+        result.IsOnlineMarketplace.Should().BeFalse();
     }
 
     [TestMethod]

@@ -24,7 +24,7 @@ public class PaginatedResponseExtensionsTests
         var rows = _fixture
             .Build<PomSubmissionSummaryRow>()
             .With(x => x.TotalItems, 100)
-            .CreateMany(10);
+            .CreateMany(10).ToArray();
         var request = _fixture
             .Build<SubmissionsSummariesRequest<RegulatorPomDecision>>()
             .With(x => x.PageSize, 10)
@@ -44,8 +44,6 @@ public class PaginatedResponseExtensionsTests
     public void ToPaginatedResponse_ShouldSetTotalItemsToZeroIfNoRows()
     {
         // Arrange
-        var rows = new List<PomSubmissionSummaryRow>();
-
         var request = new SubmissionsSummariesRequest<RegulatorPomDecision>
         {
             PageNumber = 1,
@@ -53,7 +51,7 @@ public class PaginatedResponseExtensionsTests
         };
 
         // Act
-        var response = rows.ToPaginatedResponse<PomSubmissionSummaryRow,RegulatorPomDecision,PomSubmissionSummary>(request, 10);
+        var response = new List<PomSubmissionSummaryRow>().ToPaginatedResponse<PomSubmissionSummaryRow,RegulatorPomDecision,PomSubmissionSummary>(request, 10);
 
         // Assert
         response.TotalItems.Should().Be(0);
