@@ -23,6 +23,8 @@ BEGIN
 		inner join [rpd].[Organisations] O on S.OrganisationId = O.ExternalId
 	WHERE S.SubmissionId = @SubmissionId;
 
+
+
     WITH
 		-- basic OrganisationInformation
 		SubmissionSummary as (
@@ -306,22 +308,25 @@ BEGIN
 		)
 		,CompliancePaycalCTE as (
 			select 	CSOReference
-					,csm.OrganisationReference
+					,csm.ReferenceNumber
+					,csm.RelevantYear
 					,ppp.ProducerSize
-					, ppp.IsOnlineMarketPlace
-					, ppp.NumberOfSubsidiaries
-					, ppp.NumberOfSubsidiariesBeingOnlineMarketPlace
-					, csm.submission_period_desc
+					,csm.SubmittedDate
+					,csm.IsLateFeeApplicable
+					,ppp.IsOnlineMarketPlace
+					,ppp.NumberOfSubsidiaries
+					,ppp.NumberOfSubsidiariesBeingOnlineMarketPlace
+					,csm.submissionperiod
 			from dbo.v_ComplianceSchemeMembers csm
 				inner join dbo.v_ProducerPayCalParameters ppp
-					on ppp.OrganisationReference = csm.OrganisationReference
+					on ppp.OrganisationReference = csm.ReferenceNumber
 			where csm.CSOReference	= @CSOReferenceNumber
 		)
 		,JsonifiedCompliancePaycalCTE as (
 			SELECT
 				CSOReference
-				,OrganisationReference,
-				'{"MemberId": "' + CAST(OrganisationReference AS NVARCHAR(25)) + '", ' +
+				,ReferenceNumber,
+				'{"MemberId": "' + CAST(ReferenceNumber AS NVARCHAR(25)) + '", ' +
 				'"MemberType": "' + ProducerSize + '", ' +
 				'"IsOnlineMarketPlace": ' + 
 				CASE 
@@ -330,7 +335,14 @@ BEGIN
 				END + ', ' +
 				'"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(MAX)) + ', ' +
 				'"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(MAX)) + ', ' +
-				'"SubmissionPeriodDescription": "' + submission_period_desc + '"}' AS OrganisationDetailsJsonString
+				'"RelevantYear":' + CAST(RelevantYear as NVARCHAR(4)) + ', ' +
+				'"SubmittedDate": "' + CAST(SubmittedDate as nvarchar(16)) + '", ' +
+				'"IsLateFeeApplicable": ' +
+				CASE 
+					WHEN IsLateFeeApplicable = 1 THEN 'true' 
+					ELSE 'false' 
+				END + ', ' +
+				'"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
 			   FROM 
 				CompliancePaycalCTE
 		)
