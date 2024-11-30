@@ -119,10 +119,11 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dataset = await accountsDbContext.RunSqlAsync<OrganisationRegistrationDetailsDto>(sql, sqlParameters);
+            var dbSet = await accountsDbContext.RunSPCommand<OrganisationRegistrationDetailsDto>("rpd.sp_fetchOrganisationRegistrationSubmissionDetails", sqlParameters);
+            //var dataset = await accountsDbContext.RunSqlAsync<OrganisationRegistrationDetailsDto>(sql, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails Query Response {Dataset}", logPrefix, JsonConvert.SerializeObject(dataset));
 
-            return dataset.FirstOrDefault();
+            return dbSet.FirstOrDefault();
         }
         catch (SqlException ex) when (ex.Number == -2)
         {

@@ -11,6 +11,7 @@ using System.Data;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 using System.Reflection;
 using System.Diagnostics;
+using System.Collections.ObjectModel;
 
 
 namespace EPR.CommonDataService.Data.Infrastructure;
@@ -222,25 +223,96 @@ public class SynapseContext : DbContext
     {
         List<T> list = [];
 
+        ReadOnlyCollection<DbColumn> schemaColumns = await reader.GetColumnSchemaAsync();
+
         while (await reader.ReadAsync())
         {
             var instance = new T();
 
             foreach (var prop in typeof(T).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                if (!reader.HasColumn(prop.Name) || await reader.IsDBNullAsync(reader.GetOrdinal(prop.Name)))
+                var columnMeta = schemaColumns
+                 .FirstOrDefault(col => string.Equals(col.ColumnName, prop.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (columnMeta == null)
                 {
                     continue;
                 }
 
-                var value = reader.GetValue(reader.GetOrdinal(prop.Name));
-                prop.SetValue(instance, value);
+                var dataType = columnMeta.DataType;
+
+                var ordinal = reader.GetOrdinal(prop.Name);
+                if (await reader.IsDBNullAsync(ordinal))
+                {
+                    continue;
+                }
+                var value = reader.GetValue(ordinal);
+
+                try
+                {
+                    SetProperty<T>( instance, prop, value, dataType);
+                }
+                catch ( Exception ex)
+                {
+                    Debug.WriteLine($"{prop.Name}, type: {prop.PropertyType.Name} assignment failed with value {value}");
+                }
             }
 
             list.Add(instance);
         }
 
         return list;
+    }
+
+    private static void SetProperty<T>(T instance, PropertyInfo prop, object value, Type dataType)
+    {
+        // Handle type-specific conversion based on column data type
+        if (dataType == typeof(Guid) && prop.PropertyType == typeof(Guid))
+        {
+            prop.SetValue(instance, Guid.Parse(value.ToString()));
+        }
+        else if (dataType == typeof(string) && prop.PropertyType == typeof(Guid))
+        {
+            prop.SetValue(instance, Guid.Parse(value.ToString()));
+        }
+        else if (dataType == typeof(string) && prop.PropertyType == typeof(Guid?))
+        {
+            Guid guid;
+            if ( Guid.TryParse(value.ToString(), out guid))
+                prop.SetValue(instance, guid);
+        }
+        else if (dataType == typeof(string) && prop.PropertyType == typeof(string))
+        {
+            prop.SetValue(instance, value.ToString());
+        }
+        else if (dataType == typeof(int) && prop.PropertyType == typeof(int))
+        {
+            prop.SetValue(instance, Convert.ToInt32(value));
+        }
+        else if (dataType == typeof(string) && prop.PropertyType == typeof(DateTime))
+        {
+            prop.SetValue(instance, Convert.ToDateTime(value));
+        }
+        else if (dataType == typeof(string) && prop.PropertyType == typeof(DateTime?))
+        {
+            prop.SetValue(instance, Convert.ToDateTime(value));
+        }
+        else if (dataType == typeof(DateTime) && prop.PropertyType == typeof(DateTime))
+        {
+            prop.SetValue(instance, Convert.ToDateTime(value));
+        }
+        else
+        {
+            // Attempt to directly assign if types match or handle defaults
+            try
+            {
+                prop.SetValue(instance, value);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"{prop.Name} of type {prop.PropertyType.Name} cannot be assigned from value {value} of type {dataType.Name}");
+            }
+        }    
     }
 
     private DbCommand CreateCommand(DbConnection connection, string sql, params SqlParameter[] parameters)
