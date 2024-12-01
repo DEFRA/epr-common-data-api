@@ -12,18 +12,19 @@ BEGIN
 	DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
 	DECLARE @SubmissionPeriod nvarchar(4000);
 	DECLARE @CSOReferenceNumber nvarchar(4000);
+	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
 
-	SELECT  @OrganisationIDForSubmission = O.Id,
-			@OrganisationUUIDForSubmission = O.ExternalId,
-			@CSOReferenceNumber = O.ReferenceNumber,
-			@IsComplianceScheme = O.IsComplianceScheme,
-			@SubmissionPeriod = S.SubmissionId
+	-- Fetch global IDs for the submission
+	SELECT  @OrganisationIDForSubmission = O.Id,	-- the int id of the organisation
+			@OrganisationUUIDForSubmission = O.ExternalId,	-- the uuid of the organisation
+			@CSOReferenceNumber = O.ReferenceNumber,	-- the reference number of the organisation
+			@IsComplianceScheme = O.IsComplianceScheme,	-- whether the org is a compliance scheme
+			@SubmissionPeriod = S.SubmissionId,	-- the submission period of the submissions
+			@ApplicationReferenceNumber = S.AppReferenceNumber -- the AppRef number of the submission
 	FROM [rpd].[Submissions] as S
 		inner join [rpd].[Organisations] O on S.OrganisationId = O.ExternalId
 	WHERE S.SubmissionId = @SubmissionId;
-
-
 
     WITH
 		-- basic OrganisationInformation
@@ -55,6 +56,7 @@ BEGIN
 				submission.ProducerCommentDate
 				from [dbo].[v_OrganisationRegistrationSummaries] as submission where submission.SubmissionId = @SubmissionId
 		)
+		-- the paycal parameterisation for the organisation itself
 		,ProducerPaycalParametersCTE AS (
 			SELECT ExternalId
 				   , ProducerSize 
@@ -64,6 +66,7 @@ BEGIN
 			FROM [dbo].[v_ProducerPaycalParameters] as ppp
 			WHERE ppp.ExternalId = @OrganisationUUIDForSubmission
 		)
+		-- the submission details with Paycal parameter info
 		,SubmissionOrganisationDetails as (
 			SELECT DISTINCT
 				submission.SubmissionId,
@@ -96,7 +99,7 @@ BEGIN
 				from SubmissionSummary as submission
 					left join ProducerPaycalParametersCTE ppp on ppp.ExternalId = submission.OrganisationId
 		)
-		 -- producer comments
+		 -- producer comments found in the RegistrationApplicationSubmitted SubmissionEvent
 		,AllRelatedProducerCommentEventsCTE as (
 			SELECT decision.SubmissionId,
 				   decision.Comments,
@@ -108,8 +111,10 @@ BEGIN
 			from [rpd].[SubmissionEvents] as decision
 			inner join SubmissionOrganisationDetails submittedregistrations on 
 				decision.SubmissionId = submittedregistrations.SubmissionId 
+				and decision.ApplicationReferenceNumber = @ApplicationReferenceNumber -- ensure the SubmissionId is this Particular SubmissionId
 			WHERE decision.Type = 'RegistrationApplicationSubmitted'
 		)
+		-- the latest Producer Comments for this Submission and Application Reference Number
 		,LatestProducerCommentEventsCTE AS (
 			SELECT SubmissionId,
 				   Comments as ProducerComment,
@@ -117,7 +122,7 @@ BEGIN
 			from AllRelatedProducerCommentEventsCTE
 			where RowNum = 1
 		)
-		-- regulator decisions
+		-- regulator decisions for this submission
 		,AllRelatedRegulatorDecisionEventsCTE as (
 			SELECT decision.SubmissionId,
 				   decision.Comments as RegulatorComment,
@@ -144,15 +149,21 @@ BEGIN
 			inner join SubmissionOrganisationDetails submittedregistration on 
 				decision.SubmissionId = submittedregistration.SubmissionId
 			WHERE decision.Type = 'RegulatorRegistrationDecision'
+			and decision.ApplicationReferenceNumber = @ApplicationReferenceNumber	-- ensure this app ref number is the one connected
 			and submittedregistration.SubmissionId = @SubmissionId
 		)
 		-- Granted decision and registration number
+		-- we find the Granted decision from the above CTE as this contains the RegistrationReferenceNumber
+		-- this has now been moved to 
 		,LatestGrantedRegistrationEventCTE AS (
 			select  top(1) SubmissionId,
 					RegistrationReferenceNumber
 			from AllRelatedRegulatorDecisionEventsCTE
 			where SubmissionStatus in ('Accepted','Granted')
 		)
+		-- The latest decision from the set of decisions
+		-- this allows for cancelled states that follow the granted state
+		-- this also includes the RegistrationReferenceNumber
 		,LatestRegulatorDecisionEventsCTE AS (
 			SELECT decisions.SubmissionId,
 				   decisions.RegulatorComment,
@@ -167,6 +178,7 @@ BEGIN
 			where RowNum = 1 
 		)
 		-- Submission Details with Producer and Regulator Comments
+		-- the RegistrationReferenceNumber is included
 		,SubmissionOrganisationCommentsDetailsCTE as (
 			SELECT 
 				submission.SubmissionId,
@@ -210,7 +222,7 @@ BEGIN
 				OriginalFileName as FileName,
 				TargetDirectoryName,
 				RegistrationSetId,
-				OrganisationId,
+				OrganisationId as ExternalId,
 				SubmissionType,
 				load_ts,
 				ROW_NUMBER() OVER (
@@ -225,11 +237,8 @@ BEGIN
 				and OrganisationId = @OrganisationUUIDForSubmission
 		),
 		AllBrandFiles as (
-			select FileId as BrandFileId, 
-					BlobName as BrandBlobName, 
-					FileType as BrandFileType, 
-					FileName as BrandFileName,
-					OrganisationId,
+			select FileId as BrandFileId, BlobName as BrandBlobName, FileType as BrandFileType, FileName as BrandFileName,
+					ExternalId,
 					load_ts,
 					ROW_NUMBER() OVER (
 						PARTITION BY OrganisationId 
@@ -239,11 +248,8 @@ BEGIN
 			where aof.FileType = 'Brands'
 		),
 		AllPartnershipFiles as (
-			select FileId as PartnerFileId, 
-					BlobName as PartnerBlobName, 
-					FileType as PartnerFileType, 
-					FileName as PartnerFileName,
-					OrganisationId,
+			select FileId as PartnerFileId, BlobName as PartnerBlobName, FileType as PartnerFileType, FileName as PartnerFileName,
+					ExternalId,
 					load_ts,
 					ROW_NUMBER() OVER (
 						PARTITION BY OrganisationId
@@ -257,7 +263,7 @@ BEGIN
 					BlobName as CompanyBlobName, 
 					FileType as CompanyFileType, 
 					FileName as CompanyFileName,
-					OrganisationId,
+					ExternalId,
 					load_ts,
 					ROW_NUMBER() OVER (
 						PARTITION BY OrganisationId
@@ -267,23 +273,26 @@ BEGIN
 			where aof.FileType = 'CompanyDetails'
 		),
 		LatestBrandsFile as (
-			select BrandFileId, BrandBlobName, BrandFileType, BrandFileName, OrganisationId
+			select BrandFileId, BrandBlobName, BrandFileType, BrandFileName, ExternalId
 			from AllBrandFiles abf
 			where abf.row_num = 1
 		),
 		LatestPartnerFile as (
-			select PartnerFileId, PartnerBlobName, PartnerFileType, PartnerFileName, OrganisationId
+			select PartnerFileId, PartnerBlobName, PartnerFileType, PartnerFileName, ExternalId
 			from AllPartnershipFiles apf
 			where apf.row_num = 1			   
 		),
 		LatestCompanyFiles as (
-			select CompanyFileId, CompanyBlobName, CompanyFileType, CompanyFileName, OrganisationId
+			select CompanyFileId, CompanyBlobName, CompanyFileType, CompanyFileName, ExternalId
 			from AllCompanyFiles acf
 			where acf.row_num = 1			   
 		)
 		,AllCombinedOrgFiles as (
 			SELECT
-				lcf.OrganisationId, CompanyFileId, CompanyFileName, CompanyBlobName, BrandFileId, BrandFileName, BrandBlobName, PartnerFileId, PartnerFileName, PartnerBlobName
+				lcf.ExternalId as OrganisationExternalId, 
+				CompanyFileId, CompanyFileName, CompanyBlobName, 
+				BrandFileId, BrandFileName, BrandBlobName, 
+				PartnerFileId, PartnerFileName, PartnerBlobName
 			FROM
 				LatestCompanyFiles lcf
 					left outer join LatestBrandsFile lbf
@@ -291,6 +300,7 @@ BEGIN
 						on lpf.OrganisationId = lbf.OrganisationId
 					on lcf.OrganisationId = lbf.OrganisationId
 		)
+		-- All submission data combined with the individual file data
 		,JoinDataWithPartnershipAndBrandsCTE AS (
 			SELECT
 				joinedSubmissions.*,
@@ -304,8 +314,12 @@ BEGIN
 				PartnerFileId as PartnershipFileId,
 				PartnerBlobName as PartnershipBlobName
 			FROM SubmissionOrganisationCommentsDetailsCTE AS joinedSubmissions
-			left join AllCombinedOrgFiles acof on acof.OrganisationId = joinedSubmissions.OrganisationId
+			left join AllCombinedOrgFiles acof on acof.OrganisationExternalId = joinedSubmissions.OrganisationId
 		)
+		-- For the Submission Period of the Submission
+		-- Use the new view to obtain information required for the Paycal API
+		-- The Organisation reference number of the Submission's organisation is used
+		-- It is controlled by whether the IsComplianceScheme flag is 1
 		,CompliancePaycalCTE as (
 			select 	CSOReference
 					,csm.ReferenceNumber
@@ -320,8 +334,12 @@ BEGIN
 			from dbo.v_ComplianceSchemeMembers csm
 				inner join dbo.v_ProducerPayCalParameters ppp
 					on ppp.OrganisationReference = csm.ReferenceNumber
-			where csm.CSOReference	= @CSOReferenceNumber
+			where @IsComplianceScheme = 1 
+			and csm.CSOReference	= @CSOReferenceNumber
+			and csm.SubmissionPeriod = @SubmissionPeriod
 		)
+		-- Build a rowset of membership organisations and their producer paycal api parameter requirements
+		-- the properties of the above is built into a JSON string
 		,JsonifiedCompliancePaycalCTE as (
 			SELECT
 				CSOReference
@@ -346,6 +364,7 @@ BEGIN
 			   FROM 
 				CompliancePaycalCTE
 		)
+		-- the above CTE is then compressed into a single row using the STRIN_AGG function
 		,AllCompliancePaycalParametersAsJSONCTE as (
 	
 			SELECT CSOReference
@@ -354,7 +373,7 @@ BEGIN
 			WHERE CSOReference = @CSOReferenceNumber
 			GROUP BY CSOReference
 		)
-
+	-- bring all the above into one 1
 	SELECT
 		r.SubmissionId,
 		r.OrganisationId,
