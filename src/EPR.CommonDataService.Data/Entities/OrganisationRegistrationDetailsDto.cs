@@ -15,7 +15,7 @@
 
         public string SubmissionStatus { get; set; }
         public string? StatusPendingDate { get; set; }
-        public DateTime? SubmittedDateTime { get; set; }
+        public string? SubmittedDateTime { get; set; }
         public bool IsLateSubmission { get; set; }
         public string SubmissionPeriod { get; set; }
         public int RelevantYear { get; set; }
