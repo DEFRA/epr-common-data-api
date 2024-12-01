@@ -24,9 +24,24 @@ public class CsoMemberDetailsServiceTests
     public async Task GetProducerSize_WhenValidRequestWithData_ReturnsLargeResponse()
     {
         // Arrange
-        const int OrganisationId = 123;
+        const int OrganisationId = 1234;
 
-        StoredProcedureExtensions.ReturnFakeData = true;
+        var expectedData = new List<CsoMemberDetailsModel>
+        {
+            new CsoMemberDetailsModel
+            {
+                MemberId = "5678",
+                MemberType = "L",
+                IsOnlineMarketplace = true,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
+                NumberOfSubsidiaries = 20
+            }
+        };
+
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+            .ReturnsAsync(expectedData);
+
 
         // Act
         var result = await _service.GetCsoMemberDetails(OrganisationId);
@@ -36,12 +51,12 @@ public class CsoMemberDetailsServiceTests
         result![0].MemberType.Should().Be("Large");
         result[0].MemberId.Should().Be("5678");
         result[0].IsOnlineMarketplace.Should().BeTrue();
-        result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(39);
-        result[0].NumberOfSubsidiaries.Should().Be(64);
+        result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(10);
+        result[0].NumberOfSubsidiaries.Should().Be(20);
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
-                Times.Never);
+                Times.Once);
 
     }
 
@@ -56,7 +71,7 @@ public class CsoMemberDetailsServiceTests
             new CsoMemberDetailsModel
             {
                 MemberId = "5678",
-                MemberType = "Large",
+                MemberType = "L",
                 IsOnlineMarketplace = false,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
                 NumberOfSubsidiaries = 20
@@ -67,7 +82,6 @@ public class CsoMemberDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(expectedData);
 
-        StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
         var result = await _service.GetCsoMemberDetails(OrganisationId);

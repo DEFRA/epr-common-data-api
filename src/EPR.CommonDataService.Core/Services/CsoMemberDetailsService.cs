@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using static EPR.CommonDataService.Core.Mapper.ProducerDetailsService;
 
 namespace EPR.CommonDataService.Core.Services;
 
@@ -18,13 +19,10 @@ public class CsoMemberDetailsService(
 { 
     public async Task<GetCsoMemberDetailsResponse[]?> GetCsoMemberDetails(int organisationId)
     {
-        if (StoredProcedureExtensions.ReturnFakeData)
-            return [new GetCsoMemberDetailsResponse { MemberId = "5678", MemberType = "Large", NumberOfSubsidiariesBeingOnlineMarketPlace = 39, IsOnlineMarketplace = true, NumberOfSubsidiaries = 64 }];
-
         IList<CsoMemberDetailsModel> response;
         try
         {
-            const string Sql = "EXECUTE apps.sp_GetCsoMemberDetails @OrganisationId";
+            const string Sql = "EXECUTE apps.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
 
             var sqlParameters = new List<SqlParameter>
             {
@@ -42,7 +40,7 @@ public class CsoMemberDetailsService(
         {
             IsOnlineMarketplace = r.IsOnlineMarketplace,
             MemberId = r.MemberId,
-            MemberType = r.MemberType,
+            MemberType = ProducerSizeMapper.Map(r.MemberType),
             NumberOfSubsidiaries = r.NumberOfSubsidiaries,
             NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace
         }).ToArray();
