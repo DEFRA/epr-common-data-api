@@ -62,17 +62,16 @@ WITH
         SELECT
             decisions.SubmissionEventId as SubmissionEventId,
             decisions.SubmissionId as SubmissionId,
-            O.Id as OrganisationId, -- in Cosmos but not SubmissionEvent table
+            O.Id as OrganisationId,
             decisions.Comments as RegulatorComment,
-		    decisions.RegistrationReferenceNumber as RegistrationReferenceNumber,   -- Where?
+		    decisions.RegistrationReferenceNumber as RegistrationReferenceNumber,
             decisions.Type as DecisionType,
 			CASE decisions.Decision
 				when 'Accepted' then 'Granted'
 				when 'Rejected' then 'Cancelled'
 				else decisions.Decision
 			end as SubmissionStatus,
-		    --decisions.Decision as SubmissionStatus,
-			decisions.Created as RegulatorDecisionDate,
+		    decisions.Created as RegulatorDecisionDate,
             decisions.UserId as RegulatorUserId,
             decisions.DecisionDate AS StatusPendingDate,   -- part of the new RegulatorRegistrationDecision event, Cancellation Date
             (SELECT o.NationId from 
@@ -97,29 +96,32 @@ WITH
 		--and LTRIM(RTRIM(decisions.Decision)) in ('Granted', 'Pending', 'Cancelled', 'Queried','Refused')
     ),
     LatestGrantedRegistrationEventCTE AS (
-        select  top(1) SubmissionId,
-                RegistrationReferenceNumber
+        select top(1) 
+               SubmissionEventId,
+               SubmissionId,
+               RegistrationReferenceNumber
         from AllRelatedOrganisationRegistrationDecisionEventsCTE
         where SubmissionStatus in ('Granted', 'Accepted')
     ),
     LatestDecisionEventsCTE AS (
         SELECT SubmissionEventId,
-                SubmissionId,
-                OrganisationId,
-                RegulatorComment,
-                RegistrationReferenceNumber,
-                RegulatorDecisionDate,
-				DecisionType,
-                SubmissionStatus,
-                RegulatorUserId,
-                StatusPendingDate,
-                RegulatorNationId
+               SubmissionId,
+               OrganisationId,
+               RegulatorComment,
+               RegistrationReferenceNumber,
+               RegulatorDecisionDate,
+			   DecisionType,
+               SubmissionStatus,
+               RegulatorUserId,
+               StatusPendingDate,
+               RegulatorNationId
         from AllRelatedOrganisationRegistrationDecisionEventsCTE
         where RowNum = 1 
     )
 	-- producer comments
 	,AllRelatedProducerCommentEventsCTE as (
-		 SELECT producercomment.SubmissionId,
+		 SELECT producercomment.SubmissionEventId,
+                producercomment.SubmissionId,
 				producercomment.Comments as ProducerComment,
 				producercomment.Created as ProducerCommentDate,
 				ROW_NUMBER() OVER (
@@ -132,7 +134,8 @@ WITH
 		 WHERE producercomment.Type = 'RegistrationApplicationSubmitted'
 	 )
 	 ,LatestProducerCommentEventsCTE AS (
-		 SELECT SubmissionId,
+		 SELECT SubmissionEventId,
+                SubmissionId,
 				ProducerComment,
 				ProducerCommentDate
 		 from AllRelatedProducerCommentEventsCTE
@@ -164,7 +167,9 @@ WITH
             decisions.StatusPendingDate,
             decisions.RegulatorDecisionDate,
 			producercomments.ProducerCommentDate,
-			submissions.ProducerNationId,
+			producercomments.SubmissionEventId as ProducerSubmissionEventId,
+			decisions.SubmissionEventId as RegulatorSubmissionEventId,
+            submissions.ProducerNationId,
 			submissions.ProducerNationCode,
             decisions.RegulatorNationId
         from LatestSubmittedRegistrationsCTE as submissions 
@@ -190,7 +195,10 @@ WITH
     submissions.RelevantYear,
 	submissions.IsLateSubmission,
     submissions.SubmittedDateTime,
-    submissions.SubmissionStatus,
+    CASE WHEN submissions.ProducerCommentDate > submissions.RegulatorDecisionDate
+         THEN 'Updated'
+         ELSE submissions.SubmissionStatus
+    END as SubmissionStatus,
     submissions.StatusPendingDate,
 	submissions.SubmissionPeriod,
     submissions.ApplicationReferenceNumber,
@@ -204,7 +212,9 @@ WITH
     submissions.RegulatorUserId,
 	submissions.SubmittedUserId,
 	submissions.RegulatorDecisionDate,
-	submissions.ProducerCommentDate
+	submissions.ProducerCommentDate,
+	submissions.ProducerSubmissionEventId,
+	submissions.RegulatorSubmissionEventId
     from AllRelatedSubmissionsDecisionsCommentsCTE as submissions ;
 GO
 
