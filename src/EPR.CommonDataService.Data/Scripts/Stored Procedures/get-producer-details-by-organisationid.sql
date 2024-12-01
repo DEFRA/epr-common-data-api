@@ -14,22 +14,31 @@ WITH LatestFile AS (
         LTRIM(RTRIM([FileName])) AS LatestFileName
     FROM 
         [rpd].[cosmos_file_metadata] metadata 
-        INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
+    INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
     WHERE 
-        ORG.Id = @organisationId AND
-        metadata.FileType = 'CompanyDetails' AND
-		metadata.isSubmitted = 1 AND
-		metadata.SubmissionType = 'Registration'
+        ORG.referenceNumber = @organisationId
+        AND metadata.FileType = 'CompanyDetails'
+        AND metadata.isSubmitted = 1
+        AND metadata.SubmissionType = 'Registration'
     ORDER BY 
-        Created DESC
+        metadata.Created DESC
+),
+LatestSubmission AS (
+    SELECT TOP 1 
+        organisationid,
+        appreferencenumber,
+        Created
+	FROM     [rpd].[Submissions] sub
+	INNER JOIN   [rpd].[Organisations] org  ON sub.organisationid = org.externalid
+	WHERE org.referenceNumber = @organisationId  AND sub.SubmissionType = 'Registration'
+    ORDER BY Created DESC
 ),
 SubsidiaryCount AS (
     SELECT 
         CD.organisation_id, 
         COUNT(*) AS NumberOfSubsidiaries
     FROM 
-        [rpd].[CompanyDetails] CD 
-
+        [rpd].[CompanyDetails] CD
     WHERE 
         CD.organisation_id = @organisationId
         AND EXISTS (
@@ -41,23 +50,23 @@ SubsidiaryCount AS (
     GROUP BY 
         CD.organisation_id
 )
-
 SELECT 
     COUNT(CASE WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
-    cd.organisation_id as organisationId,
+    cd.organisation_id AS OrganisationId,
     CASE 
-        WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN CAST(1 AS BIT)
-        ELSE CAST(0 AS BIT)
+        WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
+        ELSE 0
     END AS IsOnlineMarketplace,
     cd.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
     sc.NumberOfSubsidiaries,
     N.NationCode AS Regulator
 FROM 
-    rpd.companyDetails cd 
-    INNER JOIN [rpd].Organisations org ON org.referenceNumber = cd.organisation_id
+    [rpd].[CompanyDetails] cd 
+    INNER JOIN [rpd].[Organisations] org ON org.referenceNumber = cd.organisation_id
+    INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
     LEFT JOIN [rpd].[Nations] N ON N.Id = org.NationId
-    LEFT JOIN [rpd].[Submissions] sub ON sub.organisationid = org.externalid
+    LEFT JOIN LatestSubmission sub ON sub.organisationid = org.externalid
     INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
