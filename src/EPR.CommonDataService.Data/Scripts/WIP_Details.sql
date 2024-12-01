@@ -20,7 +20,7 @@ BEGIN
 			@OrganisationUUIDForSubmission = O.ExternalId,	-- the uuid of the organisation
 			@CSOReferenceNumber = O.ReferenceNumber,	-- the reference number of the organisation
 			@IsComplianceScheme = O.IsComplianceScheme,	-- whether the org is a compliance scheme
-			@SubmissionPeriod = S.SubmissionId,	-- the submission period of the submissions
+			@SubmissionPeriod = S.SubmissionPeriod,	-- the submission period of the submissions
 			@ApplicationReferenceNumber = S.AppReferenceNumber -- the AppRef number of the submission
 	FROM [rpd].[Submissions] as S
 		inner join [rpd].[Organisations] O on S.OrganisationId = O.ExternalId
@@ -53,7 +53,9 @@ BEGIN
 				submission.RegulatorUserId,
 				submission.SubmittedUserId,
 				submission.RegulatorDecisionDate,
-				submission.ProducerCommentDate
+				submission.ProducerCommentDate,
+				submission.ProducerSubmissionEventId,
+				submission.RegulatorSubmissionEventId
 				from [dbo].[v_OrganisationRegistrationSummaries] as submission where submission.SubmissionId = @SubmissionId
 		)
 		-- the paycal parameterisation for the organisation itself
@@ -93,6 +95,8 @@ BEGIN
 				submission.SubmittedUserId,
 				submission.RegulatorDecisionDate,
 				submission.ProducerCommentDate,
+				submission.ProducerSubmissionEventId,
+				submission.RegulatorSubmissionEventId,
 				ISNULL(ppp.IsOnlineMarketplace, 0) as IsOnlineMarketplace,
 				ISNULL(ppp.NumberOfSubsidiaries, 0) as NumberOfSubsidiaries,
 				ISNULL(ppp.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) as NumberOfSubsidiariesBeingOnlineMarketPlace
@@ -101,7 +105,8 @@ BEGIN
 		)
 		 -- producer comments found in the RegistrationApplicationSubmitted SubmissionEvent
 		,AllRelatedProducerCommentEventsCTE as (
-			SELECT decision.SubmissionId,
+			SELECT decision.SubmissionEventId as ProducerCommentEventId,
+			       decision.SubmissionId,
 				   decision.Comments,
 				   decision.Created,
 				   ROW_NUMBER() OVER (
@@ -116,7 +121,8 @@ BEGIN
 		)
 		-- the latest Producer Comments for this Submission and Application Reference Number
 		,LatestProducerCommentEventsCTE AS (
-			SELECT SubmissionId,
+			SELECT ProducerCommentEventId,
+				   SubmissionId,
 				   Comments as ProducerComment,
 				   Created as ProducerCommentDate
 			from AllRelatedProducerCommentEventsCTE
@@ -124,7 +130,8 @@ BEGIN
 		)
 		-- regulator decisions for this submission
 		,AllRelatedRegulatorDecisionEventsCTE as (
-			SELECT decision.SubmissionId,
+			SELECT decision.SubmissionEventId as RegulatorDecisionEventId,
+				   decision.SubmissionId,
 				   decision.Comments as RegulatorComment,
 				   decision.Decision as SubmissionStatus,
 				   decision.RegistrationReferenceNumber as RegistrationReferenceNumber,
@@ -156,7 +163,9 @@ BEGIN
 		-- we find the Granted decision from the above CTE as this contains the RegistrationReferenceNumber
 		-- this has now been moved to 
 		,LatestGrantedRegistrationEventCTE AS (
-			select  top(1) SubmissionId,
+			select  top(1) 
+				    RegulatorDecisionEventId,
+					SubmissionId,
 					RegistrationReferenceNumber
 			from AllRelatedRegulatorDecisionEventsCTE
 			where SubmissionStatus in ('Accepted','Granted')
@@ -165,7 +174,8 @@ BEGIN
 		-- this allows for cancelled states that follow the granted state
 		-- this also includes the RegistrationReferenceNumber
 		,LatestRegulatorDecisionEventsCTE AS (
-			SELECT decisions.SubmissionId,
+			SELECT decisions.RegulatorDecisionEventId,
+				   decisions.SubmissionId,
 				   decisions.RegulatorComment,
 				   decisions.SubmissionStatus,
 				   granted.RegistrationReferenceNumber,
@@ -209,7 +219,11 @@ BEGIN
 				submission.ProducerCommentDate,
 				submission.IsOnlineMarketplace,
 				submission.NumberOfSubsidiaries,
-				submission.NumberOfSubsidiariesBeingOnlineMarketPlace
+				submission.NumberOfSubsidiariesBeingOnlineMarketPlace,
+				decision.RegulatorDecisionEventId,
+				producer.ProducerCommentEventId,
+				submission.ProducerSubmissionEventId,
+				submission.RegulatorSubmissionEventId
 			from SubmissionOrganisationDetails submission
 				left join LatestRegulatorDecisionEventsCTE decision on decision.SubmissionId = submission.SubmissionId
 				left join LatestProducerCommentEventsCTE producer on producer.SubmissionId = submission.SubmissionId
@@ -241,7 +255,7 @@ BEGIN
 					ExternalId,
 					load_ts,
 					ROW_NUMBER() OVER (
-						PARTITION BY OrganisationId 
+						PARTITION BY ExternalId 
 						ORDER BY load_ts DESC
 					) AS row_num
 			from AllOrganisationFiles aof
@@ -252,7 +266,7 @@ BEGIN
 					ExternalId,
 					load_ts,
 					ROW_NUMBER() OVER (
-						PARTITION BY OrganisationId
+						PARTITION BY ExternalId
 						ORDER BY load_ts DESC
 					) AS row_num
 			from AllOrganisationFiles aof
@@ -266,7 +280,7 @@ BEGIN
 					ExternalId,
 					load_ts,
 					ROW_NUMBER() OVER (
-						PARTITION BY OrganisationId
+						PARTITION BY ExternalId
 						ORDER BY load_ts DESC
 					) AS row_num
 			from AllOrganisationFiles aof
@@ -297,8 +311,8 @@ BEGIN
 				LatestCompanyFiles lcf
 					left outer join LatestBrandsFile lbf
 						left outer join LatestPartnerFile lpf
-						on lpf.OrganisationId = lbf.OrganisationId
-					on lcf.OrganisationId = lbf.OrganisationId
+						on lpf.ExternalId = lbf.ExternalId
+					on lcf.ExternalId = lbf.ExternalId
 		)
 		-- All submission data combined with the individual file data
 		,JoinDataWithPartnershipAndBrandsCTE AS (
@@ -331,6 +345,7 @@ BEGIN
 					,ppp.NumberOfSubsidiaries
 					,ppp.NumberOfSubsidiariesBeingOnlineMarketPlace
 					,csm.submissionperiod
+					,@SubmissionPeriod as WantedPeriod
 			from dbo.v_ComplianceSchemeMembers csm
 				inner join dbo.v_ProducerPayCalParameters ppp
 					on ppp.OrganisationReference = csm.ReferenceNumber
@@ -396,6 +411,10 @@ BEGIN
 		r.ProducerComment,
 		r.RegulatorDecisionDate,
 		r.ProducerCommentDate,
+		r.ProducerCommentEventId,
+		r.RegulatorDecisionEventId,
+		r.ProducerSubmissionEventId,
+		r.RegulatorSubmissionEventId,
 		r.RegulatorUserId,
     
 		o.CompaniesHouseNumber,
