@@ -153,7 +153,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetails([FromRoute] Guid? SubmissionId)
     {
-        var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", "").Replace("\n", "");
+        var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
         logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Get org registration submissions details for the submission {SubmissionId}", _logPrefix, sanitisedSubmissionId);
         
