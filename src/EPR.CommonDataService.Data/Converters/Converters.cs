@@ -4,7 +4,6 @@ using System.Globalization;
 
 namespace EPR.CommonDataService.Data.Converters;
 
-[ExcludeFromCodeCoverage]
 public static class StringToGuidConverter
 {
     public static ValueConverter<Guid?, string> Get() => new (
@@ -13,7 +12,6 @@ public static class StringToGuidConverter
     );
 }
 
-[ExcludeFromCodeCoverage]
 public static class StringToIntConverter
 {
     public static ValueConverter<int?, string> Get() => new (
@@ -22,11 +20,10 @@ public static class StringToIntConverter
     );
 }
 
-[ExcludeFromCodeCoverage]
 public static class StringToDateConverter
 {
     public static ValueConverter<DateTime?, string> Get() => new(
-        dateTimeValue => dateTimeValue == null ? null : dateTimeValue.ToString(),
+        dateTimeValue => dateTimeValue == null ? null : dateTimeValue.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture),
         stringValue => string.IsNullOrEmpty(stringValue) ? null : DateTime.ParseExact(stringValue, "yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture )
     );
 }

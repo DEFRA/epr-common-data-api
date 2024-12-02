@@ -382,7 +382,7 @@ public class SubmissionsControllerTests
             SubmissionId = Guid.NewGuid()
         };
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(request)).ReturnsAsync(innerResult);
+        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).ReturnsAsync(innerResult);
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
         var properResult = result as OkObjectResult;
