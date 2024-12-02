@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using static EPR.CommonDataService.Core.Mapper.ProducerDetailsService;
 
 namespace EPR.CommonDataService.Core.Services;
 
@@ -12,19 +13,16 @@ public interface IProducerDetailsService
     Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId);
 }
 
-public class ProducerDetailsService(
+public  class ProducerDetailsService(
     SynapseContext synapseContext)
     : IProducerDetailsService
 {
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
     {
-        if (StoredProcedureExtensions.ReturnFakeData)
-            return new GetProducerDetailsResponse { ProducerSize = "Large", NumberOfSubsidiariesBeingOnlineMarketPlace = 29, IsOnlineMarketplace = true, NumberOfSubsidiaries = 54 };
-
         IList<ProducerDetailsModel> response;
         try
         {
-            const string Sql = "EXECUTE apps.sp_GetProducerDetails @OrganisationId";
+            const string Sql = "EXECUTE apps.sp_GetProducerDetailsByOrganisationId @OrganisationId";
 
             var sqlParameters = new List<SqlParameter>
             {
@@ -45,11 +43,12 @@ public class ProducerDetailsService(
 
             new GetProducerDetailsResponse
             {
-                ProducerSize = firstItem.ProducerSize,
+                ProducerSize = ProducerSizeMapper.Map(firstItem.ProducerSize),
                 IsOnlineMarketplace = firstItem.IsOnlineMarketplace,
                 NumberOfSubsidiaries = firstItem.NumberOfSubsidiaries,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = firstItem.NumberOfSubsidiariesBeingOnlineMarketPlace
             };
     }
+
 
 }
