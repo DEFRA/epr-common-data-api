@@ -25,8 +25,19 @@ public class ProducerDetailsServiceTests
     {
         // Arrange
         const int OrganisationId = 123;
-
-        StoredProcedureExtensions.ReturnFakeData = true;
+        var expectedData = new List<ProducerDetailsModel>
+        {
+            new ProducerDetailsModel
+            {
+                ProducerSize = "L",
+                NumberOfSubsidiaries = 54,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 29,
+                IsOnlineMarketplace = true
+            }
+        };
+        _synapseContextMock
+           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+           .ReturnsAsync(expectedData);
 
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
@@ -40,7 +51,7 @@ public class ProducerDetailsServiceTests
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
-                Times.Never);
+                Times.Once);
 
     }
 
@@ -54,7 +65,7 @@ public class ProducerDetailsServiceTests
         {
             new ProducerDetailsModel
             {
-                ProducerSize = "Large",
+                ProducerSize = "s",
                 NumberOfSubsidiaries = 100,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
                 IsOnlineMarketplace = false
@@ -65,14 +76,12 @@ public class ProducerDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(expectedData);
 
-        StoredProcedureExtensions.ReturnFakeData = false;
-
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().NotBeNull();
-        result!.ProducerSize.Should().Be("Large");
+        result!.ProducerSize.Should().Be("Small");
         result.NumberOfSubsidiaries.Should().Be(100);
         result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
         result.IsOnlineMarketplace.Should().BeFalse();
@@ -89,8 +98,6 @@ public class ProducerDetailsServiceTests
         _synapseContextMock
             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ReturnsAsync(emptyData);
-
-        StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
@@ -109,12 +116,46 @@ public class ProducerDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
             .ThrowsAsync(new Exception("Database error"));
 
-        StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
         var result = await _service.GetProducerDetails(OrganisationId);
 
         // Assert
         result.Should().BeNull();
+    }
+
+
+    [TestMethod]
+    public async Task GetProducerDetails_WhenProducerSizeIsInvalid_ReturnsUnknown()
+    {
+        // Arrange
+        const int OrganisationId = 123;
+        var expectedData = new List<ProducerDetailsModel>
+        {
+            new ProducerDetailsModel
+            {
+                ProducerSize = "X", // Invalid size
+                NumberOfSubsidiaries = 10,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 5,
+                IsOnlineMarketplace = false
+            }
+        };
+        _synapseContextMock
+           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+           .ReturnsAsync(expectedData);
+
+        // Act
+        var result = await _service.GetProducerDetails(OrganisationId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.ProducerSize.Should().Be("Unknown"); // Validate fallback to "Unknown"
+        result.NumberOfSubsidiaries.Should().Be(10);
+        result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(5);
+        result.IsOnlineMarketplace.Should().BeFalse();
+
+        _synapseContextMock
+            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
+                Times.Once);
     }
 }
