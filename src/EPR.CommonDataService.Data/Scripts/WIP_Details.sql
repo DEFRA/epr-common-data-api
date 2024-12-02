@@ -103,89 +103,22 @@ BEGIN
 				from SubmissionSummary as submission
 					left join ProducerPaycalParametersCTE ppp on ppp.ExternalId = submission.OrganisationId
 		)
-		 -- producer comments found in the RegistrationApplicationSubmitted SubmissionEvent
-		,AllRelatedProducerCommentEventsCTE as (
-			SELECT decision.SubmissionEventId as ProducerCommentEventId,
-			       decision.SubmissionId,
-				   decision.Comments,
-				   decision.Created,
-				   ROW_NUMBER() OVER (
-						PARTITION BY decision.SubmissionId
-						ORDER BY decision.Created DESC -- mark latest submissionEvent synced from cosmos
-					) as RowNum
-			from [rpd].[SubmissionEvents] as decision
-			inner join SubmissionOrganisationDetails submittedregistrations on 
-				decision.SubmissionId = submittedregistrations.SubmissionId 
-				and decision.ApplicationReferenceNumber = @ApplicationReferenceNumber -- ensure the SubmissionId is this Particular SubmissionId
-			WHERE decision.Type = 'RegistrationApplicationSubmitted'
-		)
 		-- the latest Producer Comments for this Submission and Application Reference Number
 		,LatestProducerCommentEventsCTE AS (
-			SELECT ProducerCommentEventId,
-				   SubmissionId,
+			SELECT distinct decision.SubmissionId,
 				   Comments as ProducerComment,
 				   Created as ProducerCommentDate
-			from AllRelatedProducerCommentEventsCTE
-			where RowNum = 1
-		)
-		-- regulator decisions for this submission
-		,AllRelatedRegulatorDecisionEventsCTE as (
-			SELECT decision.SubmissionEventId as RegulatorDecisionEventId,
-				   decision.SubmissionId,
-				   decision.Comments as RegulatorComment,
-				   decision.Decision as SubmissionStatus,
-				   decision.RegistrationReferenceNumber as RegistrationReferenceNumber,
-				   decision.DecisionDate as StatusPendingDate,
-				   decision.UserId as RegulatorUserId,
-				   decision.Created,
-				   (SELECT o.NationId from 
-					rpd.Users u
-						INNER JOIN rpd.Persons p ON p.UserId = u.Id
-						INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
-						INNER JOIN rpd.Organisations o ON o.Id = poc.OrganisationId
-						INNER JOIN rpd.Enrolments e ON e.ConnectionId = poc.Id
-						INNER JOIN rpd.ServiceRoles sr ON sr.Id = e.ServiceRoleId
-					where sr.ServiceId = 2
-					and U.UserId = decision.UserId
-				   ) as RegulatorNationId,
-				   ROW_NUMBER() OVER (
-						PARTITION BY decision.SubmissionId
-						ORDER BY load_ts DESC -- mark latest submissionEvent synced from cosmos
-				   ) as RowNum
 			from [rpd].[SubmissionEvents] as decision
-			inner join SubmissionOrganisationDetails submittedregistration on 
-				decision.SubmissionId = submittedregistration.SubmissionId
-			WHERE decision.Type = 'RegulatorRegistrationDecision'
-			and decision.ApplicationReferenceNumber = @ApplicationReferenceNumber	-- ensure this app ref number is the one connected
-			and submittedregistration.SubmissionId = @SubmissionId
+			inner join SubmissionOrganisationDetails submittedregistrations on 
+				decision.SubmissionEventId = submittedregistrations.ProducerSubmissionEventId
 		)
-		-- Granted decision and registration number
-		-- we find the Granted decision from the above CTE as this contains the RegistrationReferenceNumber
-		-- this has now been moved to 
-		,LatestGrantedRegistrationEventCTE AS (
-			select  top(1) 
-				    RegulatorDecisionEventId,
-					SubmissionId,
-					RegistrationReferenceNumber
-			from AllRelatedRegulatorDecisionEventsCTE
-			where SubmissionStatus in ('Accepted','Granted')
-		)
-		-- The latest decision from the set of decisions
-		-- this allows for cancelled states that follow the granted state
-		-- this also includes the RegistrationReferenceNumber
-		,LatestRegulatorDecisionEventsCTE AS (
-			SELECT decisions.RegulatorDecisionEventId,
-				   decisions.SubmissionId,
-				   decisions.RegulatorComment,
-				   decisions.SubmissionStatus,
-				   granted.RegistrationReferenceNumber,
-				   decisions.StatusPendingDate,
-				   decisions.RegulatorUserId,
-				   decisions.RegulatorNationId,
-				   decisions.Created as DecisionDate
-			from AllRelatedRegulatorDecisionEventsCTE decisions
-				left outer join LatestGrantedRegistrationEventCTE granted on granted.SubmissionId = decisions.SubmissionId
-			where RowNum = 1 
+		,LatestRegulatorCommentCTE as (
+			SELECT distinct decision.SubmissionId,
+				   Comments as RegulatorComment,
+				   Created as RegulatorCommentDate
+			from [rpd].[SubmissionEvents] as decision
+			inner join SubmissionOrganisationDetails submittedregistrations on 
+				decision.SubmissionEventId = submittedregistrations.RegulatorSubmissionEventId
 		)
 		-- Submission Details with Producer and Regulator Comments
 		-- the RegistrationReferenceNumber is included
@@ -213,19 +146,17 @@ BEGIN
 				submission.NationCode,
 				submission.RegulatorUserId,
 				submission.SubmittedUserId,
-				submission.RegulatorDecisionDate,
+				decision.RegulatorCommentDate as RegulatorDecisionDate,
 				decision.RegulatorComment,
 				producer.ProducerComment,
 				submission.ProducerCommentDate,
 				submission.IsOnlineMarketplace,
 				submission.NumberOfSubsidiaries,
 				submission.NumberOfSubsidiariesBeingOnlineMarketPlace,
-				decision.RegulatorDecisionEventId,
-				producer.ProducerCommentEventId,
 				submission.ProducerSubmissionEventId,
 				submission.RegulatorSubmissionEventId
 			from SubmissionOrganisationDetails submission
-				left join LatestRegulatorDecisionEventsCTE decision on decision.SubmissionId = submission.SubmissionId
+				left join LatestRegulatorCommentCTE decision on decision.SubmissionId = submission.SubmissionId
 				left join LatestProducerCommentEventsCTE producer on producer.SubmissionId = submission.SubmissionId
 		)
 		, AllOrganisationFiles AS (
@@ -411,8 +342,6 @@ BEGIN
 		r.ProducerComment,
 		r.RegulatorDecisionDate,
 		r.ProducerCommentDate,
-		r.ProducerCommentEventId,
-		r.RegulatorDecisionEventId,
 		r.ProducerSubmissionEventId,
 		r.RegulatorSubmissionEventId,
 		r.RegulatorUserId,

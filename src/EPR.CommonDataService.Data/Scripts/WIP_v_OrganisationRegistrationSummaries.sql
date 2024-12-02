@@ -28,8 +28,8 @@ WITH
 		    s.AppReferenceNumber as ApplicationReferenceNumber,
 		    s.UserId as SubmittedUserId,
             ROW_NUMBER() OVER (
-                PARTITION BY OrganisationId
-                ORDER BY s.load_ts DESC -- mark latest submission synced from cosmos
+                PARTITION BY SubmissionId
+                ORDER BY s.Created DESC -- mark latest submission synced from cosmos
             ) as RowNum
 	    from [rpd].[Submissions] as s
         inner join [rpd].[Organisations] org on org.ExternalId = s.OrganisationId
@@ -62,11 +62,10 @@ WITH
         SELECT
             decisions.SubmissionEventId as SubmissionEventId,
             decisions.SubmissionId as SubmissionId,
-            O.Id as OrganisationId,
             decisions.Comments as RegulatorComment,
 		    decisions.RegistrationReferenceNumber as RegistrationReferenceNumber,
             decisions.Type as DecisionType,
-			CASE decisions.Decision
+			CASE LTRIM(RTRIM(decisions.Decision))
 				when 'Accepted' then 'Granted'
 				when 'Rejected' then 'Cancelled'
 				else decisions.Decision
@@ -74,47 +73,37 @@ WITH
 		    decisions.Created as RegulatorDecisionDate,
             decisions.UserId as RegulatorUserId,
             decisions.DecisionDate AS StatusPendingDate,   -- part of the new RegulatorRegistrationDecision event, Cancellation Date
-            (SELECT o.NationId from 
-                rpd.Users u
-                    INNER JOIN rpd.Persons p ON p.UserId = u.Id
-                    INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
-                    INNER JOIN rpd.Organisations o ON o.Id = poc.OrganisationId
-                    INNER JOIN rpd.Enrolments e ON e.ConnectionId = poc.Id
-                    INNER JOIN rpd.ServiceRoles sr ON sr.Id = e.ServiceRoleId
-                where sr.ServiceId = 2
-                and U.UserId = decisions.UserId
-            ) as RegulatorNationId,
             ROW_NUMBER() OVER (
                 PARTITION BY decisions.SubmissionId
-                ORDER BY decisions.load_ts DESC -- mark latest submissionEvent synced from cosmos
+                ORDER BY decisions.Created DESC -- mark latest submissionEvent synced from cosmos
             ) as RowNum
         FROM [rpd].[SubmissionEvents] as decisions
         inner join LatestSubmittedRegistrationsCTE registrations on 
-            decisions.SubmissionId = registrations.SubmissionId
-        inner join [rpd].[Organisations] O on O.ExternalId = registrations.OrganisationId
+			decisions.SubmissionId = registrations.SubmissionId
         WHERE decisions.Type = 'RegulatorRegistrationDecision'  -- a new Event type that will need to be trasnferred to synapse
-		--and LTRIM(RTRIM(decisions.Decision)) in ('Granted', 'Pending', 'Cancelled', 'Queried','Refused')
+        and decisions.ApplicationReferenceNumber = registrations.ApplicationReferenceNumber 
+        --and LTRIM(RTRIM(decisions.Decision)) in ('Granted', 'Pending', 'Cancelled', 'Queried','Refused')
     ),
+	-- Granted decision and registration number
+	-- we find the Granted decision from the above CTE as this contains the RegistrationReferenceNumber
+	-- this has now been moved to 
     LatestGrantedRegistrationEventCTE AS (
-        select top(1) 
-               SubmissionEventId,
+        select SubmissionEventId,
                SubmissionId,
                RegistrationReferenceNumber
-        from AllRelatedOrganisationRegistrationDecisionEventsCTE
-        where SubmissionStatus in ('Granted', 'Accepted')
+        from AllRelatedOrganisationRegistrationDecisionEventsCTE decision
+		where LTRIM(RTRIM(SubmissionStatus)) in ('Granted', 'Accepted')
     ),
     LatestDecisionEventsCTE AS (
         SELECT SubmissionEventId,
                SubmissionId,
-               OrganisationId,
                RegulatorComment,
                RegistrationReferenceNumber,
                RegulatorDecisionDate,
 			   DecisionType,
                SubmissionStatus,
                RegulatorUserId,
-               StatusPendingDate,
-               RegulatorNationId
+               StatusPendingDate
         from AllRelatedOrganisationRegistrationDecisionEventsCTE
         where RowNum = 1 
     )
@@ -126,14 +115,14 @@ WITH
 				producercomment.Created as ProducerCommentDate,
 				ROW_NUMBER() OVER (
 					 PARTITION BY producercomment.SubmissionId
-					 ORDER BY load_ts DESC -- mark latest submissionEvent synced from cosmos
+					 ORDER BY Created DESC -- mark latest submissionEvent synced from cosmos
 				 ) as RowNum
 		 from [rpd].[SubmissionEvents] as producercomment
 		 inner join LatestSubmittedRegistrationsCTE submittedregistrations on 
 			 producercomment.SubmissionId = submittedregistrations.SubmissionId
 		 WHERE producercomment.Type = 'RegistrationApplicationSubmitted'
-	 )
-	 ,LatestProducerCommentEventsCTE AS (
+	)
+	,LatestProducerCommentEventsCTE AS (
 		 SELECT SubmissionEventId,
                 SubmissionId,
 				ProducerComment,
@@ -151,7 +140,6 @@ WITH
 		    submissions.SubmittedUserId,
 		    submissions.IsComplianceScheme,
 		    submissions.ProducerSize,
-		    --'ApplicationReferenceNumber' as ApplicationReferenceNumber, 
 			submissions.ApplicationReferenceNumber,
 		    granteddecision.RegistrationReferenceNumber,
 		    submissions.SubmittedDateTime,
@@ -170,8 +158,7 @@ WITH
 			producercomments.SubmissionEventId as ProducerSubmissionEventId,
 			decisions.SubmissionEventId as RegulatorSubmissionEventId,
             submissions.ProducerNationId,
-			submissions.ProducerNationCode,
-            decisions.RegulatorNationId
+			submissions.ProducerNationCode
         from LatestSubmittedRegistrationsCTE as submissions 
             left join LatestDecisionEventsCTE as decisions
                 on submissions.Submissionid = decisions.Submissionid
