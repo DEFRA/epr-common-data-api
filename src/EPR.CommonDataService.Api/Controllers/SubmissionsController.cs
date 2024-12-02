@@ -102,8 +102,10 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetOrganisationRegistrationSubmissions([FromRoute] int NationId, [FromQuery] OrganisationRegistrationFilterRequest filter)
     {
+        string filterAsJson = System.Text.Json.JsonSerializer.Serialize(filter);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registrations/{NationId}'", _logPrefix, NationId);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: Get org registration submissions for the nation {NationId} with filters {FilterModel}", _logPrefix, NationId, Request.QueryString);
+        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: Get org registration submissions for the nation {NationId} with filters {FilterModel}", _logPrefix, NationId, filterAsJson);
+
         try
         {
             if (NationId < 1 || NationId > 4)
@@ -115,7 +117,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             if (!ModelState.IsValid)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: Invalid filter model provided; please make sure page details are provided: {QueryString}", _logPrefix, Request.QueryString);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: Invalid filter model provided; please make sure page details are provided: {QueryString}", _logPrefix, filterAsJson);
                 return ValidationProblem(ModelState);
             }
 
@@ -123,21 +125,21 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             if (organisationRegistrations.Items.Count == 0)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided did not return any submissions. {NationId}/{Querystring}", _logPrefix, NationId, Request.QueryString);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided did not return any submissions. {NationId}/{Querystring}", _logPrefix, NationId, filterAsJson);
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided returned {Howmany} submissions. {NationId}/{Querystring}", _logPrefix, organisationRegistrations.Items.Count, NationId, Request.QueryString);
+            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided returned {Howmany} submissions. {NationId}/{Querystring}", _logPrefix, organisationRegistrations.Items.Count, NationId, filterAsJson);
             return Ok(organisationRegistrations);
         }
         catch (TimeoutException ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided caused a timeout exception. {NationId}/{Querystring}: Error: {ErrorMessage}", _logPrefix, NationId, Request.QueryString, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided caused a timeout exception. {NationId}/{Querystring}: Error: {ErrorMessage}", _logPrefix, NationId, filterAsJson, ex.Message);
             return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided caused an exception. {NationId}/{Querystring}: Error: {ErrorMessage}", _logPrefix, NationId, Request.QueryString, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided caused an exception. {NationId}/{Querystring}: Error: {ErrorMessage}", _logPrefix, NationId, filterAsJson, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
