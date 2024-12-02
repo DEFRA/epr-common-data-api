@@ -154,13 +154,13 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetails([FromRoute] Guid? SubmissionId)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, SubmissionId);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Get org registration submissions details for the submission {SubmissionId}", _logPrefix, SubmissionId);
+        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Get org registration submissions details for the submission {SubmissionId}", _logPrefix, SubmissionId?.ToString("D"));
         
         try
         {
             if (!SubmissionId.HasValue)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Invalid SubmissionId provided; please make sure it's a valid Guid {SubmissionId}", _logPrefix, SubmissionId);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Invalid SubmissionId provided; please make sure it's a valid Guid", _logPrefix);
                 ModelState.AddModelError(nameof(SubmissionId), "SubmissionId must be a valid Guid");
                 return ValidationProblem(ModelState);
             }
@@ -169,21 +169,21 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             if (null == submissiondetails)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, SubmissionId);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, SubmissionId.Value.ToString("D"));
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: {SubmissionId} returned the following submission {Submission}", _logPrefix, SubmissionId, submissiondetails);
+            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: {SubmissionId} returned the following submission {Submission}", _logPrefix, SubmissionId, SubmissionId.Value.ToString("D"));
             return Ok(submissiondetails);
         }
         catch (TimeoutException ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, SubmissionId, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, SubmissionId?.ToString("D"), ex.Message);
             return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, SubmissionId, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, SubmissionId?.ToString("D"), ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
