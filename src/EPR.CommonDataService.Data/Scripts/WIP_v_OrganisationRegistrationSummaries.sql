@@ -28,7 +28,7 @@ WITH
 		    s.AppReferenceNumber as ApplicationReferenceNumber,
 		    s.UserId as SubmittedUserId,
             ROW_NUMBER() OVER (
-                PARTITION BY SubmissionId
+                PARTITION BY OrganisationId, SubmissionPeriod
                 ORDER BY s.Created DESC -- mark latest submission synced from cosmos
             ) as RowNum
 	    from [rpd].[Submissions] as s
