@@ -14,15 +14,6 @@ using System.Globalization;
 
 namespace EPR.CommonDataService.Core.Services;
 
-public interface ISubmissionsService
-{
-    Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request);
-
-    Task<PaginatedResponse<RegistrationSubmissionSummary>> GetSubmissionRegistrationSummaries<T>(SubmissionsSummariesRequest<T> request);
-
-    Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods);
-}
-
 public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService, ILogger<SubmissionsService> logger, IConfiguration config) : ISubmissionsService
 {
     private readonly string? _logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
@@ -84,6 +75,66 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new DataException("An error occurred while accessing the database.", ex);
+        }
+    }
+
+    public async Task<PaginatedResponse<OrganisationRegistrationSummaryDto>> GetOrganisationRegistrationSubmissionSummaries(int NationId, OrganisationRegistrationFilterRequest filter)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionSummaries: Get OrganisationRegistrationSubmissions for given request", _logPrefix);
+        var sql = "EXECUTE rpd.sp_FilterAndPaginateOrganisationRegistrationSummaries @OrganisationNameCommaSeparated, @OrganisationReferenceCommaSeparated, @SubmissionYearsCommaSeparated, @StatusesCommaSeparated, @OrganisationTypeCommaSeparated, @NationId, @AppRefNumbersCommaSeparated, @PageSize, @PageNumber";
+
+        SqlParameter[] sqlParameters = filter.ToProcParams();
+
+        sqlParameters =
+        [
+            .. sqlParameters,
+            new SqlParameter("@NationId", SqlDbType.Int) { Value = NationId },
+        ];
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
+            var dataset = await accountsDbContext.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(sql, sqlParameters);
+            var itemsCount = dataset.FirstOrDefault()?.TotalItems ?? 0;
+            logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionSummaries: Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dataset));
+
+            return dataset.ToCalculatedPaginatedResponse<OrganisationRegistrationSummaryDataRow, OrganisationRegistrationSummaryDto>(filter, itemsCount);
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionSummaries: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionSummaries: Get OrganisationRegistrationSubmissions: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
+
+    public async Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails for given request {Request}", _logPrefix, JsonConvert.SerializeObject(request));
+        var sql = "EXECUTE rpd.sp_fetchOrganisationRegistrationSubmissionDetails @SubmissionId";
+        var sqlParameters = request.ToProcParams();
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+            var dbSet = await accountsDbContext.RunSPCommandAsync<OrganisationRegistrationDetailsDto>("rpd.sp_fetchOrganisationRegistrationSubmissionDetails", logger, _logPrefix, sqlParameters);
+            logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
+
+            return dbSet.FirstOrDefault();
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get GetOrganisationRegistrationSubmissionDetails: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
         }
     }
 }

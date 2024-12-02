@@ -9,6 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Data;
+using System.Data.Common;
+using System.Reflection;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
@@ -271,5 +273,338 @@ public class SubmissionsServiceTests
         new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods } // Check for empty string when periods is empty
         });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public void GetApprovedSubmissionsWithAggregatedPomData_WhenReceivesTimeout_WillThrowTimeoutException()
+    {
+        // Arrange
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act and Assert
+        var result = Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods));
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionSummaries_CallsStoredProcedure()
+    {
+        const int PageSize = 10;
+        const int PageNumber = 2;
+
+        var request = _fixture
+                    .Build<OrganisationRegistrationFilterRequest>()
+                    .With(x => x.PageSize, PageSize)
+                    .With(x => x.PageNumber, PageNumber)
+                    .Create();
+
+        var submissionSummaries = _fixture
+            .Build<OrganisationRegistrationSummaryDataRow>()
+            .With(x => x.TotalItems, 100)
+            .CreateMany(PageSize).ToList();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .ReturnsAsync(submissionSummaries).Verifiable();
+
+        //Act
+        var result = await _sut.GetOrganisationRegistrationSubmissionSummaries(1, request);
+
+        //Assert
+        result.Should().NotBeNull();
+
+        _mockSynapseContext.Verify(
+            x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()
+            ),
+            Times.Once()
+        );
+    }
+
+    [TestMethod]
+    public void GetOrganisationRegistrationSubmissionSummaries_WillThrowTimeoutException_WhenTimoutExceptionOccurs()
+    {
+        const int PageSize = 10;
+        const int PageNumber = 2;
+
+        var request = _fixture
+                    .Build<OrganisationRegistrationFilterRequest>()
+                    .With(x => x.PageSize, PageSize)
+                    .With(x => x.PageNumber, PageNumber)
+                    .Create();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .Throws(BuildSqlException(-2));
+
+        //Act and Assert
+        var result = Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1 ,request));
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionSummaries_WhenNoSubmissionsExist_Returns_EmptyPaginatedList()
+    {
+        const int PageSize = 10;
+        const int PageNumber = 2;
+
+        var request = _fixture
+                    .Build<OrganisationRegistrationFilterRequest>()
+                    .With(x => x.PageSize, PageSize)
+                    .With(x => x.PageNumber, PageNumber)
+                    .Create();
+
+        var submissionSummaries = _fixture
+            .Build<OrganisationRegistrationSummaryDataRow>()
+            .With(x => x.TotalItems, 0)
+            .CreateMany(0).ToList();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .ReturnsAsync(submissionSummaries).Verifiable();
+
+        //Act
+        var result = await _sut.GetOrganisationRegistrationSubmissionSummaries(1, request);
+
+        //Assert
+        result.Should().NotBeNull();
+        result.PageSize.Should().Be(10);
+        result.TotalItems.Should().Be(0);
+        result.CurrentPage.Should().Be(1);
+
+        _mockSynapseContext.Verify(
+            x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()
+            ),
+            Times.Once()
+        );
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionSummaries_WhenThereAreSubmissions_Returns_Them()
+    {
+        const int PageSize = 20;
+        const int PageNumber = 4;
+
+        var request = _fixture
+                    .Build<OrganisationRegistrationFilterRequest>()
+                    .With(x => x.PageSize, PageSize)
+                    .With(x => x.PageNumber, PageNumber)
+                    .Create();
+
+        var submissionSummaries = _fixture
+            .Build<OrganisationRegistrationSummaryDataRow>()
+            .With(x => x.TotalItems, 100)
+            .CreateMany(PageSize).ToList();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .ReturnsAsync(submissionSummaries).Verifiable();
+
+        //Act
+        var result = await _sut.GetOrganisationRegistrationSubmissionSummaries(1, request);
+
+        //Assert
+        result.Should().NotBeNull();
+        result.PageSize.Should().Be(PageSize);
+        result.TotalItems.Should().Be(100);
+        result.CurrentPage.Should().Be(PageNumber);
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionSummaries_WhenThereAreSubmissions_ButLessThanCurrentPage_Returns_LastPage()
+    {
+        const int PageSize = 20;
+        const int PageNumber = 4;
+
+        var request = _fixture
+                    .Build<OrganisationRegistrationFilterRequest>()
+                    .With(x => x.PageSize, PageSize)
+                    .With(x => x.PageNumber, PageNumber)
+                    .Create();
+
+        var submissionSummaries = _fixture
+            .Build<OrganisationRegistrationSummaryDataRow>()
+            .With(x => x.TotalItems, PageSize + 10)
+            .CreateMany(PageSize + 10).ToList();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .ReturnsAsync(submissionSummaries).Verifiable();
+
+        //Act
+        var result = await _sut.GetOrganisationRegistrationSubmissionSummaries(1, request);
+
+        //Assert
+        result.Should().NotBeNull();
+        result.PageSize.Should().Be(PageSize);
+        result.TotalItems.Should().Be(PageSize + 10);
+        result.CurrentPage.Should().Be(2);
+    }
+
+    private static SqlException BuildSqlException(int number)
+    {
+        var errorConstructor = typeof(SqlError).GetConstructor(
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            null,
+            [typeof(int), typeof(byte), typeof(byte), typeof(string), typeof(string), typeof(string), typeof(int), typeof(System.Exception)],
+            null
+        );
+
+        var sqlError = errorConstructor.Invoke([number,
+                                                (byte)0,
+                                                (byte)0,
+                                                "server",
+                                                "Custom SQL Error Message",
+                                                "procedure",
+                                                0, new Exception("A generic exception")]);
+
+        var errorCollection = (SqlErrorCollection)Activator.CreateInstance(typeof(SqlErrorCollection), true);
+        typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(errorCollection, new object[] { sqlError });
+
+
+        var exceptionConstructor = typeof(SqlException).GetConstructor(
+            BindingFlags.NonPublic | BindingFlags.Instance,
+            null,
+            new Type[] { typeof(string), typeof(SqlErrorCollection), typeof(Exception), typeof(Guid) },
+            null
+        );
+
+        return (SqlException)exceptionConstructor.Invoke(new object[] { "Custom SQL Exception Message", errorCollection, null, Guid.NewGuid() });
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionDetails_Will_Call_StoredProc()
+    {
+        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
+
+        var submissionDto = _fixture
+            .Build<OrganisationRegistrationDetailsDto>()
+            .CreateMany(1).ToList();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()
+            ))
+            .ReturnsAsync(submissionDto).Verifiable();
+
+        //Act
+        var result = await _sut.GetOrganisationRegistrationSubmissionDetails(request);
+
+        //Assert
+        result.Should().NotBeNull();
+
+        _mockSynapseContext.Verify(
+            x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()
+            ),
+            Times.Once()
+        );
+
+    }
+
+    [TestMethod]
+    public void GetOrganisationRegistrationSubmissionDetails_WillThrowTimeoutException_WhenTimoutExceptionOccurs()
+    {
+        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationDetailsDto>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .Throws(BuildSqlException(-2));
+
+        //Act and Assert
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionDetails(request));
+    }
+
+    //[TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionSummaries_RetrievesData_Correctly()
+    {
+        const int PageSize = 20;
+        const int PageNumber = 1;
+
+        var mockLogger = new Mock<ILogger<SubmissionsService>>();
+        var configurationMock = new Mock<IConfiguration>();
+        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+
+        var request = new OrganisationRegistrationFilterRequest
+        {
+            PageNumber = PageNumber,
+            PageSize = PageSize
+        };
+
+        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=laptop\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
+                        .LogTo(Console.WriteLine, LogLevel.Information)
+                        .Options;
+
+        try
+        {
+            using SynapseContext dbContext = new SynapseContext(options);
+            SubmissionsService svc = new(dbContext, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
+
+            var result = await svc.GetOrganisationRegistrationSubmissionSummaries(1, request);
+
+            result.Items.Should().HaveCountGreaterThan(1);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            throw;
+        }
+
+    }
+
+    //[TestMethod]
+    public async Task GetOrganisationRegistrationDetails_RetrievesData_Correctly()
+    {
+        var mockLogger = new Mock<ILogger<SubmissionsService>>();
+        var configurationMock = new Mock<IConfiguration>();
+        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+
+        var request = Guid.Parse("cf9b5bc0-e41a-47e3-bdbe-87388181f31c");
+
+        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=localhost\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
+                        .LogTo(Console.WriteLine, LogLevel.Debug)
+                        .Options;
+
+        try
+        {
+            using SynapseContext dbContext = new(options);
+            SubmissionsService svc = new(dbContext, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
+
+            var result = await svc.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = request });
+
+            result?.SubmissionId.Should().Be(request.ToString());
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+            throw;
+        }
     }
 }
