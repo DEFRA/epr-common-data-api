@@ -460,7 +460,7 @@ public class SubmissionsServiceTests
         result.CurrentPage.Should().Be(2);
     }
 
-    private static SqlException BuildSqlException(int number)
+    private static SqlException? BuildSqlException(int number)
     {
         var errorConstructor = typeof(SqlError).GetConstructor(
             BindingFlags.NonPublic | BindingFlags.Instance,
@@ -469,7 +469,7 @@ public class SubmissionsServiceTests
             null
         );
 
-        var sqlError = errorConstructor.Invoke([number,
+        object? sqlError = errorConstructor?.Invoke([number,
                                                 (byte)0,
                                                 (byte)0,
                                                 "server",
@@ -477,18 +477,19 @@ public class SubmissionsServiceTests
                                                 "procedure",
                                                 0, new Exception("A generic exception")]);
 
-        var errorCollection = (SqlErrorCollection)Activator.CreateInstance(typeof(SqlErrorCollection), true);
-        typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(errorCollection, new object[] { sqlError });
+        SqlErrorCollection? errorCollection = Activator.CreateInstance(typeof(SqlErrorCollection), true) as SqlErrorCollection;
+        typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)?
+                                  .Invoke(errorCollection, [sqlError]);
 
 
         var exceptionConstructor = typeof(SqlException).GetConstructor(
             BindingFlags.NonPublic | BindingFlags.Instance,
             null,
-            new Type[] { typeof(string), typeof(SqlErrorCollection), typeof(Exception), typeof(Guid) },
+            [typeof(string), typeof(SqlErrorCollection), typeof(Exception), typeof(Guid)],
             null
         );
 
-        return (SqlException)exceptionConstructor.Invoke(new object[] { "Custom SQL Exception Message", errorCollection, null, Guid.NewGuid() });
+        return exceptionConstructor?.Invoke(["Custom SQL Exception Message", errorCollection, null, Guid.NewGuid()]) as SqlException;
     }
 
     [TestMethod]

@@ -115,13 +115,13 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     public async Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails for given request {Request}", _logPrefix, JsonConvert.SerializeObject(request));
-        var sql = "EXECUTE rpd.sp_fetchOrganisationRegistrationSubmissionDetails @SubmissionId";
+        var sql = "sp_fetchOrganisationRegistrationSubmissionDetails";
         var sqlParameters = request.ToProcParams();
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSPCommandAsync<OrganisationRegistrationDetailsDto>("rpd.sp_fetchOrganisationRegistrationSubmissionDetails", logger, _logPrefix, sqlParameters);
+            var dbSet = await accountsDbContext.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
 
             return dbSet.FirstOrDefault();

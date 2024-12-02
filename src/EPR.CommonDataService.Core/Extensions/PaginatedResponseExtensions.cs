@@ -25,7 +25,7 @@ public static class PaginatedResponseExtensions
         
         return new PaginatedResponse<TOut>
         {
-            Items = items,
+            Items = [..items],
             CurrentPage = currentPage,
             TotalItems = count,
             PageSize = request.PageSize

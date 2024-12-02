@@ -17,13 +17,13 @@ namespace EPR.CommonDataService.Data.Entities
         public string OrganisationName { get; set; }
         public string OrganisationReference { get; set; }
         public string SubmissionStatus { get; set; }
-        public string? StatusPendingDate { get; set; }
+        public string StatusPendingDate { get; set; }
         public string ApplicationReferenceNumber { get; set; }
-        public string? RegistrationReferenceNumber { get; set; }
+        public string RegistrationReferenceNumber { get; set; }
         public int RelevantYear { get; set; }
         public string SubmittedDateTime { get; set; }
-        public string? RegulatorCommentDate { get; set; }
-        public string? ProducerCommentDate { get; set; }
+        public string RegulatorCommentDate { get; set; }
+        public string ProducerCommentDate { get; set; }
         public Guid? RegulatorUserId { get; set; }
         public int NationId { get; set; }
     }

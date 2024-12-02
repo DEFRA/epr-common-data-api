@@ -35,77 +35,7 @@ public class SynapseContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<SubmissionEvent>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.SubmissionEventId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
-
-        modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.FileId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
-
-        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.CompanyDetailsFileId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
-
-        modelBuilder.Entity<ApprovedSubmissionEntity>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.OrganisationId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
-
-        modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.SubmissionId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
-
-        modelBuilder.Entity<OrganisationRegistrationDetailsDto>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.SubmissionId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        BuildComplexEntities(modelBuilder);
 
         var stringToGuidConverter = StringToGuidConverter.Get();
 
@@ -179,6 +109,81 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.SubmittedUserId)
             .HasConversion(stringToGuidConverter);
+    }
+
+    private void BuildComplexEntities(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<SubmissionEvent>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.SubmissionEventId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.FileId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.CompanyDetailsFileId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<ApprovedSubmissionEntity>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.OrganisationId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.SubmissionId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.SubmissionId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
     }
 
     public virtual async Task<IList<TEntity>> RunSqlAsync<TEntity>(string sql, params object[] parameters) where TEntity : class
@@ -263,53 +268,62 @@ public class SynapseContext : DbContext
 
     private static void SetProperty<T>(T instance, PropertyInfo prop, object value, Type dataType, ILogger logger, string logPrefix)
     {
-        // Handle type-specific conversion based on column data type
-        if (dataType == typeof(Guid) && prop.PropertyType == typeof(Guid))
+        try
         {
-            prop.SetValue(instance, Guid.Parse(value.ToString()));
+            if (IsGuidConversion(dataType, prop.PropertyType))
+            {
+                AssignGuidValue(instance, prop, value);
+            }
+            else if (IsStringToString(dataType, prop.PropertyType))
+            {
+                prop.SetValue(instance, value.ToString());
+            }
+            else if (IsNumericConversion(dataType, prop.PropertyType))
+            {
+                prop.SetValue(instance, Convert.ChangeType(value, prop.PropertyType));
+            }
+            else if (IsDateTimeConversion(dataType, prop.PropertyType))
+            {
+                prop.SetValue(instance, Convert.ToDateTime(value));
+            }
+            else
+            {
+                prop.SetValue(instance, value);
+            }
         }
-        else if (dataType == typeof(string) && prop.PropertyType == typeof(Guid))
+        catch (Exception ex)
         {
-            prop.SetValue(instance, Guid.Parse(value.ToString()));
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - Property assignment of {TypeName}.{PropertyName}, of type '{PropertyType}' assignment failed with DB value '{Value}' of type {DataType}.",
+                logPrefix, nameof(T), prop.Name, prop.PropertyType.Name, value, dataType);
         }
-        else if (dataType == typeof(string) && prop.PropertyType == typeof(Guid?))
+    }
+
+    private static bool IsGuidConversion(Type dataType, Type propType) =>
+        dataType == typeof(string) && (propType == typeof(Guid) || propType == typeof(Guid?)) ||
+        dataType == typeof(Guid) && propType == typeof(Guid);
+
+    private static void AssignGuidValue(object instance, PropertyInfo prop, object value)
+    {
+        if (prop.PropertyType == typeof(Guid?))
         {
             if (Guid.TryParse(value.ToString(), out Guid guid))
                 prop.SetValue(instance, guid);
         }
-        else if (dataType == typeof(string) && prop.PropertyType == typeof(string))
-        {
-            prop.SetValue(instance, value.ToString());
-        }
-        else if (dataType == typeof(int) && prop.PropertyType == typeof(int))
-        {
-            prop.SetValue(instance, Convert.ToInt32(value));
-        }
-        else if (dataType == typeof(string) && prop.PropertyType == typeof(DateTime))
-        {
-            prop.SetValue(instance, Convert.ToDateTime(value));
-        }
-        else if (dataType == typeof(string) && prop.PropertyType == typeof(DateTime?))
-        {
-            prop.SetValue(instance, Convert.ToDateTime(value));
-        }
-        else if (dataType == typeof(DateTime) && prop.PropertyType == typeof(DateTime))
-        {
-            prop.SetValue(instance, Convert.ToDateTime(value));
-        }
         else
         {
-            // Attempt to directly assign if types match or handle defaults
-            try
-            {
-                prop.SetValue(instance, value);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "{Logprefix}: SubmissionsService - Property assignment of {TypeName}.{PropertyName}, of type  '{PropertyType}' assignment failed with DB value '{Value}' of type {DataType}.", logPrefix, nameof(T), prop.Name, prop.PropertyType.Name, value, dataType);
-            }
-        }    
+            prop.SetValue(instance, Guid.Parse(value.ToString()));
+        }
     }
+
+    private static bool IsStringToString(Type dataType, Type propType) =>
+        dataType == typeof(string) && propType == typeof(string);
+
+    private static bool IsNumericConversion(Type dataType, Type propType) =>
+        dataType == typeof(int) && propType == typeof(int);
+
+    private static bool IsDateTimeConversion(Type dataType, Type propType) =>
+        (dataType == typeof(string) || dataType == typeof(DateTime)) &&
+        (propType == typeof(DateTime) || propType == typeof(DateTime?));
 
     private static DbCommand CreateCommand(DbConnection connection, string sql, params SqlParameter[] parameters)
     {

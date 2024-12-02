@@ -182,9 +182,10 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(0, request);
 
         var properResult = result as ObjectResult;
-        var resultValidations = properResult.Value as ValidationProblemDetails;
-        resultValidations.Errors.ContainsKey("NationId").Should().BeTrue();
         properResult.Should().NotBeNull();
+        var resultValidations = properResult?.Value as ValidationProblemDetails;
+        resultValidations.Should().NotBeNull();
+        resultValidations?.Errors.ContainsKey("NationId").Should().BeTrue();
     }
 
     [TestMethod]
@@ -224,9 +225,10 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
         var properResult = result as ObjectResult;
-        var resultValidations = properResult.Value as ValidationProblemDetails;
-        resultValidations.Errors.ContainsKey("PageSize").Should().BeTrue();
         properResult.Should().NotBeNull();
+        var resultValidations = properResult.Value as ValidationProblemDetails;
+        resultValidations.Should().NotBeNull();
+        resultValidations?.Errors.ContainsKey("PageSize").Should().BeTrue();
     }
 
     [TestMethod]
@@ -243,7 +245,8 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
         var properResult = result as ObjectResult;
-        properResult.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+        properResult.Should().NotBeNull();
+        properResult?.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
     }
 
     [TestMethod]
@@ -260,7 +263,8 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
         var properResult = result as ObjectResult;
-        properResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        properResult.Should().NotBeNull();
+        properResult?.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
     }
 
     [TestMethod]
@@ -272,7 +276,7 @@ public class SubmissionsControllerTests
 
         var properResult = result as ObjectResult;
         properResult.Should().NotBeNull();
-        var resultValidations = properResult.Value as ValidationProblemDetails;
+        var resultValidations = properResult?.Value as ValidationProblemDetails;
         resultValidations.Should().NotBeNull();
         resultValidations?.Errors.ContainsKey("SubmissionId").Should().BeTrue();
     }
@@ -304,7 +308,8 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
         var properResult = result as ObjectResult;
-        properResult.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+        properResult.Should().NotBeNull();
+        properResult?.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
     }
 
     [TestMethod]
@@ -316,8 +321,8 @@ public class SubmissionsControllerTests
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
-
         var properResult = result as ObjectResult;
-        properResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        properResult.Should().NotBeNull();
+        properResult?.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
     }
 }
