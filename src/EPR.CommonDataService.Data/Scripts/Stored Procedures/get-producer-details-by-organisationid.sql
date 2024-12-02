@@ -66,7 +66,7 @@ FROM
     INNER JOIN [rpd].[Organisations] org ON org.referenceNumber = cd.organisation_id
     INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
     LEFT JOIN [rpd].[Nations] N ON N.Id = org.NationId
-    LEFT JOIN LatestSubmission sub ON sub.organisationid = org.externalid
+    INNER JOIN LatestSubmission sub ON sub.organisationid = org.externalid
     INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
