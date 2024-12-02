@@ -123,7 +123,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             var organisationRegistrations = await submissionsService.GetOrganisationRegistrationSubmissionSummaries(NationId, filter);
 
-            if (organisationRegistrations.Items.Count == 0)
+            if (organisationRegistrations is null || organisationRegistrations.Items.Count == 0)
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided did not return any submissions. {NationId}/{Querystring}", _logPrefix, NationId, filterAsJson);
                 return NoContent();

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,6 +10,7 @@ namespace EPR.CommonDataService.Data.Entities
     /// <summary>
     /// Used to return information the Organisation Registration Submissions List
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class OrganisationRegistrationSummaryDto
     {
         public Guid SubmissionId { get; set; }
@@ -28,6 +30,7 @@ namespace EPR.CommonDataService.Data.Entities
         public int NationId { get; set; }
     }
 
+    [ExcludeFromCodeCoverage]
     public class OrganisationRegistrationSummaryDataRow : OrganisationRegistrationSummaryDto
     {
         public int TotalItems { get; set; }

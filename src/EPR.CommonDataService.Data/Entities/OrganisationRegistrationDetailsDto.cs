@@ -1,9 +1,12 @@
-﻿namespace EPR.CommonDataService.Data.Entities
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace EPR.CommonDataService.Data.Entities
 {
     /// <summary>
     /// Used to return all required information for an Organisation and Submission
     /// for the Submissions detail page
     /// </summary>
+    [ExcludeFromCodeCoverage]
     public class OrganisationRegistrationDetailsDto
     {
         public Guid SubmissionId { get; set; }

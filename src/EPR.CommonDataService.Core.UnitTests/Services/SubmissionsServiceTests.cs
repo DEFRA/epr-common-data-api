@@ -10,10 +10,12 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using System.Data;
 using System.Data.Common;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
+[ExcludeFromCodeCoverage]
 [TestClass]
 public class SubmissionsServiceTests
 {
@@ -354,6 +356,28 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
+    public void GetOrganisationRegistrationSubmissionSummaries_WillThrowDataException_WhenExceptionOccurs()
+    {
+        const int PageSize = 10;
+        const int PageNumber = 2;
+
+        var request = _fixture
+                    .Build<OrganisationRegistrationFilterRequest>()
+                    .With(x => x.PageSize, PageSize)
+                    .With(x => x.PageNumber, PageNumber)
+                    .Create();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .Throws(BuildSqlException(-1));
+
+        //Act and Assert
+        var result = Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1, request));
+    }
+
+    [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionSummaries_WhenNoSubmissionsExist_Returns_EmptyPaginatedList()
     {
         const int PageSize = 10;
@@ -538,9 +562,37 @@ public class SubmissionsServiceTests
                 It.IsAny<string>(),
                 It.IsAny<object[]>()))
             .Throws(BuildSqlException(-2));
+        _mockSynapseContext
+            .Setup(x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .Throws(BuildSqlException(-2));
 
         //Act and Assert
         Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionDetails(request));
+    }
+
+    [TestMethod]
+    public void GetOrganisationRegistrationSubmissionDetails_WillDataException_WhenInnerExceptionOccurs()
+    {
+        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<OrganisationRegistrationDetailsDto>(
+                It.IsAny<string>(),
+                It.IsAny<object[]>()))
+            .Throws(BuildSqlException(-1));
+        _mockSynapseContext
+            .Setup(x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .Throws(BuildSqlException(-1));
+
+        Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionDetails(request));
     }
 
     //[TestMethod]
@@ -559,7 +611,7 @@ public class SubmissionsServiceTests
             PageSize = PageSize
         };
 
-        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=laptop\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
+        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=localhost\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
                         .LogTo(Console.WriteLine, LogLevel.Information)
                         .Options;
 

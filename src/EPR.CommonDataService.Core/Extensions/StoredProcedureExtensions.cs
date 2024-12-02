@@ -1,10 +1,12 @@
 using EPR.CommonDataService.Core.Models.Requests;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace EPR.CommonDataService.Core.Extensions;
 
+[ExcludeFromCodeCoverage]
 public static class StoredProcedureExtensions
 {
     public static bool ReturnFakeData { get; set; } = true;
