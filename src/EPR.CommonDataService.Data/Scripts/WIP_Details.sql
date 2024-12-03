@@ -290,7 +290,7 @@ BEGIN
 			SELECT
 				CSOReference
 				,ReferenceNumber,
-				'{"MemberId": ' + CAST(ReferenceNumber AS NVARCHAR(25)) + ', ' +
+				'{"MemberId": "' + CAST(ReferenceNumber AS NVARCHAR(25)) + '", ' +
 				'"MemberType": "' + ProducerSize + '", ' +
 				'"IsOnlineMarketPlace": ' + 
 				CASE 
