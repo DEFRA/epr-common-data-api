@@ -1,4 +1,5 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
+﻿-- Dropping stored procedure if it exists
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
 DROP PROCEDURE [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
 GO
 create proc [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries] 
@@ -16,7 +17,7 @@ begin
 	SET NOCOUNT ON;
 
     with 
-	InitialFilterCTE as (
+	RequiredApplicationsByStatusCTE as  (
     	SELECT * 
         FROM dbo.[v_OrganisationRegistrationSummaries]
 		WHERE 
@@ -24,6 +25,24 @@ begin
 			1 = 1
 			AND NationId = @NationId 
 		)
+		AND EXISTS (
+			SELECT 1
+			FROM STRING_SPLIT(@AppRefNumbersCommaSeparated, ',') AS AppReference
+			WHERE ApplicationReferenceNumber = LTRIM(RTRIM(AppReference.value))
+		)
+	)
+	,InitialFilterCTE as (
+    	SELECT * 
+        FROM dbo.[v_OrganisationRegistrationSummaries]
+		WHERE 
+        ( 
+			1 = 1
+			AND NationId = @NationId 
+		)
+	)
+	,NormalFilterCTE as (
+		SELECT * from InitialFilterCTE i
+		WHERE NationId = @NationId
 		AND
 		(
 			(
@@ -80,8 +99,13 @@ begin
         AND (ISNULL(@StatusesCommaSeparated, '') = '' OR SubmissionStatus IN 
 			(SELECT TRIM(value) FROM STRING_SPLIT(@StatusesCommaSeparated, ','))
         )
-    ),
-    SortedCTE as (
+    )
+	,CombinedCTE as (
+		select * from NormalFilterCTE
+		UNION
+		select * from RequiredApplicationsByStatusCTE
+	)
+    ,SortedCTE as (
         select *,
         ROW_NUMBER() OVER (
             ORDER BY
@@ -95,8 +119,19 @@ begin
                 END,
                 SubmittedDateTime
         ) as RowNum
-        from InitialFilterCTE
+        from CombinedCTE
     )
+	,TotalRowsCTE AS
+	(
+		SELECT COUNT(*) AS TotalRows
+		FROM SortedCTE
+	)
+	,PagedResultsCTE AS
+	(
+		SELECT *,
+			   ROW_NUMBER() OVER (ORDER BY RowNum) AS PagedRowNum
+		FROM SortedCTE
+	)
 SELECT
     SubmissionId,
     OrganisationId,
@@ -116,9 +151,9 @@ SELECT
     NationId,
 	NationCode,
     (SELECT COUNT(*) FROM SortedCTE) AS TotalItems
-FROM SortedCTE
-WHERE RowNum > (@PageSize * (@PageNumber - 1))
-   AND RowNum <= @PageSize * @PageNumber
+FROM PagedResultsCTE
+WHERE PagedRowNum > (@PageSize * (LEAST(@PageNumber, CEILING((SELECT TotalRows FROM TotalRowsCTE) / (1.0 * @PageSize))) - 1))
+   AND PagedRowNum <= @PageSize * LEAST(@PageNumber, CEILING((SELECT TotalRows FROM TotalRowsCTE) / (1.0 * @PageSize)))
 ORDER BY RowNum;
 
 END;
