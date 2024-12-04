@@ -35,7 +35,6 @@ WITH
         inner join [rpd].[Organisations] org on org.ExternalId = s.OrganisationId
             inner join [rpd].[CompanyDetails] cd on cd.organisation_id = org.Id
 	    where s.AppReferenceNumber is not null
-        and s.SubmissionType = 'Registration'
 		and org.IsDeleted = 0
 	),
     LatestSubmittedRegistrationsCTE AS (
@@ -68,7 +67,7 @@ WITH
             decisions.Type as DecisionType,
 			CASE LTRIM(RTRIM(decisions.Decision))
 				when 'Accepted' then 'Granted'
-				when 'Rejected' then 'Cancelled'
+				when 'Rejected' then 'Refused'
 				else decisions.Decision
 			end as SubmissionStatus,
 		    decisions.Created as RegulatorDecisionDate,
