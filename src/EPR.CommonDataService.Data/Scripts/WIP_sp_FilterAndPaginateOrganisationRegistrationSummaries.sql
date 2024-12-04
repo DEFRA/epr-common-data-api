@@ -2,7 +2,10 @@
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
 DROP PROCEDURE [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
 GO
-create proc [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries] 
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
+DROP PROCEDURE [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
+GO
+create proc [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries] 
     @OrganisationNameCommaSeparated[nvarchar](255),
     @OrganisationReferenceCommaSeparated [nvarchar](255),
     @SubmissionYearsCommaSeparated [nvarchar](255),
