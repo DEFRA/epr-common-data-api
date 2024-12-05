@@ -19,30 +19,31 @@ public class CsoMemberDetailsService(
 { 
     public async Task<GetCsoMemberDetailsResponse[]?> GetCsoMemberDetails(int organisationId)
     {
-        IList<CsoMemberDetailsModel> response;
         try
         {
             const string Sql = "EXECUTE dbo.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
 
-            var sqlParameters = new List<SqlParameter>
-            {
-                new ("@OrganisationId", SqlDbType.Int) { Value = organisationId }
-            };
+            SqlParameter[] parms = [new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId }];
 
-            response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, sqlParameters);
+            var response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, parms);
+        
+            if (response.Count > 0)
+            {
+                return response.Select(r => new GetCsoMemberDetailsResponse
+                {
+                    IsOnlineMarketplace = r.IsOnlineMarketplace,
+                    MemberId = r.MemberId,
+                    MemberType = ProducerSizeMapper.Map(r.MemberType),
+                    NumberOfSubsidiaries = r.NumberOfSubsidiaries,
+                    NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace
+                }).ToArray();
+            }
         }
         catch
         {
             return null;
         }
 
-        return response.Select(r => new GetCsoMemberDetailsResponse
-        {
-            IsOnlineMarketplace = r.IsOnlineMarketplace,
-            MemberId = r.MemberId,
-            MemberType = ProducerSizeMapper.Map(r.MemberType),
-            NumberOfSubsidiaries = r.NumberOfSubsidiaries,
-            NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace
-        }).ToArray();
+        return null;
     }
 }
