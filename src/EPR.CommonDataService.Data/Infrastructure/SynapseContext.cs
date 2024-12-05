@@ -10,6 +10,7 @@ public class SynapseContext : DbContext
 {
     public DbSet<SubmissionEvent> SubmissionEvents { get; set; } = null!;
     public DbSet<ProducerDetailsModel> ProducerDetailsModel { get; set; } = null!;
+    public DbSet<CsoMemberDetailsModel> CsoMemberDetailsModel { get; set; } = null;
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
@@ -28,6 +29,9 @@ public class SynapseContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<ProducerDetailsModel>(entity => {
+            entity.HasNoKey();
+        });
+        modelBuilder.Entity<CsoMemberDetailsModel>(entity => {
             entity.HasNoKey();
         });
 
@@ -132,6 +136,9 @@ public class SynapseContext : DbContext
             .HasConversion(stringToGuidConverter);
 
         modelBuilder.Entity<ProducerDetailsModel>()
+            .Property(e => e.IsOnlineMarketplace)
+            .HasConversion(intToBoolConverter);
+        modelBuilder.Entity<CsoMemberDetailsModel>()
             .Property(e => e.IsOnlineMarketplace)
             .HasConversion(intToBoolConverter);
     }
