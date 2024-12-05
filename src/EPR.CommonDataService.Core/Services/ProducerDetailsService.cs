@@ -22,16 +22,18 @@ public  class ProducerDetailsService(
         IList<ProducerDetailsModel> response;
         try
         {
-            const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @OrganisationId";
+            const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @organisationId";
 
             var sqlParameters = new List<SqlParameter>
             {
-                new ("@OrganisationId", SqlDbType.Int) { Value = organisationId }
+               new SqlParameter("@organisationId", SqlDbType.Int) { Value = organisationId }
+
             };
 
-            response = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, sqlParameters);
+            response = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, sqlParameters.ToArray());
+
         }
-        catch
+        catch (Exception ex)
         {
             return null;
         }

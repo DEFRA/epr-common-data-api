@@ -9,6 +9,7 @@ namespace EPR.CommonDataService.Data.Infrastructure;
 public class SynapseContext : DbContext
 {
     public DbSet<SubmissionEvent> SubmissionEvents { get; set; } = null!;
+    public DbSet<ProducerDetailsModel> ProducerDetailsModel { get; set; } = null!;
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
@@ -31,6 +32,18 @@ public class SynapseContext : DbContext
             if (Database.ProviderName == InMemoryProvider)
             {
                 entity.HasKey(e => e.SubmissionEventId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<ProducerDetailsModel>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.OrganisationId);
             }
             else
             {
