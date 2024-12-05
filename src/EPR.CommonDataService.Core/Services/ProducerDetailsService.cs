@@ -19,36 +19,34 @@ public  class ProducerDetailsService(
 {
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
     {
-        IList<ProducerDetailsModel> response;
+        GetProducerDetailsResponse response;
+        
         try
         {
             const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @OrganisationId";
+            var param = new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId };
 
-            var sqlParameters = new List<SqlParameter>
+            SqlParameter[] sqlParameters = [param];
+
+            var dbresponse = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, sqlParameters);
+            if (dbresponse.Count > 0)
             {
-                new ("@OrganisationId", SqlDbType.Int) { Value = organisationId }
-            };
+                response = new GetProducerDetailsResponse()
+                {
+                    IsOnlineMarketplace = dbresponse[0].IsOnlineMarketplace,
+                    NumberOfSubsidiaries = dbresponse[0].NumberOfSubsidiaries,
+                    NumberOfSubsidiariesBeingOnlineMarketPlace = dbresponse[0].NumberOfSubsidiariesBeingOnlineMarketPlace,
+                    ProducerSize = dbresponse[0].ProducerSize
+                };
 
-            response = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, sqlParameters);
+                return response;
+            }
         }
         catch
         {
             return null;
         }
 
-        var firstItem = response.FirstOrDefault();
-
-        return
-            firstItem is null ? null :
-
-            new GetProducerDetailsResponse
-            {
-                ProducerSize = ProducerSizeMapper.Map(firstItem.ProducerSize),
-                IsOnlineMarketplace = firstItem.IsOnlineMarketplace,
-                NumberOfSubsidiaries = firstItem.NumberOfSubsidiaries,
-                NumberOfSubsidiariesBeingOnlineMarketPlace = firstItem.NumberOfSubsidiariesBeingOnlineMarketPlace
-            };
+        return null;
     }
-
-
 }
