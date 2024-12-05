@@ -1,9 +1,9 @@
 ﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetProducerDetailsByOrganisationId]'))
-DROP PROCEDURE [dbo].[sp_GetProducerDetailsByOrganisationId];
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetCsoMemberDetailsByOrganisationId]'))
+DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
 GO
 
-CREATE PROCEDURE dbo.sp_GetProducerDetailsByOrganisationId
+CREATE PROCEDURE dbo.sp_GetCsoMemberDetailsByOrganisationId
     @organisationId INT
 AS
 BEGIN
@@ -26,7 +26,6 @@ WITH LatestFile AS (
 LatestSubmission AS (
     SELECT TOP 1 
         organisationid,
-        appreferencenumber,
         Created
 	FROM     [rpd].[Submissions] sub
 	INNER JOIN   [rpd].[Organisations] org  ON sub.organisationid = org.externalid
@@ -52,31 +51,27 @@ SubsidiaryCount AS (
 )
 SELECT 
     COUNT(CASE WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
-    cd.organisation_id AS OrganisationId,
+    cd.organisation_id AS MemberId,
     CASE 
         WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
         ELSE 0
     END AS IsOnlineMarketplace,
-    cd.organisation_size AS ProducerSize,
-    sub.appreferencenumber AS ApplicationReferenceNumber,
-    sc.NumberOfSubsidiaries,
-    N.NationCode AS Regulator
+    cd.organisation_size AS MemberType,
+    sc.NumberOfSubsidiaries
 FROM 
     [rpd].[CompanyDetails] cd 
     INNER JOIN [rpd].[Organisations] org ON org.referenceNumber = cd.organisation_id
     INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
-    LEFT JOIN [rpd].[Nations] N ON N.Id = org.NationId
-    INNER JOIN LatestSubmission sub ON sub.organisationid = org.externalid
+    LEFT JOIN LatestSubmission sub ON sub.organisationid = org.externalid
     INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
+	INNER JOIN [dbo].[v_ComplianceSchemeMembers] CS ON CS.ReferenceNumber = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
 GROUP BY 
     cd.packaging_activity_om, 
     cd.organisation_id,
     cd.organisation_size,
-    N.NationCode,
-    sub.appreferencenumber,
     sc.NumberOfSubsidiaries;
 END;
 
-GO 
+GO
