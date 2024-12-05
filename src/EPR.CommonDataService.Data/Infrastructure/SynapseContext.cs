@@ -43,10 +43,6 @@ public class SynapseContext : DbContext
             }
         });
 
-        modelBuilder.Entity<ProducerDetailsModel>(entity =>
-        {
-            entity.HasNoKey();
-        });
 
         modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
         {
