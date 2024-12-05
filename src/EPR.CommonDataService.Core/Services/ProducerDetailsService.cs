@@ -42,7 +42,7 @@ public  class ProducerDetailsService(
                 return response;
             }
         }
-        catch
+        catch (Exception ex)
         {
             return null;
         }

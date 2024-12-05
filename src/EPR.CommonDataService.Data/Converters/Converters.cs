@@ -9,11 +9,3 @@ public static class StringToGuidConverter
         stringValue => string.IsNullOrEmpty(stringValue) ? null : Guid.Parse(stringValue)
     );
 }
-
-public static class IntToBoolConverter
-{
-    public static ValueConverter<bool?, int> Get() => new(
-        boolValue => boolValue.HasValue && boolValue.Value ? 1 : 0,
-        intValue => intValue > 0
-    );
-}
