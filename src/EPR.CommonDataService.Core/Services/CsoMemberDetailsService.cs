@@ -22,7 +22,7 @@ public class CsoMemberDetailsService(
         IList<CsoMemberDetailsModel> response;
         try
         {
-            const string Sql = "EXECUTE apps.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
+            const string Sql = "EXECUTE dbo.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
 
             var sqlParameters = new List<SqlParameter>
             {
