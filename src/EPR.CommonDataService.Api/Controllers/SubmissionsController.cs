@@ -168,7 +168,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = SubmissionId.Value });
 
-            if (null == submissiondetails)
+            if (submissiondetails is null)
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
                 return NoContent();

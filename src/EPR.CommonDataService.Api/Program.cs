@@ -29,7 +29,9 @@ public static class Program
         app.UseExceptionHandler("/error");
         app.MapControllers();
 
-     
+        app.MapHealthChecks(
+            builder.Configuration.GetValue<string>("HealthCheckPath")!,
+            HealthCheckOptionBuilder.Build()).AllowAnonymous();
 
         app.Run();
     }
