@@ -67,7 +67,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     {
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods}", _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods);
 
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataV2 @ApprovedAfter, @Periods";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3 @ApprovedAfter, @Periods";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
 
         try
