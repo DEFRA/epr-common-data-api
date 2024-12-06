@@ -36,7 +36,7 @@ public class ProducerDetailsServiceTests
             }
         };
         _synapseContextMock
-         .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+         .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
            .ReturnsAsync(expectedData);
 
         // Act
@@ -50,7 +50,7 @@ public class ProducerDetailsServiceTests
         result.IsOnlineMarketplace.Should().BeTrue();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
+            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
                 Times.Once);
 
     }
@@ -73,7 +73,7 @@ public class ProducerDetailsServiceTests
         };
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
         // Act
@@ -141,7 +141,7 @@ public class ProducerDetailsServiceTests
             }
         };
         _synapseContextMock
-           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
            .ReturnsAsync(expectedData);
 
         // Act
@@ -155,7 +155,7 @@ public class ProducerDetailsServiceTests
         result.IsOnlineMarketplace.Should().BeFalse();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
+            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
                 Times.Once);
     }
 }
