@@ -5,11 +5,10 @@ using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using StringToGuidConverter = EPR.CommonDataService.Data.Converters.StringToGuidConverter;
 using IntToBoolConverter = EPR.CommonDataService.Data.Converters.IntToBoolConverter;
+using StringToGuidConverter = EPR.CommonDataService.Data.Converters.StringToGuidConverter;
 namespace EPR.CommonDataService.Data.Infrastructure;
 
 [ExcludeFromCodeCoverage]
@@ -23,6 +22,8 @@ public class SynapseContext : DbContext
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
+    public DbSet<ProducerDetailsModel> ProducerDetails { get; set; }
+    public DbSet<CsoMemberDetailsModel> CsoMemberDetails { get; set; }
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -41,6 +42,12 @@ public class SynapseContext : DbContext
 
         var stringToGuidConverter = StringToGuidConverter.Get();
         var intToBoolConverter = IntToBoolConverter.Get();
+
+        modelBuilder.Entity<ProducerDetailsModel>()
+            .HasNoKey();
+        
+        modelBuilder.Entity<CsoMemberDetailsModel>()
+            .HasNoKey();
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
