@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using StringToGuidConverter = EPR.CommonDataService.Data.Converters.StringToGuidConverter;
@@ -125,6 +124,10 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<CsoMemberDetailsModel>()
             .Property(e => e.IsOnlineMarketplace)
             .HasConversion(intToBoolConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRow>()
+            .Property(e => e.SubmissionId)
+            .HasConversion(stringToGuidConverter);
     }
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)
@@ -210,15 +213,6 @@ public class SynapseContext : DbContext
             }
         });
     }
-        modelBuilder.Entity<ProducerDetailsModel>()
-            .HasNoKey();
-        
-        modelBuilder.Entity<CsoMemberDetailsModel>()
-            .HasNoKey();
-
-        modelBuilder.Entity<PomSubmissionSummaryRow>()
-            .Property(e => e.SubmissionId)
-            .HasConversion(stringToGuidConverter);
 
     public virtual async Task<IList<TEntity>> RunSqlAsync<TEntity>(string sql, params object[] parameters) where TEntity : class
     {

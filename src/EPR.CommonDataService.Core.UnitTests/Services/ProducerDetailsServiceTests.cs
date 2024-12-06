@@ -1,4 +1,3 @@
-using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;

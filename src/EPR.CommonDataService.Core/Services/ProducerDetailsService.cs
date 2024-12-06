@@ -1,5 +1,4 @@
 using System.Data;
-using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -24,11 +23,9 @@ public  class ProducerDetailsService(
         try
         {
             const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @OrganisationId";
-            var param = new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId };
 
-            response = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql,  new SqlParameter ("@OrganisationId", SqlDbType.Int) { Value = organisationId });
+            var dbresponse = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql,  new SqlParameter ("@OrganisationId", SqlDbType.Int) { Value = organisationId });
 
-            var dbresponse = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, sqlParameters);
             if (dbresponse.Count > 0)
             {
                 response = new GetProducerDetailsResponse()
@@ -43,7 +40,7 @@ public  class ProducerDetailsService(
                 return response;
             }
         }
-        catch (Exception ex)
+        catch 
         {
             return null;
         }
