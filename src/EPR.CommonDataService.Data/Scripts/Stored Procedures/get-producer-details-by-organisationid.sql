@@ -59,7 +59,7 @@ SELECT
     END AS IsOnlineMarketplace,
     cd.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
-    sc.NumberOfSubsidiaries,
+    ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
     N.NationCode AS Regulator
 FROM 
     [rpd].[CompanyDetails] cd 
@@ -67,7 +67,7 @@ FROM
     INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
     LEFT JOIN [rpd].[Nations] N ON N.Id = org.NationId
     INNER JOIN LatestSubmission sub ON sub.organisationid = org.externalid
-    INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
+    LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
 GROUP BY 
