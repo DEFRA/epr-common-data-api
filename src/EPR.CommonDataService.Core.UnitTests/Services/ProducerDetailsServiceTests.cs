@@ -36,7 +36,7 @@ public class ProducerDetailsServiceTests
             }
         };
         _synapseContextMock
-           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+         .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
            .ReturnsAsync(expectedData);
 
         // Act
@@ -50,7 +50,7 @@ public class ProducerDetailsServiceTests
         result.IsOnlineMarketplace.Should().BeTrue();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
+            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
                 Times.Once);
 
     }
@@ -73,7 +73,7 @@ public class ProducerDetailsServiceTests
         };
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(expectedData);
 
         // Act
@@ -96,7 +96,7 @@ public class ProducerDetailsServiceTests
         var emptyData = new List<ProducerDetailsModel>();
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(emptyData);
 
         // Act
@@ -113,7 +113,7 @@ public class ProducerDetailsServiceTests
         const int OrganisationId = 1234;
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ThrowsAsync(new Exception("Database error"));
 
 
@@ -141,7 +141,7 @@ public class ProducerDetailsServiceTests
             }
         };
         _synapseContextMock
-           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()))
+           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
            .ReturnsAsync(expectedData);
 
         // Act
@@ -155,7 +155,7 @@ public class ProducerDetailsServiceTests
         result.IsOnlineMarketplace.Should().BeFalse();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<List<SqlParameter>>()),
+            .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
                 Times.Once);
     }
 }

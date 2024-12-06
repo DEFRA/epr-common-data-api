@@ -9,13 +9,15 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using StringToGuidConverter = EPR.CommonDataService.Data.Converters.StringToGuidConverter;
-
+using IntToBoolConverter = EPR.CommonDataService.Data.Converters.IntToBoolConverter;
 namespace EPR.CommonDataService.Data.Infrastructure;
 
 [ExcludeFromCodeCoverage]
 public class SynapseContext : DbContext
 {
     public DbSet<SubmissionEvent> SubmissionEvents { get; set; } = null!;
+    public DbSet<ProducerDetailsModel> ProducerDetailsModel { get; set; } = null!;
+    public DbSet<CsoMemberDetailsModel> CsoMemberDetailsModel { get; set; } = null;
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
@@ -38,6 +40,7 @@ public class SynapseContext : DbContext
         BuildComplexEntities(modelBuilder);
 
         var stringToGuidConverter = StringToGuidConverter.Get();
+        var intToBoolConverter = IntToBoolConverter.Get();
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
@@ -109,10 +112,29 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.SubmittedUserId)
             .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
+            .Property(e => e.ComplianceSchemeId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<ProducerDetailsModel>()
+            .Property(e => e.IsOnlineMarketplace)
+            .HasConversion(intToBoolConverter);
+        modelBuilder.Entity<CsoMemberDetailsModel>()
+            .Property(e => e.IsOnlineMarketplace)
+            .HasConversion(intToBoolConverter);
     }
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ProducerDetailsModel>(entity => {
+            entity.HasNoKey();
+        });
+        
+        modelBuilder.Entity<CsoMemberDetailsModel>(entity => {
+            entity.HasNoKey();
+        });
+        
         modelBuilder.Entity<SubmissionEvent>(entity =>
         {
             if (Database.ProviderName == InMemoryProvider)
@@ -124,6 +146,7 @@ public class SynapseContext : DbContext
                 entity.HasNoKey();
             }
         });
+
 
         modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
         {
