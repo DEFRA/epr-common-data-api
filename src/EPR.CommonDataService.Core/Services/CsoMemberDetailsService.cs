@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
@@ -23,10 +23,7 @@ public class CsoMemberDetailsService(
         {
             const string Sql = "EXECUTE dbo.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
 
-            SqlParameter[] parms = [new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId }];
-
-            var response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, parms);
-        
+            response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId });
             if (response.Count > 0)
             {
                 return response.Select(r => new GetCsoMemberDetailsResponse
@@ -34,10 +31,11 @@ public class CsoMemberDetailsService(
                     IsOnlineMarketplace = r.IsOnlineMarketplace,
                     MemberId = r.MemberId,
                     MemberType = ProducerSizeMapper.Map(r.MemberType),
-                    NumberOfSubsidiaries = r.NumberOfSubsidiaries,
                     NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace
                 }).ToArray();
+                    NumberOfSubsidiaries = r.NumberOfSubsidiaries,
             }
+        
         }
         catch
         {
