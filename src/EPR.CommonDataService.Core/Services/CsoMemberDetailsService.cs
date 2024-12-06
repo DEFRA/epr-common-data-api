@@ -1,5 +1,4 @@
-﻿using System.Data;
-using EPR.CommonDataService.Core.Extensions;
+using System.Data;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -16,25 +15,25 @@ public interface ICsoMemberDetailsService
 public class CsoMemberDetailsService(
     SynapseContext synapseContext)
     : ICsoMemberDetailsService
-{ 
+{
     public async Task<GetCsoMemberDetailsResponse[]?> GetCsoMemberDetails(int organisationId)
     {
         try
         {
             const string Sql = "EXECUTE dbo.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
 
-            SqlParameter[] parms = [new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId }];
-            var response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, parms);
-        
-            if (response.Count > 0)
+            var dbResponse = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId });
+
+            if (dbResponse.Count > 0)
             {
-                return response.Select(r => new GetCsoMemberDetailsResponse
+                return dbResponse.Select(r => new GetCsoMemberDetailsResponse
                 {
                     IsOnlineMarketplace = r.IsOnlineMarketplace,
                     MemberId = r.MemberId,
                     MemberType = ProducerSizeMapper.Map(r.MemberType),
+                    NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace,
                     NumberOfSubsidiaries = r.NumberOfSubsidiaries,
-                    NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace
+                    IsLateFeeApplicable = false,
                 }).ToArray();
             }
         }

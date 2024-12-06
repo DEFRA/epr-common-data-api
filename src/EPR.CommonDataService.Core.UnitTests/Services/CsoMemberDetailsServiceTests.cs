@@ -39,7 +39,6 @@ public class CsoMemberDetailsServiceTests
         };
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(expectedData);
 
 
@@ -55,7 +54,6 @@ public class CsoMemberDetailsServiceTests
         result[0].NumberOfSubsidiaries.Should().Be(20);
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
                 Times.Once);
 
     }
@@ -79,7 +77,6 @@ public class CsoMemberDetailsServiceTests
         };
 
         _synapseContextMock
-              .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(expectedData);
 
 
@@ -104,7 +101,6 @@ public class CsoMemberDetailsServiceTests
         var emptyData = new List<CsoMemberDetailsModel>();
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(emptyData);
 
         StoredProcedureExtensions.ReturnFakeData = false;
@@ -123,7 +119,6 @@ public class CsoMemberDetailsServiceTests
         const int OrganisationId = 1234;
 
         _synapseContextMock
-                      .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ThrowsAsync(new Exception("Database error"));
 
         StoredProcedureExtensions.ReturnFakeData = false;

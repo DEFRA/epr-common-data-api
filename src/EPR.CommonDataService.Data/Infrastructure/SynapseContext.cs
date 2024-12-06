@@ -43,12 +43,6 @@ public class SynapseContext : DbContext
         var stringToGuidConverter = StringToGuidConverter.Get();
         var intToBoolConverter = IntToBoolConverter.Get();
 
-        modelBuilder.Entity<ProducerDetailsModel>()
-            .HasNoKey();
-        
-        modelBuilder.Entity<CsoMemberDetailsModel>()
-            .HasNoKey();
-
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
             .HasConversion(stringToGuidConverter);
@@ -130,6 +124,10 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<CsoMemberDetailsModel>()
             .Property(e => e.IsOnlineMarketplace)
             .HasConversion(intToBoolConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRow>()
+            .Property(e => e.SubmissionId)
+            .HasConversion(stringToGuidConverter);
     }
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)

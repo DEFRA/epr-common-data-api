@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace EPR.CommonDataService.Data.Converters;

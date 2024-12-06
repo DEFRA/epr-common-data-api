@@ -1,5 +1,4 @@
-﻿using System.Data;
-using EPR.CommonDataService.Core.Extensions;
+using System.Data;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -24,22 +23,21 @@ public  class ProducerDetailsService(
         try
         {
             const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @OrganisationId";
-            var dbresponse = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId });
-            if (dbresponse.Count > 0)
+            var dbResponse = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId });
+            if (dbResponse.Count > 0)
             {
                 response = new GetProducerDetailsResponse()
                 {
-                    IsOnlineMarketplace = dbresponse[0].IsOnlineMarketplace,
-                    NumberOfSubsidiaries = dbresponse[0].NumberOfSubsidiaries,
-                    NumberOfSubsidiariesBeingOnlineMarketPlace = dbresponse[0].NumberOfSubsidiariesBeingOnlineMarketPlace,
-                    ProducerSize = ProducerSizeMapper.Map(dbresponse[0].ProducerSize),
-                   
+                    IsOnlineMarketplace = dbResponse[0].IsOnlineMarketplace,
+                    NumberOfSubsidiaries = dbResponse[0].NumberOfSubsidiaries,
+                    NumberOfSubsidiariesBeingOnlineMarketPlace = dbResponse[0].NumberOfSubsidiariesBeingOnlineMarketPlace,
+                    ProducerSize = ProducerSizeMapper.Map(dbResponse[0].ProducerSize)                   
                 };
                  
                 return response;
             }
         }
-        catch (Exception ex)
+        catch 
         {
             return null;
         }
