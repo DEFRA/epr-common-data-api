@@ -12,6 +12,8 @@ public class SynapseContext : DbContext
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
+    public DbSet<ProducerDetailsModel> ProducerDetails { get; set; }
+    public DbSet<CsoMemberDetailsModel> CsoMemberDetails { get; set; }
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -75,6 +77,12 @@ public class SynapseContext : DbContext
         });
 
         var stringToGuidConverter = StringToGuidConverter.Get();
+
+        modelBuilder.Entity<ProducerDetailsModel>()
+            .HasNoKey();
+        
+        modelBuilder.Entity<CsoMemberDetailsModel>()
+            .HasNoKey();
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)

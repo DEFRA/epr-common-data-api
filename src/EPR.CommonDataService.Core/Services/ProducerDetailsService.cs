@@ -24,12 +24,7 @@ public  class ProducerDetailsService(
         {
             const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @OrganisationId";
 
-            var sqlParameters = new List<SqlParameter>
-            {
-                new ("@OrganisationId", SqlDbType.Int) { Value = organisationId }
-            };
-
-            response = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, sqlParameters);
+            response = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql,  new SqlParameter ("@OrganisationId", SqlDbType.Int) { Value = organisationId });
         }
         catch
         {
