@@ -24,12 +24,7 @@ public class CsoMemberDetailsService(
         {
             const string Sql = "EXECUTE dbo.sp_GetCsoMemberDetailsByOrganisationId @OrganisationId";
 
-            var sqlParameters = new List<SqlParameter>
-            {
-                new ("@OrganisationId", SqlDbType.Int) { Value = organisationId }
-            };
-
-            response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, sqlParameters);
+            response = await synapseContext.RunSqlAsync<CsoMemberDetailsModel>(Sql, new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId });
         }
         catch
         {
