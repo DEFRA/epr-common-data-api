@@ -1,7 +1,7 @@
 using EPR.CommonDataService.Data.Converters;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Data.UnitTests;
+namespace EPR.CommonDataService.Data.UnitTests.Converters;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
