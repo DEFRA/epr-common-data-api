@@ -9,6 +9,8 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using IntToBoolConverter = EPR.CommonDataService.Data.Converters.IntToBoolConverter;
 using StringToGuidConverter = EPR.CommonDataService.Data.Converters.StringToGuidConverter;
+using StringToIntConverter = EPR.CommonDataService.Data.Converters.StringToIntConverter;
+
 namespace EPR.CommonDataService.Data.Infrastructure;
 
 [ExcludeFromCodeCoverage]
@@ -42,6 +44,7 @@ public class SynapseContext : DbContext
 
         var stringToGuidConverter = StringToGuidConverter.Get();
         var intToBoolConverter = IntToBoolConverter.Get();
+        var stringToIntConverter = StringToIntConverter.Get();
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
@@ -113,6 +116,33 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.SubmittedUserId)
             .HasConversion(stringToGuidConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.CompanyDetailsFileId)
+            .HasConversion(stringToGuidConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.PartnershipFileId)
+            .HasConversion(stringToGuidConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.BrandsFileId)
+            .HasConversion(stringToGuidConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.IsComplianceScheme)
+            .HasConversion(intToBoolConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.IsLateSubmission)
+            .HasConversion(intToBoolConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.IsOnlineMarketPlace)
+            .HasConversion(intToBoolConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.NationId)
+            .HasConversion(stringToIntConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.NumberOfOnlineSubsidiaries)
+            .HasConversion(stringToIntConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.NumberOfSubsidiaries)
+            .HasConversion(stringToIntConverter);
 
         modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
             .Property(e => e.ComplianceSchemeId)
