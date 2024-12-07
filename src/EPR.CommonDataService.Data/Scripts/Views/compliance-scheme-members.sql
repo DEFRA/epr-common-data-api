@@ -111,9 +111,9 @@ as
 		)
 	SELECT u.CSOExternalId
 		  ,u.CSOReference
+		  ,u.ComplianceSchemeId
 		  ,u.OrganisationReference as ReferenceNumber
 		  ,u.OrganisationId as ExternalId
-		  ,u.ComplianceSchemeId
 		  ,u.SubmissionPeriod
 		  ,u.RelevantYear
 		  ,u.SubmittedDate

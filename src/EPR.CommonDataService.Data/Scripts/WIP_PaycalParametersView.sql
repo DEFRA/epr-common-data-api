@@ -90,7 +90,5 @@ as
 		LEFT JOIN rpd.Organisations o on o.ReferenceNumber = smp.OrganisationReference
 	)
 select *
-from OrganisationMarketPlaceInformationCTE
+from OrganisationMarketPlaceInformationCTE;
 go
-
-select * from dbo.v_ProducerPaycalParameters;
