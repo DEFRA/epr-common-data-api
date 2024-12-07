@@ -15,9 +15,9 @@ public static class StoredProcedureExtensions
     {
         return
         [
-            new ("@SubmissionId", SqlDbType.UniqueIdentifier)
+            new ("@SubmissionId", SqlDbType.NVarChar,40)
             {
-                Value = request.SubmissionId
+                Value = request.SubmissionId.ToString("D")
             }
         ];
     }
