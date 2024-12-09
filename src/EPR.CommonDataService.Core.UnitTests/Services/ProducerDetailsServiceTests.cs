@@ -1,4 +1,3 @@
-using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -36,7 +35,7 @@ public class ProducerDetailsServiceTests
             }
         };
         _synapseContextMock
-           .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+         .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
            .ReturnsAsync(expectedData);
 
         // Act
@@ -73,7 +72,7 @@ public class ProducerDetailsServiceTests
         };
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
         // Act
@@ -96,7 +95,7 @@ public class ProducerDetailsServiceTests
         var emptyData = new List<ProducerDetailsModel>();
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(emptyData);
 
         // Act
@@ -113,7 +112,7 @@ public class ProducerDetailsServiceTests
         const int OrganisationId = 1234;
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ThrowsAsync(new Exception("Database error"));
 
 

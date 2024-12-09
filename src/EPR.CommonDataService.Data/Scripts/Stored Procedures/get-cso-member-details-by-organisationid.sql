@@ -64,7 +64,7 @@ FROM
     INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
     LEFT JOIN LatestSubmission sub ON sub.organisationid = org.externalid
     INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
-	INNER JOIN [dbo].[v_ComplianceSchemeMembers] CS ON CS.ReferenceNumber = cd.organisation_id
+	INNER JOIN [dbo].[v_ComplianceSchemeMembers] CS ON CS.CSOReference = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
 GROUP BY 
