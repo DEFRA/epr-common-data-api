@@ -10,8 +10,8 @@ CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails]
     @SubmissionId UNIQUEIDENTIFIER
 AS
 BEGIN
-    SET NOCOUNT ON;
-
+SET NOCOUNT ON;
+ 
     DECLARE @OrganisationIDForSubmission INT;
     DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
     DECLARE @SubmissionPeriod nvarchar(4000);
@@ -21,17 +21,11 @@ BEGIN
     -- Fetch global IDs for the submission
     SELECT
         @OrganisationIDForSubmission = O.Id -- the int id of the organisation
-
-    ,@OrganisationUUIDForSubmission = O.ExternalId -- the uuid of the organisation
-
-    ,@CSOReferenceNumber = O.ReferenceNumber -- the reference number of the organisation
-
-    ,@IsComplianceScheme = O.IsComplianceScheme -- whether the org is a compliance scheme
-
-    ,@SubmissionPeriod = S.SubmissionPeriod -- the submission period of the submissions
-
-    ,@ApplicationReferenceNumber = S.AppReferenceNumber
-    -- the AppRef number of the submission
+        ,@OrganisationUUIDForSubmission = O.ExternalId -- the uuid of the organisation
+        ,@CSOReferenceNumber = O.ReferenceNumber -- the reference number of the organisation
+        ,@IsComplianceScheme = O.IsComplianceScheme -- whether the org is a compliance scheme
+        ,@SubmissionPeriod = S.SubmissionPeriod -- the submission period of the submissions
+        ,@ApplicationReferenceNumber = S.AppReferenceNumber -- the AppRef number of the submission
     FROM
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
@@ -41,7 +35,7 @@ BEGIN
         SubmissionSummary
         AS
         (
-            SELECT
+            SELECT DISTINCT
                 submission.SubmissionId
             ,submission.OrganisationId
             ,submission.OrganisationName
@@ -49,9 +43,9 @@ BEGIN
             ,submission.IsComplianceScheme
             ,submission.ProducerSize
             ,CASE
-            WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
-            ELSE submission.ProducerSize
-        END AS OrganisationType
+                WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
+                ELSE submission.ProducerSize
+            END AS OrganisationType
             ,submission.RelevantYear
             ,submission.IsLateSubmission
             ,submission.SubmittedDateTime
@@ -68,15 +62,10 @@ BEGIN
             ,submission.ProducerCommentDate
             ,submission.ProducerSubmissionEventId
             ,submission.RegulatorSubmissionEventId
-            ,submission.OrgFileId
-            ,submission.OrgFileName
-            ,submission.OrgBlobName
-            ,submission.OrgOriginalFileName
             FROM
                 [dbo].[v_OrganisationRegistrationSummaries] AS submission
             WHERE submission.SubmissionId = @SubmissionId
-        ) -- the paycal parameterisation for the organisation itself
-
+        )
     ,ProducerPaycalParametersCTE
         AS
         (
@@ -89,8 +78,7 @@ BEGIN
             FROM
                 [dbo].[v_ProducerPaycalParameters] AS ppp
             WHERE ppp.ExternalId = @OrganisationUUIDForSubmission
-        ) -- the submission details with Paycal parameter info
-
+        )
     ,SubmissionOrganisationDetails
         AS
         (
@@ -125,16 +113,10 @@ BEGIN
             ppp.NumberOfSubsidiariesBeingOnlineMarketPlace,
             0
         ) AS NumberOfSubsidiariesBeingOnlineMarketPlace
-            ,submission.OrgFileId
-            ,submission.OrgFileName
-            ,submission.OrgBlobName
-            ,submission.OrgOriginalFileName
             FROM
                 SubmissionSummary AS submission
                 LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.ExternalId = submission.OrganisationId
-        ) --SELECT * FROM SubmissionOrganisationDetails
--- the latest Producer Comments for this Submission and Application Reference Number
-
+        )
     ,LatestProducerCommentEventsCTE
         AS
         (
@@ -144,7 +126,7 @@ BEGIN
             ,Comments AS ProducerComment
             ,Created AS ProducerCommentDate
             FROM
-                [rpd].[SubmissionEvents] AS decision
+                [apps].[SubmissionEvents] AS decision
                 INNER JOIN SubmissionOrganisationDetails submittedregistrations ON decision.SubmissionEventId = submittedregistrations.ProducerSubmissionEventId
         )
     ,LatestRegulatorCommentCTE
@@ -156,15 +138,13 @@ BEGIN
             ,Comments AS RegulatorComment
             ,Created AS RegulatorCommentDate
             FROM
-                [rpd].[SubmissionEvents] AS decision
+                [apps].[SubmissionEvents] AS decision
                 INNER JOIN SubmissionOrganisationDetails submittedregistrations ON decision.SubmissionEventId = submittedregistrations.RegulatorSubmissionEventId
-        ) -- Submission Details with Producer and Regulator Comments
--- the RegistrationReferenceNumber is included
-
+        )
     ,SubmissionOrganisationCommentsDetailsCTE
         AS
         (
-            SELECT
+            SELECT DISTINCT
                 submission.SubmissionId
             ,submission.OrganisationId
             ,submission.OrganisationName
@@ -172,9 +152,9 @@ BEGIN
             ,submission.IsComplianceScheme
             ,submission.ProducerSize
             ,CASE
-            WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
-            ELSE submission.ProducerSize
-        END AS OrganisationType
+                WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
+                ELSE submission.ProducerSize
+            END AS OrganisationType
             ,submission.RelevantYear
             ,submission.SubmittedDateTime
             ,submission.IsLateSubmission
@@ -196,16 +176,11 @@ BEGIN
             ,submission.NumberOfSubsidiariesBeingOnlineMarketPlace
             ,submission.ProducerSubmissionEventId
             ,submission.RegulatorSubmissionEventId
-            ,submission.OrgFileId
-            ,submission.OrgFileName
-            ,submission.OrgBlobName
-            ,submission.OrgOriginalFileName
             FROM
                 SubmissionOrganisationDetails submission
                 LEFT JOIN LatestRegulatorCommentCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
-        ) --select * from SubmissionOrganisationCommentsDetailsCTE ;
-
+        )
     ,AllOrganisationFiles
         AS
         (
@@ -356,8 +331,7 @@ BEGIN
                 LatestCompanyFiles lcf
                 LEFT OUTER JOIN LatestBrandsFile lbf
                 LEFT OUTER JOIN LatestPartnerFile lpf ON lpf.ExternalId = lbf.ExternalId ON lcf.ExternalId = lbf.ExternalId
-        ) -- All submission data combined with the individual file data
-
+        )
     ,JoinDataWithPartnershipAndBrandsCTE
         AS
         (
@@ -375,12 +349,7 @@ BEGIN
             FROM
                 SubmissionOrganisationCommentsDetailsCTE AS joinedSubmissions
                 LEFT JOIN AllCombinedOrgFiles acof ON acof.OrganisationExternalId = joinedSubmissions.OrganisationId
-        ) --		select * from JoinDataWithPartnershipAndBrandsCTE 
--- For the Submission Period of the Submission
--- Use the new view to obtain information required for the Paycal API
--- The Organisation reference number of the Submission's organisation is used
--- It is controlled by whether the IsComplianceScheme flag is 1
-
+        )
     ,CompliancePaycalCTE
         AS
         (
@@ -402,9 +371,7 @@ BEGIN
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
-        ) -- Build a rowset of membership organisations and their producer paycal api parameter requirements
--- the properties of the above is built into a JSON string
-
+        )
     ,JsonifiedCompliancePaycalCTE
         AS
         (
@@ -423,7 +390,7 @@ BEGIN
             FROM
                 CompliancePaycalCTE
         ) -- the above CTE is then compressed into a single row using the STRIN_AGG function
-
+ 
     ,AllCompliancePaycalParametersAsJSONCTE
         AS
         (
@@ -436,7 +403,7 @@ BEGIN
             GROUP BY CSOReference
         )
     -- bring all the above into one 1
-    SELECT
+    SELECT DISTINCT
         r.SubmissionId
         ,r.OrganisationId
         ,r.OrganisationName AS OrganisationName
@@ -491,10 +458,6 @@ BEGIN
         ,r.BrandsFileId
         ,r.BrandsFileName
         ,r.BrandsBlobName
-        --,r.OrgFileId
-        --,r.OrgFileName
-        --,r.OrgBlobName
-        --,r.OrgOriginalFileName,
         ,acpp.FinalJson AS CSOJson
     FROM
         JoinDataWithPartnershipAndBrandsCTE r
