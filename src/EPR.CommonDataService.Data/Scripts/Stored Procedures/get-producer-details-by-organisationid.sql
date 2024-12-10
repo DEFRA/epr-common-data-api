@@ -37,7 +37,7 @@ SubsidiaryCount AS (
     SELECT 
         CD.organisation_id, 
         COUNT(*) AS NumberOfSubsidiaries
-    FROM 
+    FROM  
         [rpd].[CompanyDetails] CD
     WHERE 
         CD.organisation_id = @organisationId

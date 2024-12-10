@@ -50,7 +50,7 @@ SubsidiaryCount AS (
         CD.organisation_id
 )
 SELECT 
-    COUNT(CASE WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+    COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS MemberId,
     CASE 
         WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
