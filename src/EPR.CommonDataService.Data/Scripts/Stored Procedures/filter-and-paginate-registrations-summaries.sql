@@ -43,7 +43,7 @@ WHERE
             )
 	   AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR RIGHT(SubmissionPeriod, 4) IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
 	   AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
-       AND (SubmissionPeriod NOT LIKE 'January to December%')
+       AND (SubmissionPeriod NOT LIKE ('January to December%'))
 )
 
     ,RankedJsonParsedUpdates AS (
