@@ -10,13 +10,13 @@ namespace EPR.CommonDataService.Core.UnitTests.Extensions;
 public class PaginatedResponseExtensionsTests
 {
     private Fixture _fixture = null!;
-    
+
     [TestInitialize]
     public void Setup()
     {
         _fixture = new Fixture();
     }
-    
+
     [TestMethod]
     public void ToPaginatedResponse_FirstPage_ShouldSetItemsCorrectly()
     {
@@ -44,6 +44,8 @@ public class PaginatedResponseExtensionsTests
     public void ToPaginatedResponse_ShouldSetTotalItemsToZeroIfNoRows()
     {
         // Arrange
+        var rows = new List<PomSubmissionSummaryRow>();
+
         var request = new SubmissionsSummariesRequest<RegulatorPomDecision>
         {
             PageNumber = 1,

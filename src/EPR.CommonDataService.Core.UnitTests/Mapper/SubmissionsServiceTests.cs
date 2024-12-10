@@ -1,5 +1,4 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using static EPR.CommonDataService.Core.Mapper.ProducerDetailsService;
+﻿using static EPR.CommonDataService.Core.Mapper.ProducerDetailsService;
 
 namespace EPR.CommonDataService.Core.UnitTests.Mapper
 {
