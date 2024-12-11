@@ -174,16 +174,19 @@ WITH
                     END AS BIT
                 ) AS IsLateSubmission
                 ,ROW_NUMBER() OVER (
-                    PARTITION BY OrganisationId,
-                    SubmissionPeriod
+                    PARTITION BY s.OrganisationId,
+                    s.SubmissionPeriod
                     ORDER BY s.load_ts DESC -- mark latest submission synced from cosmos
                 ) AS RowNum
             FROM
                 [apps].[Submissions] AS s
                 INNER JOIN [rpd].[Organisations] org ON org.ExternalId = s.OrganisationId
+				INNER JOIN [apps].[SubmissionEvents] as se
+					ON se.SubmissionId = s.SubmissionId
+					and se.Type = 'RegistrationApplicationSubmitted'
             WHERE s.AppReferenceNumber IS NOT NULL
-                AND SubmissionType = 'Registration'
-                AND SubmissionPeriod LIKE 'January to December%'
+                AND s.SubmissionType = 'Registration'
+                AND s.SubmissionPeriod LIKE 'January to December%'
                 AND org.IsDeleted = 0
 				ANd s.IsSubmitted = 1
         ) AS a
