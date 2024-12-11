@@ -9,6 +9,8 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+DECLARE @organisationId AS INT = 105163;
+ 
 WITH LatestFile AS (
     SELECT TOP 1
         LTRIM(RTRIM([FileName])) AS LatestFileName
@@ -23,15 +25,6 @@ WITH LatestFile AS (
     ORDER BY 
         metadata.Created DESC
 ),
-LatestSubmission AS (
-    SELECT TOP 1 
-        organisationid,
-        Created
-	FROM     [rpd].[Submissions] sub
-	INNER JOIN   [rpd].[Organisations] org  ON sub.organisationid = org.externalid
-	WHERE org.referenceNumber = @organisationId  AND sub.SubmissionType = 'Registration'
-    ORDER BY Created DESC
-),
 SubsidiaryCount AS (
     SELECT 
         CD.organisation_id, 
@@ -39,8 +32,7 @@ SubsidiaryCount AS (
     FROM 
         [rpd].[CompanyDetails] CD
     WHERE 
-        CD.organisation_id = @organisationId
-        AND EXISTS (
+        EXISTS (
             SELECT 1
             FROM LatestFile LF
             WHERE LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName
@@ -49,29 +41,23 @@ SubsidiaryCount AS (
     GROUP BY 
         CD.organisation_id
 )
-SELECT 
-    COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+SELECT  COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS MemberId,
     CASE 
         WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
         ELSE 0
     END AS IsOnlineMarketplace,
     cd.organisation_size AS MemberType,
-    sc.NumberOfSubsidiaries
-FROM 
-    [rpd].[CompanyDetails] cd 
-    INNER JOIN [rpd].[Organisations] org ON org.referenceNumber = cd.organisation_id
-    INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
-    LEFT JOIN LatestSubmission sub ON sub.organisationid = org.externalid
-    INNER JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
-	INNER JOIN [dbo].[v_ComplianceSchemeMembers] CS ON CS.ReferenceNumber = cd.organisation_id
-WHERE 
-    cd.organisation_id = @organisationId
+     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries
+FROM LatestFile LF
+INNER JOIN [rpd].[CompanyDetails] cd ON Trim(cd.[filename]) = Trim(LF.LatestFileName)
+LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
 GROUP BY 
     cd.packaging_activity_om, 
     cd.organisation_id,
     cd.organisation_size,
     sc.NumberOfSubsidiaries;
+
 END;
 
 GO
