@@ -9,8 +9,6 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
-DECLARE @organisationId AS INT = 105163;
- 
 WITH LatestFile AS (
     SELECT TOP 1
         LTRIM(RTRIM([FileName])) AS LatestFileName
