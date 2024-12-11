@@ -181,9 +181,9 @@ WITH
             FROM
                 [apps].[Submissions] AS s
                 INNER JOIN [rpd].[Organisations] org ON org.ExternalId = s.OrganisationId
-				INNER JOIN [apps].[SubmissionEvents] as se
-					ON se.SubmissionId = s.SubmissionId
-					and se.Type = 'RegistrationApplicationSubmitted'
+				--INNER JOIN [apps].[SubmissionEvents] as se
+				--	ON se.SubmissionId = s.SubmissionId
+				--	and se.Type = 'RegistrationApplicationSubmitted'
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
                 AND s.SubmissionPeriod LIKE 'January to December%'
@@ -320,10 +320,7 @@ WITH
             ,submissions.SubmissionPeriod
             ,submissions.IsLateSubmission
             ,decisions.RegistrationReferenceNumber AS DecisionRegistrationReferenceNumber
-            ,CASE 
-			WHEN producercomments.ProducerCommentDate > decisions.RegulatorDecisionDate THEN 'Updated'
-			ELSE ISNULL(decisions.SubmissionStatus, 'Pending')
-			END AS SubmissionStatus
+            ,ISNULL(decisions.SubmissionStatus, 'Pending') as SubmissionStatus
             ,decisions.RegulatorUserId
             ,decisions.StatusPendingDate
             ,decisions.RegulatorDecisionDate
