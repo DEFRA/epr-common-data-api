@@ -20,7 +20,7 @@ WITH
         WHERE organisation_id IS NOT NULL
         GROUP BY organisation_id
     )
-    ,OnlineMarketSubsidiaryCountCTE
+	,OnlineMarketSubsidiaryCountCTE
     AS
     (
         SELECT
@@ -36,25 +36,26 @@ WITH
     AS
     (
         SELECT
-            ms.OrganisationReference
-            ,sc.NumberOfSubsidiaries
-            ,ms.NumberOfSubsidiariesBeingOnlineMarketPlace
+            sc.OrganisationReference
+            ,ISNULL(sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries
+            ,ISNULL(ms.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) as NumberOfSubsidiariesBeingOnlineMarketPlace
         FROM
-            OnlineMarketSubsidiaryCountCTE AS ms
-            INNER JOIN SubsidiaryCountsCTE AS sc ON sc.OrganisationReference = ms.OrganisationReference
+            SubsidiaryCountsCTE AS sc 
+            LEFT OUTER JOIN OnlineMarketSubsidiaryCountCTE AS ms ON sc.OrganisationReference = ms.OrganisationReference
     )
-    ,OrganisationSizesCTE
+	,MostRecentOrganisationSizeCTE
     AS
     (
-        SELECT
+        select a.* from 
+		(SELECT
             DISTINCT
-            organisation_id
+            organisation_id	as OrganisationReference
             ,CASE
 				UPPER(organisation_size)
 				WHEN 'L' THEN 'large'
 				WHEN 'S' THEN 'small'
 				ELSE organisation_size
-			END AS organisation_size
+			END AS OrganisationSize
 			,CASE UPPER(packaging_activity_om)
 				WHEN 'SECONDARY' THEN 1
 				WHEN 'PRIMARY' THEN 1
@@ -66,19 +67,8 @@ WITH
 			) AS RowNum
         FROM
             rpd.CompanyDetails cd
-        WHERE organisation_id IS NOT NULL AND subsidiary_id IS NULL
-    )
-    ,MostRecentOrganisationSizeCTE
-    AS
-    (
-        SELECT
-            DISTINCT
-            organisation_id AS OrganisationReference
-            ,organisation_size AS OrganisationSize
-			,IsOnlineMarketplace
-        FROM
-            OrganisationSizesCTE cd
-        WHERE RowNum = 1
+        WHERE organisation_id IS NOT NULL AND subsidiary_id IS NULL ) as a
+		where a.Rownum = 1
     )
     ,OrganisationMarketPlaceInformationCTE
     AS
@@ -92,11 +82,11 @@ WITH
             ,ISNULL(smp.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace
         FROM
             SubsidiaryAndMarketPlaceCountsCTE AS smp
-            INNER JOIN MostRecentOrganisationSizeCTE mros ON mros.OrganisationReference = smp.OrganisationReference
-            INNER JOIN rpd.Organisations o ON o.ReferenceNumber = smp.OrganisationReference
+            LEFT JOIN MostRecentOrganisationSizeCTE mros ON mros.OrganisationReference = smp.OrganisationReference
+            LEFT JOIN rpd.Organisations o ON o.ReferenceNumber = smp.OrganisationReference
     )
 SELECT
     *
 FROM
-    OrganisationMarketPlaceInformationCTE;
+    OrganisationMarketPlaceInformationCTE ;
 GO
