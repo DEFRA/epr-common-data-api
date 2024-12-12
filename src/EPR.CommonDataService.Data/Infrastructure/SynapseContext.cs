@@ -147,14 +147,7 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
             .Property(e => e.ComplianceSchemeId)
             .HasConversion(stringToGuidConverter);
-
-        modelBuilder.Entity<ProducerDetailsModel>()
-            .Property(e => e.IsOnlineMarketplace)
-            .HasConversion(intToBoolConverter);
-        modelBuilder.Entity<CsoMemberDetailsModel>()
-            .Property(e => e.IsOnlineMarketplace)
-            .HasConversion(intToBoolConverter);
-
+      
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
             .HasConversion(stringToGuidConverter);
