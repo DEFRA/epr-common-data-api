@@ -78,7 +78,7 @@ public class CsoMemberDetailsControllerTests
         // Arrange
         const int OrganisationId = 1234;
         
-        var expectedResult = new [] { new GetCsoMemberDetailsResponse { MemberType = "Large", MemberId = "5678" } }; // Mock result
+        var expectedResult = new [] { new GetCsoMemberDetailsResponse { MemberType = "Large", MemberId = 5678 } }; // Mock result
 
         _csoMemberDetailsServiceMock
             .Setup(service => service.GetCsoMemberDetails(OrganisationId))
