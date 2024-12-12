@@ -49,7 +49,7 @@ public class CsoMemberDetailsServiceTests
         // Assert
         result.Should().NotBeNull();
         result![0].MemberType.Should().Be("Large");
-        result[0].MemberId.Should().Be(5678);
+        result[0].MemberId.Should().Be("5678");
         result[0].IsOnlineMarketplace.Should().BeTrue();
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(10);
         result[0].NumberOfSubsidiaries.Should().Be(20);
@@ -89,7 +89,7 @@ public class CsoMemberDetailsServiceTests
         // Assert
         result.Should().NotBeNull();
         result![0].MemberType.Should().Be("Large");
-        result[0].MemberId.Should().Be(5678);
+        result[0].MemberId.Should().Be("5678");
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(10);
         result[0].NumberOfSubsidiaries.Should().Be(20);
         result[0].IsOnlineMarketplace.Should().BeFalse();
