@@ -34,7 +34,7 @@ public class CsoMemberDetailsService(
         return response.Select(r => new GetCsoMemberDetailsResponse
         {
             IsOnlineMarketplace = r.IsOnlineMarketplace,
-            MemberId = r.MemberId,
+            MemberId = Convert.ToString(r.MemberId),
             MemberType = ProducerSizeMapper.Map(r.MemberType),
             NumberOfSubsidiaries = r.NumberOfSubsidiaries,
             NumberOfSubsidiariesBeingOnlineMarketPlace = r.NumberOfSubsidiariesBeingOnlineMarketPlace

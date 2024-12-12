@@ -30,7 +30,7 @@ public class CsoMemberDetailsServiceTests
         {
             new CsoMemberDetailsModel
             {
-                MemberId = "5678",
+                MemberId = 5678,
                 MemberType = "L",
                 IsOnlineMarketplace = true,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
@@ -70,7 +70,7 @@ public class CsoMemberDetailsServiceTests
         {
             new CsoMemberDetailsModel
             {
-                MemberId = "5678",
+                MemberId = 5678,
                 MemberType = "L",
                 IsOnlineMarketplace = false,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
