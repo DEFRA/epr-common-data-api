@@ -1,4 +1,4 @@
-﻿-- Dropping stored procedure if it exists
+﻿﻿-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetCsoMemberDetailsByOrganisationId]'))
 DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
 GO

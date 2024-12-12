@@ -1,13 +1,63 @@
 using EPR.CommonDataService.Core.Models.Requests;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace EPR.CommonDataService.Core.Extensions;
 
+[ExcludeFromCodeCoverage]
 public static class StoredProcedureExtensions
 {
     public static bool ReturnFakeData { get; set; } = true;
+
+    public static SqlParameter[] ToProcParams(this OrganisationRegistrationDetailRequest request)
+    {
+        return
+        [
+            new ("@SubmissionId", SqlDbType.NVarChar,40)
+            {
+                Value = request.SubmissionId.ToString("D")
+            }
+        ];
+    }
+
+    public static SqlParameter[] ToProcParams(this OrganisationRegistrationFilterRequest request)
+    {
+        return
+        [
+            new ("@OrganisationNameCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.OrganisationNameCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@OrganisationReferenceCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.OrganisationIDCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@SubmissionYearsCommaSeparated ", SqlDbType.NVarChar, 255)
+            {
+                Value = request.RelevantYearCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@StatusesCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.SubmissionStatusCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@OrganisationTypeCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.OrganisationTypesCommaSeparated ?? (object)DBNull.Value
+            },
+            new ("@AppRefNumbersCommaSeparated", SqlDbType.NVarChar, 2000)
+            {
+                Value = request.ApplicationReferenceNumbers ?? (object)DBNull.Value
+            },
+            new ("@PageSize", SqlDbType.Int) {
+                Value = request.PageSize
+            },
+            new ("@PageNumber", SqlDbType.Int) {
+                Value = request.PageNumber
+            },
+        ];
+    }
 
     public static SqlParameter[] ToProcParams<T>(this SubmissionsSummariesRequest<T> request)
     {
