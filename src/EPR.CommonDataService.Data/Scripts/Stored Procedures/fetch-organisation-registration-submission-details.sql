@@ -21,11 +21,17 @@ SET NOCOUNT ON;
     -- Fetch global IDs for the submission
     SELECT
         @OrganisationIDForSubmission = O.Id -- the int id of the organisation
-        ,@OrganisationUUIDForSubmission = O.ExternalId -- the uuid of the organisation
-        ,@CSOReferenceNumber = O.ReferenceNumber -- the reference number of the organisation
-        ,@IsComplianceScheme = O.IsComplianceScheme -- whether the org is a compliance scheme
-        ,@SubmissionPeriod = S.SubmissionPeriod -- the submission period of the submissions
-        ,@ApplicationReferenceNumber = S.AppReferenceNumber -- the AppRef number of the submission
+
+    ,@OrganisationUUIDForSubmission = O.ExternalId -- the uuid of the organisation
+
+    ,@CSOReferenceNumber = O.ReferenceNumber -- the reference number of the organisation
+
+    ,@IsComplianceScheme = O.IsComplianceScheme -- whether the org is a compliance scheme
+
+    ,@SubmissionPeriod = S.SubmissionPeriod -- the submission period of the submissions
+
+    ,@ApplicationReferenceNumber = S.AppReferenceNumber
+    -- the AppRef number of the submission
     FROM
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
@@ -43,9 +49,9 @@ SET NOCOUNT ON;
             ,submission.IsComplianceScheme
             ,submission.ProducerSize
             ,CASE
-                WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
-                ELSE submission.ProducerSize
-            END AS OrganisationType
+				WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
+				ELSE submission.ProducerSize
+			END AS OrganisationType
             ,submission.RelevantYear
             ,submission.IsLateSubmission
             ,submission.SubmittedDateTime
@@ -65,7 +71,8 @@ SET NOCOUNT ON;
             FROM
                 [dbo].[v_OrganisationRegistrationSummaries] AS submission
             WHERE submission.SubmissionId = @SubmissionId
-        )
+        ) -- the paycal parameterisation for the organisation itself
+
     ,ProducerPaycalParametersCTE
         AS
         (
@@ -107,7 +114,7 @@ SET NOCOUNT ON;
             ,submission.ProducerCommentDate
             ,submission.ProducerSubmissionEventId
             ,submission.RegulatorSubmissionEventId
-            ,ISNULL(ppp.IsOnlineMarketplace, 0) AS IsOnlineMarketplace
+            ,CONVERT(bit, ISNULL(ppp.IsOnlineMarketplace, 0)) AS IsOnlineMarketplace
             ,ISNULL(ppp.NumberOfSubsidiaries, 0) AS NumberOfSubsidiaries
             ,ISNULL(
             ppp.NumberOfSubsidiariesBeingOnlineMarketPlace,
@@ -144,7 +151,7 @@ SET NOCOUNT ON;
     ,SubmissionOrganisationCommentsDetailsCTE
         AS
         (
-            SELECT DISTINCT
+            SELECT DISTINCT 
                 submission.SubmissionId
             ,submission.OrganisationId
             ,submission.OrganisationName
@@ -152,9 +159,9 @@ SET NOCOUNT ON;
             ,submission.IsComplianceScheme
             ,submission.ProducerSize
             ,CASE
-                WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
-                ELSE submission.ProducerSize
-            END AS OrganisationType
+				WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
+				ELSE submission.ProducerSize
+			END AS OrganisationType
             ,submission.RelevantYear
             ,submission.SubmittedDateTime
             ,submission.IsLateSubmission
@@ -180,7 +187,8 @@ SET NOCOUNT ON;
                 SubmissionOrganisationDetails submission
                 LEFT JOIN LatestRegulatorCommentCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
-        )
+        ) --select * from SubmissionOrganisationCommentsDetailsCTE ;
+
     ,AllOrganisationFiles
         AS
         (
@@ -331,7 +339,8 @@ SET NOCOUNT ON;
                 LatestCompanyFiles lcf
                 LEFT OUTER JOIN LatestBrandsFile lbf
                 LEFT OUTER JOIN LatestPartnerFile lpf ON lpf.ExternalId = lbf.ExternalId ON lcf.ExternalId = lbf.ExternalId
-        )
+        ) -- All submission data combined with the individual file data
+
     ,JoinDataWithPartnershipAndBrandsCTE
         AS
         (
@@ -349,7 +358,12 @@ SET NOCOUNT ON;
             FROM
                 SubmissionOrganisationCommentsDetailsCTE AS joinedSubmissions
                 LEFT JOIN AllCombinedOrgFiles acof ON acof.OrganisationExternalId = joinedSubmissions.OrganisationId
-        )
+        ) --		select * from JoinDataWithPartnershipAndBrandsCTE 
+-- For the Submission Period of the Submission
+-- Use the new view to obtain information required for the Paycal API
+-- The Organisation reference number of the Submission's organisation is used
+-- It is controlled by whether the IsComplianceScheme flag is 1
+
     ,CompliancePaycalCTE
         AS
         (
@@ -371,7 +385,9 @@ SET NOCOUNT ON;
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
-        )
+        ) -- Build a rowset of membership organisations and their producer paycal api parameter requirements
+-- the properties of the above is built into a JSON string
+
     ,JsonifiedCompliancePaycalCTE
         AS
         (
@@ -390,7 +406,7 @@ SET NOCOUNT ON;
             FROM
                 CompliancePaycalCTE
         ) -- the above CTE is then compressed into a single row using the STRIN_AGG function
- 
+
     ,AllCompliancePaycalParametersAsJSONCTE
         AS
         (
@@ -458,6 +474,10 @@ SET NOCOUNT ON;
         ,r.BrandsFileId
         ,r.BrandsFileName
         ,r.BrandsBlobName
+        --,r.OrgFileId
+        --,r.OrgFileName
+        --,r.OrgBlobName
+        --,r.OrgOriginalFileName,
         ,acpp.FinalJson AS CSOJson
     FROM
         JoinDataWithPartnershipAndBrandsCTE r
