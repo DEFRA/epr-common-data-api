@@ -49,35 +49,49 @@ SubsidiaryCount AS (
         AND CD.subsidiary_id IS NOT NULL
     GROUP BY 
         CD.organisation_id
-)
-SELECT 
-    COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+),
+OnlineMarketPlace AS (
+    SELECT 
+        CD.organisation_id, 
+        CASE WHEN  cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1  END AS IsOnlineMarketPlace
+    FROM  
+        [rpd].[CompanyDetails] CD
+    WHERE 
+        CD.organisation_id = @organisationId
+        AND EXISTS (
+            SELECT 1
+            FROM LatestFile LF
+            WHERE LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName
+        )
+        AND CD.subsidiary_id IS  NULL
+    GROUP BY 
+        CD.organisation_id,
+		CD.packaging_activity_om
+) 
+
+SELECT COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS OrganisationId,
-    CAST(
-        CASE 
-            WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
-            ELSE 0
-        END AS BIT
-    ) AS IsOnlineMarketplace,
     cd.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
-    N.NationCode AS Regulator
+    N.NationCode AS Regulator,
+	CAST(OMP.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketplace
 FROM 
     [rpd].[CompanyDetails] cd 
     INNER JOIN [rpd].[Organisations] org ON org.referenceNumber = cd.organisation_id
-    INNER JOIN LatestFile LF ON LF.LatestFileName = cd.filename
+    INNER JOIN LatestFile LF ON Trim(LF.LatestFileName) = Trim(cd.filename) 
     LEFT JOIN [rpd].[Nations] N ON N.Id = org.NationId
     INNER JOIN LatestSubmission sub ON sub.organisationid = org.externalid
     LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
+	LEFT JOIN OnlineMarketPlace OMP ON OMP.organisation_id = cd.organisation_id
 WHERE 
     cd.organisation_id = @organisationId
 GROUP BY 
-    cd.packaging_activity_om, 
     cd.organisation_id,
     cd.organisation_size,
     N.NationCode,
     sub.appreferencenumber,
+	OMP.IsOnlineMarketPlace,
     sc.NumberOfSubsidiaries;
     
 END;
