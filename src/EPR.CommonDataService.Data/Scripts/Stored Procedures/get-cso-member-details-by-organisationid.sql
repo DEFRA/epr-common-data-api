@@ -60,8 +60,8 @@ OnlineMarketPlace AS (
 SELECT  COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS MemberId,
     OMP.MemberType,
-     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
-	 	CAST(OMP.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketplace
+    ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
+	CAST(OMP.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketplace
 FROM LatestFile LF
 INNER JOIN [rpd].[CompanyDetails] cd ON Trim(cd.[filename]) = Trim(LF.LatestFileName)
 LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
@@ -72,7 +72,7 @@ GROUP BY
 	OMP.IsOnlineMarketPlace,
 	OMP.MemberType,
     sc.NumberOfSubsidiaries;
-    
+
 END;
 
 GO
