@@ -1,4 +1,4 @@
-﻿-- Dropping stored procedure if it exists
+﻿﻿-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetCsoMemberDetailsByOrganisationId]'))
 DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
 GO
@@ -41,10 +41,12 @@ SubsidiaryCount AS (
 )
 SELECT  COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS MemberId,
-    CASE 
-        WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
-        ELSE 0
-    END AS IsOnlineMarketplace,
+    CAST(
+        CASE 
+            WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
+            ELSE 0
+        END AS BIT
+    ) AS IsOnlineMarketplace,
     cd.organisation_size AS MemberType,
      ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries
 FROM LatestFile LF

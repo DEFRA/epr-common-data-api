@@ -30,7 +30,7 @@ public class CsoMemberDetailsServiceTests
         {
             new CsoMemberDetailsModel
             {
-                MemberId = "5678",
+                MemberId = 5678,
                 MemberType = "L",
                 IsOnlineMarketplace = true,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
@@ -39,7 +39,7 @@ public class CsoMemberDetailsServiceTests
         };
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
 
@@ -55,8 +55,8 @@ public class CsoMemberDetailsServiceTests
         result[0].NumberOfSubsidiaries.Should().Be(20);
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
-                Times.Once);
+           .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
+               Times.Once);
 
     }
 
@@ -70,7 +70,7 @@ public class CsoMemberDetailsServiceTests
         {
             new CsoMemberDetailsModel
             {
-                MemberId = "5678",
+                MemberId = 5678,
                 MemberType = "L",
                 IsOnlineMarketplace = false,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 10,
@@ -79,7 +79,7 @@ public class CsoMemberDetailsServiceTests
         };
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+              .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
 
@@ -113,7 +113,7 @@ public class CsoMemberDetailsServiceTests
         var result = await _service.GetCsoMemberDetails(OrganisationId);
 
         // Assert
-        result.Should().BeEmpty();
+        result.Should().BeNull();
     }
 
     [TestMethod]
@@ -123,8 +123,8 @@ public class CsoMemberDetailsServiceTests
         const int OrganisationId = 1234;
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
-            .ThrowsAsync(new Exception("Database error"));
+                     .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+           .ThrowsAsync(new Exception("Database error"));
 
         StoredProcedureExtensions.ReturnFakeData = false;
 

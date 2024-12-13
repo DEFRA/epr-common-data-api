@@ -53,10 +53,12 @@ SubsidiaryCount AS (
 SELECT 
     COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS OrganisationId,
-    CASE 
-        WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
-        ELSE 0
-    END AS IsOnlineMarketplace,
+    CAST(
+        CASE 
+            WHEN cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1
+            ELSE 0
+        END AS BIT
+    ) AS IsOnlineMarketplace,
     cd.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
