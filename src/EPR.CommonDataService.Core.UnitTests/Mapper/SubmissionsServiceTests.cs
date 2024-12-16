@@ -1,4 +1,4 @@
-﻿using static EPR.CommonDataService.Core.Mapper.ProducerDetailsService;
+﻿using EPR.CommonDataService.Core.Mapper;
 
 namespace EPR.CommonDataService.Core.UnitTests.Mapper
 {
