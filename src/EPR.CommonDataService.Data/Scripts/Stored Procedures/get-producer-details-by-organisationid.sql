@@ -17,9 +17,10 @@ WITH LatestFile AS (
     INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
     WHERE 
         ORG.referenceNumber = @organisationId
-        AND metadata.FileType = 'CompanyDetails'
+        AND metadata.FileType = 'CompanyDetails'   
         AND metadata.isSubmitted = 1
         AND metadata.SubmissionType = 'Registration'
+		AND  metadata.ComplianceSchemeId IS NUll
     ORDER BY 
         metadata.Created DESC
 ),
@@ -53,7 +54,8 @@ SubsidiaryCount AS (
 OnlineMarketPlace AS (
     SELECT 
         CD.organisation_id, 
-        CASE WHEN  cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1  END AS IsOnlineMarketPlace
+        CASE WHEN  cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1  ELSE 0  END AS IsOnlineMarketPlace,
+		 cd.organisation_size 
     FROM  
         [rpd].[CompanyDetails] CD
     WHERE 
@@ -66,12 +68,15 @@ OnlineMarketPlace AS (
         AND CD.subsidiary_id IS  NULL
     GROUP BY 
         CD.organisation_id,
-		CD.packaging_activity_om
+		CD.packaging_activity_om,
+		 cd.organisation_size 
 ) 
 
-SELECT COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+
+
+SELECT COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 ELSE 0 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS OrganisationId,
-    cd.organisation_size AS ProducerSize,
+    OMP.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
     N.NationCode AS Regulator,
@@ -88,7 +93,7 @@ WHERE
     cd.organisation_id = @organisationId
 GROUP BY 
     cd.organisation_id,
-    cd.organisation_size,
+    OMP.organisation_size,
     N.NationCode,
     sub.appreferencenumber,
 	OMP.IsOnlineMarketPlace,

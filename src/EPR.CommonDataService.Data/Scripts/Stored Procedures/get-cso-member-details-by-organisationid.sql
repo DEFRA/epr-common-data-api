@@ -20,6 +20,7 @@ WITH LatestFile AS (
         AND metadata.FileType = 'CompanyDetails'
         AND metadata.isSubmitted = 1
         AND metadata.SubmissionType = 'Registration'
+		AND  metadata.ComplianceSchemeId IS NOT NUll
     ORDER BY 
         metadata.Created DESC
 ),
