@@ -29,7 +29,7 @@ WITH
 				ORDER BY decisions.Created DESC -- mark latest submissionEvent synced from cosmos
 			) AS RowNum
 		FROM
-			apps.SubmissionEvents as decisions
+			rpd.SubmissionEvents as decisions
 		WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')		
 	)
 	,GrantedDecisionsCTE as (
@@ -108,7 +108,7 @@ WITH
                     ORDER BY s.load_ts DESC -- mark latest submission synced from cosmos
                 ) AS RowNum
             FROM
-                [apps].[Submissions] AS s
+                [rpd].[Submissions] AS s
                 INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org ON org.SubmittingExternalId = s.OrganisationId and org.SubmissionPeriod = s.SubmissionPeriod
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 

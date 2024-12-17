@@ -56,7 +56,7 @@ DECLARE @IsComplianceScheme bit;
 					ORDER BY decisions.Created DESC -- mark latest submissionEvent synced from cosmos
 				) AS RowNum
 			FROM
-				apps.SubmissionEvents as decisions
+				rpd.SubmissionEvents as decisions
 			WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')		
 				AND decisions.SubmissionId = @SubmissionId
 		)
@@ -68,12 +68,10 @@ DECLARE @IsComplianceScheme bit;
 					AND SubmissionStatus = 'Granted'
 			ORDER BY DecisionDate DESC
 		)
-	--select * from GrantedDecisionsCTE
 		,UploadedDataCTE as (
 			select *
 			from dbo.fn_GetUploadedOrganisationDetails(@OrganisationUUIDForSubmission, @SubmissionPeriod)
 		)
---select * from UploadedDataCTE
 		,ProducerPaycalParametersCTE
 			AS
 			(
@@ -87,7 +85,6 @@ DECLARE @IsComplianceScheme bit;
 					[dbo].[v_ProducerPaycalParameters] AS ppp
 			WHERE ppp.ExternalId = @OrganisationUUIDForSubmission
 		)
---select * from ProducerPaycalParametersCTE
         ,SubmissionDetails AS (
 		    select a.* FROM (
 				SELECT
@@ -166,7 +163,7 @@ DECLARE @IsComplianceScheme bit;
 						ORDER BY s.load_ts DESC -- mark latest submission synced from cosmos
 					) AS RowNum
 				FROM
-					[apps].[Submissions] AS s
+					[rpd].[Submissions] AS s
 					INNER JOIN UploadedDataCTE org ON org.SubmittingExternalId = s.OrganisationId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 					LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
@@ -175,7 +172,6 @@ DECLARE @IsComplianceScheme bit;
 			) as a
 			WHERE a.RowNum = 1
 		)
---select * from SubmissionDetails
 		,LatestRelatedRegulatorDecisionsCTE AS
 		(
 			select a.SubmissionId
@@ -189,7 +185,6 @@ DECLARE @IsComplianceScheme bit;
 			from ProdCommentsRegulatorDecisionsCTE as a
 			where a.IsProducerComment = 0 and a.RowNum = 1
 		)
---select * from LatestRelatedRegulatorDecisionsCTE
 		,LatestProducerCommentEventsCTE
         AS
         (
@@ -202,7 +197,6 @@ DECLARE @IsComplianceScheme bit;
                 ProdCommentsRegulatorDecisionsCTE AS comment
 			WHERE comment.IsProducerComment = 1 and comment.RowNum = 1
         )
---select * from LatestProducerCommentEventsCTE
 		,SubmissionOrganisationCommentsDetailsCTE
         AS
         (
@@ -249,8 +243,6 @@ DECLARE @IsComplianceScheme bit;
                 LEFT JOIN LatestRelatedRegulatorDecisionsCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
         ) 
---select * from SubmissionDetails
---select * from SubmissionOrganisationCommentsDetailsCTE ;
     ,CompliancePaycalCTE
         AS
         (
@@ -273,9 +265,6 @@ DECLARE @IsComplianceScheme bit;
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
         ) 
---select * from CompliancePaycalCTE
--- Build a rowset of membership organisations and their producer paycal api parameter requirements
-		-- the properties of the above is built into a JSON string
     ,JsonifiedCompliancePaycalCTE
         AS
         (
@@ -293,8 +282,7 @@ DECLARE @IsComplianceScheme bit;
         END + ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
             FROM
                 CompliancePaycalCTE
-        ) -- the above CTE is then compressed into a single row using the STRIN_AGG function
---select * from JsonifiedCompliancePaycalCTE
+        )
     ,AllCompliancePaycalParametersAsJSONCTE
         AS
         (
@@ -306,8 +294,6 @@ DECLARE @IsComplianceScheme bit;
             WHERE CSOReference = @CSOReferenceNumber
             GROUP BY CSOReference
         )
---select * from AllCompliancePaycalParametersAsJSONCTE
-    -- bring all the above into one 1
     SELECT DISTINCT
         r.SubmissionId
         ,r.OrganisationId
