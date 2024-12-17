@@ -58,7 +58,7 @@ OnlineMarketPlace AS (
 		cd.organisation_size,
 		CD.packaging_activity_om
 ) 
-SELECT  COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+SELECT COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 ELSE 0 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS MemberId,
     OMP.MemberType,
     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
