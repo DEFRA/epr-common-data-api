@@ -110,7 +110,7 @@ WITH
                 INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org ON org.SubmittingExternalId = s.OrganisationId and org.SubmissionPeriod = s.SubmissionPeriod
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
-				--INNER JOIN [apps].[SubmissionEvents] se on se.SubmissionId = s.SubmissionId and se.[Type] = 'RegistrationApplicationSubmitted'
+				INNER JOIN [apps].[SubmissionEvents] se on se.SubmissionId = s.SubmissionId and se.[Type] = 'RegistrationApplicationSubmitted'
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
 				ANd s.IsSubmitted = 1
