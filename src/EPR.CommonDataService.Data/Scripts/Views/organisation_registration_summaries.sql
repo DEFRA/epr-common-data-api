@@ -7,9 +7,9 @@ as
 WITH
 	ProdCommentsRegulatorDecisionsCTE as (
 		SELECT
-			CONVERT( uniqueidentifier, TRIM(decisions.SubmissionId)) as  Submissionid
+			decisions.SubmissionId
 			,decisions.SubmissionEventId AS DecisionEventId
-			,decisions.Created as DecisionDate
+			,decisions.SubmissionDate as DecisionDate
 			,decisions.Comments AS Comment
 			,decisions.RegistrationReferenceNumber AS RegistrationReferenceNumber
 			,CASE
@@ -32,14 +32,12 @@ WITH
 			apps.SubmissionEvents as decisions
 		WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')		
 	)
---select * from ProdCommentsRegulatorDecisionsCTE 
 	,GrantedDecisionsCTE as (
 		SELECT *
 		FROM ProdCommentsRegulatorDecisionsCTE granteddecision
 		WHERE IsProducerComment = 0
 				AND SubmissionStatus = 'Granted'
 	)
---select * from GrantedDecisionsCTE
 	,LatestOrganisationRegistrationSubmissionsCTE
     AS
     (
@@ -58,7 +56,11 @@ WITH
 				,granteddecision.SubmissionStatus
 				,granteddecision.DecisionDate as RegulatorDecisionDate
 				,granteddecision.UserId as RegulatorUserId
-            	,s.SubmissionPeriod
+            	,se.DecisionDate as ProducerCommentDate
+				,se.Comment as ProducerComment
+				,se.DecisionEventId as ProducerSubmissionEventId
+				,granteddecision.DecisionEventId as RegulatorSubmissionEventId
+				,s.SubmissionPeriod
                 ,s.SubmissionId
                 ,s.OrganisationId AS InternalOrgId
                 ,s.Created AS SubmittedDateTime
@@ -110,14 +112,13 @@ WITH
                 INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org ON org.SubmittingExternalId = s.OrganisationId and org.SubmissionPeriod = s.SubmissionPeriod
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
-				INNER JOIN [apps].[SubmissionEvents] se on se.SubmissionId = s.SubmissionId and se.[Type] = 'RegistrationApplicationSubmitted'
+				INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
 				ANd s.IsSubmitted = 1
         ) AS a
         WHERE a.RowNum = 1
     )
---select * from LatestOrganisationRegistrationSubmissionsCTE
 	,LatestRelatedRegulatorDecisionsCTE AS
 	(
 		select a.SubmissionId
@@ -131,7 +132,6 @@ WITH
 		from ProdCommentsRegulatorDecisionsCTE as a
 		where a.IsProducerComment = 0 and a.RowNum = 1
 	)
---select * from LatestRelatedRegulatorDecisionsCTE
 	,AllRelatedProducerCommentEventsCTE
     AS
     (
@@ -154,7 +154,6 @@ WITH
 			ORDER BY producercomment.DecisionDate desc
 		) AS a
     )
---select * from AllRelatedProducerCommentEventsCTE
 	,AllSubmissionsAndDecisionsAndCommentCTE
     AS
     (
@@ -183,9 +182,9 @@ WITH
             ,decisions.StatusPendingDate
             ,decisions.RegulatorDecisionDate
 			,decisions.UserId as RegulatorUserId
-            ,producercomments.ProducerCommentDate
-            ,producercomments.DecisionEventId AS ProducerSubmissionEventId
-            ,decisions.DecisionEventId AS RegulatorSubmissionEventId
+            ,ISNULL(submissions.ProducerCommentDate, producercomments.ProducerCommentDate) as ProducerCommentDate
+            ,ISNULL(submissions.ProducerSubmissionEventId, producercomments.DecisionEventId) as ProducerSubmissionEventId
+			,ISNULL(submissions.RegulatorSubmissionEventId, decisions.DecisionEventId) AS RegulatorSubmissionEventId
             ,submissions.NationId
             ,submissions.NationCode
         FROM
