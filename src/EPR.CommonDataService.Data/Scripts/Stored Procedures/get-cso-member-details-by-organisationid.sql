@@ -1,6 +1,6 @@
 ﻿﻿-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetCsoMemberDetailsByOrganisationId]'))
-DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
+    DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
 GO
 
 CREATE PROCEDURE dbo.sp_GetCsoMemberDetailsByOrganisationId
@@ -11,67 +11,63 @@ BEGIN
 
 WITH LatestFile AS (
     SELECT TOP 1
-        LTRIM(RTRIM([FileName])) AS LatestFileName
+        TRIM(metadata.FileName) AS LatestFileName
     FROM 
-        [rpd].[cosmos_file_metadata] metadata 
-    INNER JOIN [rpd].[Organisations] ORG ON ORG.ExternalId = metadata.OrganisationId
+        [rpd].[cosmos_file_metadata] metadata
+    INNER JOIN 
+        [rpd].[Organisations] org ON org.ExternalId = metadata.OrganisationId
     WHERE 
-        ORG.referenceNumber = @organisationId
+        org.ReferenceNumber = @organisationId
         AND metadata.FileType = 'CompanyDetails'
-        AND metadata.isSubmitted = 1
+        AND metadata.IsSubmitted = 1
         AND metadata.SubmissionType = 'Registration'
+        AND metadata.ComplianceSchemeId IS NOT NULL
     ORDER BY 
         metadata.Created DESC
 ),
-SubsidiaryCount AS (
+SubsidiaryDetails AS (
     SELECT 
-        CD.organisation_id, 
-        COUNT(*) AS NumberOfSubsidiaries
+        cd.Organisation_Id AS OrganisationId, 
+        COUNT(*) AS TotalSubsidiaries,
+        COUNT(CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries
     FROM 
-        [rpd].[CompanyDetails] CD
+        [rpd].[CompanyDetails] cd
     WHERE 
         EXISTS (
             SELECT 1
-            FROM LatestFile LF
-            WHERE LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName
+            FROM LatestFile lf
+            WHERE TRIM(cd.FileName) = lf.LatestFileName
         )
-        AND CD.subsidiary_id IS NOT NULL
+        AND cd.Subsidiary_Id IS NOT NULL
     GROUP BY 
-        CD.organisation_id
+        cd.Organisation_Id
 ),
-OnlineMarketPlace AS (
+OrganisationDetails AS (
     SELECT 
-        CD.organisation_id, 
-        CASE WHEN  cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
-		 cd.organisation_size as MemberType
+        cd.Organisation_Id AS OrganisationId,
+        CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
+        cd.Organisation_Size AS MemberType
     FROM  
-        [rpd].[CompanyDetails] CD
-    WHERE EXISTS (
+        [rpd].[CompanyDetails] cd
+    WHERE 
+        EXISTS (
             SELECT 1
-            FROM LatestFile LF
-            WHERE LTRIM(RTRIM(CD.[filename])) = LF.LatestFileName
+            FROM LatestFile lf
+            WHERE TRIM(cd.FileName) = lf.LatestFileName
         )
-        AND CD.subsidiary_id IS NULL
-    GROUP BY 
-        CD.organisation_id,
-		cd.organisation_size,
-		CD.packaging_activity_om
-) 
-SELECT  COUNT(CASE WHEN  CD.subsidiary_id IS NOT NULL AND cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1 END) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
-    cd.organisation_id AS MemberId,
-    OMP.MemberType,
-    ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
-	CAST(OMP.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketplace
-FROM LatestFile LF
-INNER JOIN [rpd].[CompanyDetails] cd ON Trim(cd.[filename]) = Trim(LF.LatestFileName)
-LEFT JOIN SubsidiaryCount sc ON sc.organisation_id = cd.organisation_id
-LEFT JOIN OnlineMarketPlace OMP ON OMP.organisation_id = cd.organisation_id
+        AND cd.Subsidiary_Id IS NULL
+)
+SELECT  
+    od.OrganisationId AS MemberId,
+    od.MemberType,
+    ISNULL(sd.TotalSubsidiaries, 0) AS NumberOfSubsidiaries,
+    ISNULL(sd.OnlineMarketPlaceSubsidiaries, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+    CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace
+FROM 
+    OrganisationDetails od
+LEFT JOIN 
+    SubsidiaryDetails sd ON sd.OrganisationId = od.OrganisationId;
 
-GROUP BY 
-    cd.organisation_id,
-	OMP.IsOnlineMarketPlace,
-	OMP.MemberType,
-    sc.NumberOfSubsidiaries;
 
 END;
 
