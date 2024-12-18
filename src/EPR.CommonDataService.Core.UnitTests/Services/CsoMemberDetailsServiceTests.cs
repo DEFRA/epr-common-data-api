@@ -25,6 +25,7 @@ public class CsoMemberDetailsServiceTests
     {
         // Arrange
         const int OrganisationId = 1234;
+        string ComplianceSchemeId = Guid.NewGuid().ToString("D");
 
         var expectedData = new List<CsoMemberDetailsModel>
         {
@@ -39,12 +40,12 @@ public class CsoMemberDetailsServiceTests
         };
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
 
         // Act
-        var result = await _service.GetCsoMemberDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId, ComplianceSchemeId);
 
         // Assert
         result.Should().NotBeNull();
@@ -55,7 +56,7 @@ public class CsoMemberDetailsServiceTests
         result[0].NumberOfSubsidiaries.Should().Be(20);
 
         _synapseContextMock
-           .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
+           .Verify(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>(), It.IsAny<SqlParameter>()),
                Times.Once);
 
     }
@@ -65,6 +66,7 @@ public class CsoMemberDetailsServiceTests
     {
         // Arrange
         const int OrganisationId = 1234;
+        string ComplianceSchemeId = Guid.NewGuid().ToString("D");
 
         var expectedData = new List<CsoMemberDetailsModel>
         {
@@ -79,12 +81,12 @@ public class CsoMemberDetailsServiceTests
         };
 
         _synapseContextMock
-              .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+              .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
 
         // Act
-        var result = await _service.GetCsoMemberDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId, ComplianceSchemeId);
 
         // Assert
         result.Should().NotBeNull();
@@ -100,17 +102,18 @@ public class CsoMemberDetailsServiceTests
     {
         // Arrange
         const int OrganisationId = 1234;
+        string ComplianceSchemeId = Guid.NewGuid().ToString("D");
 
         var emptyData = new List<CsoMemberDetailsModel>();
 
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+            .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(emptyData);
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetCsoMemberDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId, ComplianceSchemeId);
 
         // Assert
         result.Should().BeNull();
@@ -121,15 +124,16 @@ public class CsoMemberDetailsServiceTests
     {
         // Arrange
         const int OrganisationId = 1234;
+        string ComplianceSchemeId = Guid.NewGuid().ToString("D");
 
         _synapseContextMock
-                     .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+                     .Setup(ctx => ctx.RunSqlAsync<CsoMemberDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
            .ThrowsAsync(new Exception("Database error"));
 
         StoredProcedureExtensions.ReturnFakeData = false;
 
         // Act
-        var result = await _service.GetCsoMemberDetails(OrganisationId);
+        var result = await _service.GetCsoMemberDetails(OrganisationId, ComplianceSchemeId);
 
         // Assert
         result.Should().BeNull();
