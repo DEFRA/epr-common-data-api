@@ -73,7 +73,7 @@ OrganisationDetails AS (
 		CD.organisation_size 
 ) 
 
-SELECT sc.NumberOfSubsidiariesBeingOnlineMarketPlace,
+SELECT ISNull(sc.NumberOfSubsidiariesBeingOnlineMarketPlace,0) as NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS OrganisationId,
     cd.organisation_size AS ProducerSize,
     sub.appreferencenumber AS ApplicationReferenceNumber,
