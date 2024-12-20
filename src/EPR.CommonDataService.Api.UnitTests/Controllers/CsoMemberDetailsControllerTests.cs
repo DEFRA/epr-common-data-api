@@ -37,7 +37,7 @@ public class CsoMemberDetailsControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetCsoMemberDetails(0);
+        var result = await _controller.GetCsoMemberDetails(0, Guid.NewGuid());
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -48,7 +48,7 @@ public class CsoMemberDetailsControllerTests
     {
         // Arrange
         // Act
-        var result = await _controller.GetCsoMemberDetails(-1);
+        var result = await _controller.GetCsoMemberDetails(-1, Guid.Empty);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -60,13 +60,15 @@ public class CsoMemberDetailsControllerTests
     {
         // Arrange
         const int OrganisationId = 1234;
-
+        Guid compSchemeId = Guid.Empty;
+        string compScheme = compSchemeId.ToString();
+        
         _csoMemberDetailsServiceMock
-            .Setup(service => service.GetCsoMemberDetails(OrganisationId))
+            .Setup(service => service.GetCsoMemberDetails(OrganisationId,compScheme))
             .ReturnsAsync((GetCsoMemberDetailsResponse[])null!); // Simulating no result
 
         // Act
-        var result = await _controller.GetCsoMemberDetails(OrganisationId);
+        var result = await _controller.GetCsoMemberDetails(OrganisationId, compSchemeId);
 
         // Assert
         result.Should().BeOfType<NoContentResult>();
@@ -77,15 +79,17 @@ public class CsoMemberDetailsControllerTests
     {
         // Arrange
         const int OrganisationId = 1234;
-        
+        Guid compSchemeId = Guid.Empty;
+        string compScheme = compSchemeId.ToString();
+
         var expectedResult = new [] { new GetCsoMemberDetailsResponse { MemberType = "Large", MemberId = "5678" } }; // Mock result
 
         _csoMemberDetailsServiceMock
-            .Setup(service => service.GetCsoMemberDetails(OrganisationId))
+            .Setup(service => service.GetCsoMemberDetails(OrganisationId,compScheme))
             .ReturnsAsync(expectedResult);
 
         // Act
-        var result = await _controller.GetCsoMemberDetails(OrganisationId);
+        var result = await _controller.GetCsoMemberDetails(OrganisationId, compSchemeId);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
