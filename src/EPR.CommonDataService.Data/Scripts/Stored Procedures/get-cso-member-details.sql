@@ -1,17 +1,18 @@
-﻿﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetCsoMemberDetailsByOrganisationId]'))
-    DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
+﻿IF EXISTS (SELECT
+    1
+FROM
+    sys.procedures
+WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetCsoMemberDetails]'))
+DROP PROCEDURE [dbo].[sp_GetCsoMemberDetails];
 GO
 
-CREATE PROCEDURE dbo.sp_GetCsoMemberDetailsByOrganisationId
-    @organisationId INT
-AS
+CREATE PROC [dbo].[sp_GetCsoMemberDetails] @organisationId [INT], @complianceSchemeId nvarchar(50) AS
 BEGIN
-    SET NOCOUNT ON;
+SET NOCOUNT ON;
 
 WITH LatestFile AS (
     SELECT TOP 1
-        TRIM(metadata.FileName) AS LatestFileName
+        TRIM(metadata.FileName) AS LatestFileName, metadata.*
     FROM 
         [rpd].[cosmos_file_metadata] metadata
     INNER JOIN 
@@ -21,11 +22,11 @@ WITH LatestFile AS (
         AND metadata.FileType = 'CompanyDetails'
         AND metadata.IsSubmitted = 1
         AND metadata.SubmissionType = 'Registration'
-        AND metadata.ComplianceSchemeId IS NOT NULL
+        AND metadata.ComplianceSchemeId = @complianceSchemeId
     ORDER BY 
         metadata.Created DESC
-),
-SubsidiaryDetails AS (
+)
+,SubsidiaryDetails AS (
     SELECT 
         cd.Organisation_Id AS OrganisationId, 
         COUNT(*) AS TotalSubsidiaries,
@@ -41,8 +42,8 @@ SubsidiaryDetails AS (
         AND cd.Subsidiary_Id IS NOT NULL
     GROUP BY 
         cd.Organisation_Id
-),
-OrganisationDetails AS (
+)
+,OrganisationDetails AS (
     SELECT 
         cd.Organisation_Id AS OrganisationId,
         CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
@@ -72,3 +73,5 @@ LEFT JOIN
 END;
 
 GO
+
+

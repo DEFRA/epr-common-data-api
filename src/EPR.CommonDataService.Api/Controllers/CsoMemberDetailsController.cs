@@ -12,17 +12,17 @@ public class CsoMemberDetailsController(
     ICsoMemberDetailsService csoMemberDetailsService)
     : ApiControllerBase(baseApiConfigOptions)
 {
-    [HttpGet("get-cso-member-details/{organisationId:int}", Name = nameof(GetCsoMemberDetails))]
+    [HttpGet("get-cso-member-details/{organisationId:int}/{complianceSchemeId:Guid}", Name = nameof(GetCsoMemberDetails))]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetCsoMemberDetails([FromRoute] int organisationId)
+    public async Task<IActionResult> GetCsoMemberDetails([FromRoute] int organisationId, [FromRoute]Guid complianceSchemeId)
     {
         if (organisationId <= 0)
             return BadRequest("OrganisationId is invalid");
 
-        var result = await csoMemberDetailsService.GetCsoMemberDetails(organisationId);
+        var result = await csoMemberDetailsService.GetCsoMemberDetails(organisationId, complianceSchemeId.ToString("D"));
 
         return result is null ? NoContent() : Ok(result);
     }
