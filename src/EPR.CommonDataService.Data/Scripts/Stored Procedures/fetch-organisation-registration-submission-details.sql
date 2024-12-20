@@ -6,24 +6,24 @@ WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionD
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails];
 GO
 
-CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails]
-    @SubmissionId nvarchar(36)
-AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails] @SubmissionId [nvarchar](36) AS
 BEGIN
 SET NOCOUNT ON;
- 
+
 DECLARE @OrganisationIDForSubmission INT;
 DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
-DECLARE @SubmissionPeriod nvarchar(4000);
-DECLARE @CSOReferenceNumber nvarchar(4000);
+DECLARE @SubmissionPeriod nvarchar(100);
+DECLARE @CSOReferenceNumber nvarchar(100);
 DECLARE @ApplicationReferenceNumber nvarchar(4000);
+DECLARE @ComplianceSchemeId nvarchar(50);
 DECLARE @IsComplianceScheme bit;
 
     SELECT
         @OrganisationIDForSubmission = O.Id 
 		,@OrganisationUUIDForSubmission = O.ExternalId 
 		,@CSOReferenceNumber = O.ReferenceNumber 
-		,@IsComplianceScheme = O.IsComplianceScheme 
+		,@IsComplianceScheme = O.IsComplianceScheme
+		,@ComplianceSchemeId = S.ComplianceSchemeId
 		,@SubmissionPeriod = S.SubmissionPeriod
 	    ,@ApplicationReferenceNumber = S.AppReferenceNumber
     FROM
@@ -60,7 +60,6 @@ DECLARE @IsComplianceScheme bit;
 			WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')		
 				AND decisions.SubmissionId = @SubmissionId
 		)
---select * from ProdCommentsRegulatorDecisionsCTE 
 		,GrantedDecisionsCTE as (
 			SELECT TOP 1 *
 			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
@@ -264,8 +263,9 @@ DECLARE @IsComplianceScheme bit;
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
+				AND csm.ComplianceSchemeId = @ComplianceSchemeId
         ) 
-    ,JsonifiedCompliancePaycalCTE
+	,JsonifiedCompliancePaycalCTE
         AS
         (
             SELECT
@@ -294,7 +294,7 @@ DECLARE @IsComplianceScheme bit;
             WHERE CSOReference = @CSOReferenceNumber
             GROUP BY CSOReference
         )
-    SELECT DISTINCT
+	SELECT DISTINCT
         r.SubmissionId
         ,r.OrganisationId
         ,r.OrganisationName AS OrganisationName
@@ -359,6 +359,5 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
-
 END
 GO
