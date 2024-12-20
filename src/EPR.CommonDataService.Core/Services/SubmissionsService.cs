@@ -58,18 +58,30 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     {
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods}", _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods);
 
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3 @ApprovedAfter, @Periods";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataForDirectRegistrantsAndComplianceSchemeV1 @ApprovedAfter, @Periods";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
-            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
-                new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
-                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
 
-            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
-            return paginatedResponse;
+            var result = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(
+                sql,
+                new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value }
+            );
+
+            if (result == null || !result.Any())
+            {
+                logger.LogWarning("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: No approved submissions found for the specified criteria.",
+                    _logPrefix);
+                return new List<ApprovedSubmissionEntity>();
+            }
+
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query returned {Count} records.",
+                _logPrefix, result.Count);
+
+            return result;
         }
         catch (Exception ex)
         {
