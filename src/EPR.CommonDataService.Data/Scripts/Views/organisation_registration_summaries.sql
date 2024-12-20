@@ -2,13 +2,12 @@
 DROP VIEW [dbo].[v_OrganisationRegistrationSummaries];
 GO
 
-create view [dbo].[v_OrganisationRegistrationSummaries]
-as 
-WITH
+CREATE VIEW [dbo].[v_OrganisationRegistrationSummaries]
+AS WITH
 	ProdCommentsRegulatorDecisionsCTE as (
 		SELECT
 			decisions.SubmissionId
-			,decisions.SubmissionEventId AS DecisionEventId
+			,decisions.SubmissionEventId
 			,decisions.SubmissionDate as DecisionDate
 			,decisions.Comments AS Comment
 			,decisions.RegistrationReferenceNumber AS RegistrationReferenceNumber
@@ -58,8 +57,8 @@ WITH
 				,granteddecision.UserId as RegulatorUserId
             	,se.DecisionDate as ProducerCommentDate
 				,se.Comment as ProducerComment
-				,se.DecisionEventId as ProducerSubmissionEventId
-				,granteddecision.DecisionEventId as RegulatorSubmissionEventId
+				,se.SubmissionEventId as ProducerSubmissionEventId
+				,granteddecision.SubmissionEventId as RegulatorSubmissionEventId
 				,s.SubmissionPeriod
                 ,s.SubmissionId
                 ,s.OrganisationId AS InternalOrgId
@@ -121,38 +120,38 @@ WITH
     )
 	,LatestRelatedRegulatorDecisionsCTE AS
 	(
-		select a.SubmissionId
-			,a.DecisionEventId
-			,a.DecisionDate as RegulatorDecisionDate
-			,a.Comment as RegulatorComment
-			,a.RegistrationReferenceNumber
-			,a.SubmissionStatus
-			,a.StatusPendingDate
-			,a.UserId
-		from ProdCommentsRegulatorDecisionsCTE as a
-		where a.IsProducerComment = 0 and a.RowNum = 1
+		select b.SubmissionId
+			,b.SubmissionEventId
+			,b.DecisionDate as RegulatorDecisionDate
+			,b.Comment as RegulatorComment
+			,b.RegistrationReferenceNumber
+			,b.SubmissionStatus
+			,b.StatusPendingDate
+			,b.UserId
+		from ProdCommentsRegulatorDecisionsCTE as b
+		where b.IsProducerComment = 0 and b.RowNum = 1
 	)
 	,AllRelatedProducerCommentEventsCTE
     AS
     (
         SELECT
-            CONVERT(uniqueidentifier, a.SubmissionId) as SubmissionId
-			,a.DecisionEventId
-			,a.ProducerComment
-			,a.ProducerCommentDate
+            CONVERT(uniqueidentifier, c.SubmissionId) as SubmissionId
+			,c.SubmissionEventId
+			,c.Comment AS ProducerComment
+			,c.DecisionDate AS ProducerCommentDate
         FROM
             (
 			SELECT TOP 1
-                producercomment.DecisionEventId
-				,producercomment.SubmissionId
-				,producercomment.Comment AS ProducerComment
-				,producercomment.DecisionDate AS ProducerCommentDate
-            FROM LatestOrganisationRegistrationSubmissionsCTE submittedregistrations 
-					LEFT JOIN ProdCommentsRegulatorDecisionsCTE AS producercomment 
-					ON producercomment.IsProducerComment = 1 
-					   AND producercomment.SubmissionId = submittedregistrations.SubmissionId 
-			ORDER BY producercomment.DecisionDate desc
-		) AS a
+                ProdCommentsRegulatorDecisionsCTE.SubmissionEventId
+				,ProdCommentsRegulatorDecisionsCTE.SubmissionId
+				,ProdCommentsRegulatorDecisionsCTE.Comment 
+				,ProdCommentsRegulatorDecisionsCTE.DecisionDate 
+            FROM LatestOrganisationRegistrationSubmissionsCTE 
+					LEFT JOIN ProdCommentsRegulatorDecisionsCTE 
+					ON ProdCommentsRegulatorDecisionsCTE.IsProducerComment = 1 
+					   AND ProdCommentsRegulatorDecisionsCTE.SubmissionId = LatestOrganisationRegistrationSubmissionsCTE.SubmissionId 
+			ORDER BY ProdCommentsRegulatorDecisionsCTE.DecisionDate desc
+		) AS c
     )
 	,AllSubmissionsAndDecisionsAndCommentCTE
     AS
@@ -183,8 +182,8 @@ WITH
             ,decisions.RegulatorDecisionDate
 			,decisions.UserId as RegulatorUserId
             ,ISNULL(submissions.ProducerCommentDate, producercomments.ProducerCommentDate) as ProducerCommentDate
-            ,ISNULL(submissions.ProducerSubmissionEventId, producercomments.DecisionEventId) as ProducerSubmissionEventId
-			,ISNULL(submissions.RegulatorSubmissionEventId, decisions.DecisionEventId) AS RegulatorSubmissionEventId
+            ,ISNULL(submissions.ProducerSubmissionEventId, producercomments.SubmissionEventId) as ProducerSubmissionEventId
+			,ISNULL(submissions.RegulatorSubmissionEventId, decisions.SubmissionEventId) AS RegulatorSubmissionEventId
             ,submissions.NationId
             ,submissions.NationCode
         FROM
