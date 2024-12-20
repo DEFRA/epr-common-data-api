@@ -90,7 +90,7 @@ DECLARE @IsComplianceScheme bit;
 				SELECT
 					o.Name AS OrganisationName
 					,org.UploadOrgName as UploadedOrganisationName
-					,org.ReferenceNumber
+					,o.ReferenceNumber
 					,org.SubmittingExternalId as OrganisationId
 					,s.AppReferenceNumber AS ApplicationReferenceNumber
 					,granteddecision.RegistrationReferenceNumber
