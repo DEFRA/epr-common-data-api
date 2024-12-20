@@ -71,7 +71,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value }
             );
 
-            if (result == null || !result.Any())
+            if (result == null || result.Count() == 0)
             {
                 logger.LogWarning("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: No approved submissions found for the specified criteria.",
                     _logPrefix);
