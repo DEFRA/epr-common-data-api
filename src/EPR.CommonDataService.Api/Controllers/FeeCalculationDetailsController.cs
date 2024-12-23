@@ -6,24 +6,24 @@ using Microsoft.Extensions.Options;
 namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
-[Route("api/producer-details")]
-public class ProducerDetailsController(
+[Route("api/fee-calculation")]
+public class FeeCalculationDetailsController(
     IOptions<ApiConfig> baseApiConfigOptions, 
-    IProducerDetailsService producerDetailsService)
+    IFeeCalculationDetailsService feeCalculationDetailsService)
     : ApiControllerBase(baseApiConfigOptions)
 
 {
-    [HttpGet("get-producer-details/{organisationId:int}", Name = nameof(GetProducerDetails))]
+    [HttpGet("get-fee-calculation-details/{fileId:guid}", Name = nameof(GetFeeCalculationDetails))]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetProducerDetails([FromRoute] int organisationId)
+    public async Task<IActionResult> GetFeeCalculationDetails([FromRoute] Guid fileId)
     {
-        if (organisationId <= 0)
-            return BadRequest("OrganisationId is invalid");
+        if (fileId == Guid.Empty)
+            return BadRequest("fileId is invalid");
 
-        var result = await producerDetailsService.GetProducerDetails(organisationId);
+        var result = await feeCalculationDetailsService.GetFeeCalculationDetails(fileId);
 
         return result is null ? NoContent() : Ok(result);
     }

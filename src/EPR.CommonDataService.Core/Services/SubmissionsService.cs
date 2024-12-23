@@ -121,7 +121,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
 
             return dbSet.FirstOrDefault();
