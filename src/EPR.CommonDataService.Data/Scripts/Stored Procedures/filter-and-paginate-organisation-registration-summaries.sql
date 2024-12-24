@@ -17,140 +17,120 @@ create proc [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries]
 AS
 begin
 	SET NOCOUNT ON;
-WITH
-    RequiredApplicationsByStatusCTE
-    AS
-    (
-        SELECT
-            *
-        FROM
-            dbo.[v_OrganisationRegistrationSummaries]
-        WHERE
+	    WITH
+        NormalFilterCTE
+        AS
         (
-            NationId = @NationId OR @NationId = 0
-        )
-            AND EXISTS (
             SELECT
-                1
+                *
             FROM
-                STRING_SPLIT(@AppRefNumbersCommaSeparated, ',') AS AppReference
-            WHERE ApplicationReferenceNumber = LTRIM(RTRIM(AppReference.value))
+                dbo.[v_OrganisationRegistrationSummaries] i
+            WHERE (
+            NationId = @NationId
+                OR @NationId = 0
         )
-    )
-    ,InitialFilterCTE
-    AS
-    (
-        SELECT
-            *
-        FROM
-            dbo.[v_OrganisationRegistrationSummaries]
-        WHERE
-        (
-            NationId = @NationId OR @NationId = 0
-        )
-    )
-    ,NormalFilterCTE
-    AS
-    (
-        SELECT
-            *
-        FROM
-            InitialFilterCTE i
-        WHERE
-        (
-            (
+                AND (
+            EXISTS (
+                SELECT
+                    1
+                FROM
+                    STRING_SPLIT(@AppRefNumbersCommaSeparated, ',') AS AppReference
+                WHERE ApplicationReferenceNumber = LTRIM(RTRIM(AppReference.value))
+            )
+                OR
                 (
-                    LEN(ISNULL(@OrganisationNameCommaSeparated, '')) > 0
-            AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) > 0
-            AND EXISTS (
-                        SELECT
-                1
-            FROM
-                STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
-            WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
-                    )
-            AND EXISTS (
-                        SELECT
-                1
-            FROM
-                STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
-            WHERE OrganisationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-                OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-                OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                (
+                    (
+                        (
+                            LEN(ISNULL(@OrganisationNameCommaSeparated, '')) > 0
+                AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) > 0
+                AND EXISTS (
+                                SELECT
+                    1
+                FROM
+                    STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
+                WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
+                            )
+                AND EXISTS (
+                                SELECT
+                    1
+                FROM
+                    STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
+                WHERE OrganisationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                            )
+                        ) -- Only OrganisationName specified
+                OR (
+                            LEN(ISNULL(@OrganisationNameCommaSeparated, '')) > 0
+                AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) = 0
+                AND EXISTS (
+                                SELECT
+                    1
+                FROM
+                    STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
+                WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
+                            )
+                        ) -- Only OrganisationReference specified
+                OR (
+                            LEN(ISNULL(@OrganisationNameCommaSeparated, '')) = 0
+                AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) > 0
+                AND EXISTS (
+                                SELECT
+                    1
+                FROM
+                    STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
+                WHERE OrganisationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                            )
+                        )
+                OR (
+                            LEN(ISNULL(@OrganisationNameCommaSeparated, '')) = 0
+                AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) = 0
+                        )
                     )
                 )
-            -- Only OrganisationName specified
-            OR (
-                    LEN(ISNULL(@OrganisationNameCommaSeparated, '')) > 0
-            AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) = 0
-            AND EXISTS (
+                AND (
+                    ISNULL(@OrganisationTypeCommaSeparated, '') = ''
+                OR OrganisationType IN (
                         SELECT
-                1
-            FROM
-                STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
-            WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
+                    TRIM(value)
+                FROM
+                    STRING_SPLIT(@OrganisationTypeCommaSeparated, ',')
                     )
                 )
-            -- Only OrganisationReference specified
-            OR (
-                    LEN(ISNULL(@OrganisationNameCommaSeparated, '')) = 0
-            AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) > 0
-            AND EXISTS (
+                AND (
+                    ISNULL(@SubmissionYearsCommaSeparated, '') = ''
+                OR RelevantYear IN (
                         SELECT
-                1
-            FROM
-                STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
-            WHERE OrganisationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-                OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-                OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    TRIM(value)
+                FROM
+                    STRING_SPLIT(
+                                CONCAT('2024,2025,', @SubmissionYearsCommaSeparated),
+                                ','
+                            )
                     )
                 )
-            OR (
-                    LEN(ISNULL(@OrganisationNameCommaSeparated, '')) = 0
-            AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) = 0
+                AND (
+                    ISNULL(@StatusesCommaSeparated, '') = ''
+                OR SubmissionStatus IN (
+                        SELECT
+                    TRIM(value)
+                FROM
+                    STRING_SPLIT(@StatusesCommaSeparated, ',')
+                    )
                 )
             )
         )
-            AND (ISNULL(@OrganisationTypeCommaSeparated, '') = '' OR OrganisationType IN
-            (SELECT
-                TRIM(value)
-            FROM
-                STRING_SPLIT(@OrganisationTypeCommaSeparated, ','))
         )
-            AND (ISNULL(@SubmissionYearsCommaSeparated, '') = '' OR RelevantYear IN
-            (SELECT
-                TRIM(value)
-            FROM
-                STRING_SPLIT(CONCAT('2024,2025,', @SubmissionYearsCommaSeparated), ','))
-        )
-            AND (ISNULL(@StatusesCommaSeparated, '') = '' OR SubmissionStatus IN
-            (SELECT
-                TRIM(value)
-            FROM
-                STRING_SPLIT(@StatusesCommaSeparated, ','))
-        )
-    )
-    ,CombinedCTE
-    AS
-    (
-                    SELECT
-                *
-            FROM
-                NormalFilterCTE
-        UNION
+        ,SortedCTE
+        AS
+        (
             SELECT
                 *
-            FROM
-                RequiredApplicationsByStatusCTE
-    )
-    ,SortedCTE
-    AS
-    (
-        SELECT
-            *
-            ,ROW_NUMBER() OVER (
-            ORDER BY
-                CASE
+                ,ROW_NUMBER() OVER (
+            ORDER BY CASE
                     WHEN SubmissionStatus = 'Cancelled' THEN 6
                     WHEN SubmissionStatus = 'Refused' THEN 5
                     WHEN SubmissionStatus = 'Granted' THEN 4
@@ -160,60 +140,81 @@ WITH
                 END,
                 SubmittedDateTime
         ) AS RowNum
-        FROM
-            CombinedCTE
-    )
-    ,TotalRowsCTE
-    AS
-    (
+            FROM
+                NormalFilterCTE
+        )
+        ,TotalRowsCTE
+        AS
+        (
+            SELECT
+                COUNT(*) AS TotalRows
+            FROM
+                SortedCTE
+        )
+        ,PagedResultsCTE
+        AS
+        (
+            SELECT
+                *
+                ,ROW_NUMBER() OVER (
+            ORDER BY RowNum
+        ) AS PagedRowNum
+            FROM
+                SortedCTE
+        )
+    SELECT
+        SubmissionId
+        ,OrganisationId
+        ,OrganisationInternalId
+        ,OrganisationType
+        ,OrganisationName
+        ,OrganisationReferenceNumber AS OrganisationReference
+        ,SubmissionStatus
+        ,StatusPendingDate
+        ,ApplicationReferenceNumber
+        ,RegistrationReferenceNumber
+        ,RelevantYear
+        ,SubmittedDateTime
+        ,RegulatorDecisionDate AS RegulatorCommentDate
+        ,ProducerCommentDate
+        ,RegulatorUserId
+        ,NationId
+        ,NationCode
+        ,(
         SELECT
-            COUNT(*) AS TotalRows
+            COUNT(*)
         FROM
             SortedCTE
-    )
-    ,PagedResultsCTE
-    AS
-    (
-        SELECT
-            *
-            ,ROW_NUMBER() OVER (ORDER BY RowNum) AS PagedRowNum
+    ) AS TotalItems
+    FROM
+        PagedResultsCTE
+    WHERE PagedRowNum > (
+        @PageSize * (
+            LEAST(
+                @PageNumber,
+                CEILING(
+                    (
+                        SELECT
+            TotalRows
         FROM
-            SortedCTE
+            TotalRowsCTE
+                    ) / (1.0 * @PageSize)
+                )
+            ) - 1
+        )
     )
-SELECT
-    SubmissionId
-    ,OrganisationId
-    ,OrganisationInternalId
-    ,OrganisationType
-    ,OrganisationName
-    ,OrganisationReferenceNumber AS OrganisationReference
-    ,SubmissionStatus
-    ,StatusPendingDate
-    ,ApplicationReferenceNumber
-    ,RegistrationReferenceNumber
-    ,RelevantYear
-    ,SubmittedDateTime
-    ,RegulatorDecisionDate AS RegulatorCommentDate
-    ,ProducerCommentDate
-    ,RegulatorUserId
-    ,NationId
-    ,NationCode
-    ,(SELECT
-        COUNT(*)
-    FROM
-        SortedCTE) AS TotalItems
-FROM
-    PagedResultsCTE
-WHERE PagedRowNum > (@PageSize * (LEAST(@PageNumber, CEILING((SELECT
-        TotalRows
-    FROM
-        TotalRowsCTE) / (1.0 * @PageSize))) - 1))
-    AND PagedRowNum <= @PageSize * LEAST(@PageNumber, CEILING((SELECT
-        TotalRows
-    FROM
-        TotalRowsCTE) / (1.0 * @PageSize)))
-ORDER BY RowNum;
- 
+        AND PagedRowNum <= @PageSize * LEAST(
+        @PageNumber,
+        CEILING(
+            (
+                SELECT
+            TotalRows
+        FROM
+            TotalRowsCTE
+            ) / (1.0 * @PageSize)
+        )
+    )
+    ORDER BY RowNum;
 END
 
 GO
