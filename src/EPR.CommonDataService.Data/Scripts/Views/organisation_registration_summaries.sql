@@ -2,14 +2,13 @@
 DROP VIEW [dbo].[v_OrganisationRegistrationSummaries];
 GO
 
-create view [dbo].[v_OrganisationRegistrationSummaries]
-as 
-WITH
+CREATE VIEW [dbo].[v_OrganisationRegistrationSummaries]
+AS WITH
 	ProdCommentsRegulatorDecisionsCTE as (
 		SELECT
 			decisions.SubmissionId
 			,decisions.SubmissionEventId
-			,decisions.SubmissionDate as DecisionDate
+			,decisions.Created as DecisionDate
 			,decisions.Comments AS Comment
 			,decisions.RegistrationReferenceNumber AS RegistrationReferenceNumber
 			,CASE
@@ -18,7 +17,7 @@ WITH
 				WHEN decisions.decision IS NULL THEN 'Pending'
 				ELSE decisions.Decision
 			END AS SubmissionStatus
-			,decisions.DecisionDate AS StatusPendingDate
+			,null AS StatusPendingDate
 			,CASE WHEN decisions.Type = 'RegistrationApplicationSubmitted'
 				 THEN 1
 				 ELSE 0
@@ -63,7 +62,7 @@ WITH
 				,s.SubmissionPeriod
                 ,s.SubmissionId
                 ,s.OrganisationId AS InternalOrgId
-                ,se.DecisionDate AS SubmittedDateTime
+                ,s.Created AS SubmittedDateTime
                 ,CASE 
 					UPPER(org.NationCode)
 					WHEN 'EN' THEN 1
@@ -89,7 +88,7 @@ WITH
                 ) AS RelevantYear
                 ,CAST(
                     CASE
-                        WHEN se.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+                        WHEN s.Created > DATEFROMPARTS(CONVERT( int, SUBSTRING(
                                         s.SubmissionPeriod,
                                         PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
                                         4
@@ -109,7 +108,7 @@ WITH
                 ) AS RowNum
             FROM
                 [rpd].[Submissions] AS s
-				INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org ON org.SubmittingExternalId = s.OrganisationId and org.SubmissionPeriod = s.SubmissionPeriod
+                INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org ON org.SubmittingExternalId = s.OrganisationId and org.SubmissionPeriod = s.SubmissionPeriod
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
 				INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
