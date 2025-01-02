@@ -8,7 +8,7 @@ namespace EPR.CommonDataService.Api.Controllers;
 [ApiController]
 [Route("api/producer-details")]
 public class ProducerDetailsController(
-    IOptions<ApiConfig> baseApiConfigOptions, 
+    IOptions<ApiConfig> baseApiConfigOptions,
     IProducerDetailsService producerDetailsService)
     : ApiControllerBase(baseApiConfigOptions)
 
@@ -24,6 +24,18 @@ public class ProducerDetailsController(
             return BadRequest("OrganisationId is invalid");
 
         var result = await producerDetailsService.GetProducerDetails(organisationId);
+
+        return result is null ? NoContent() : Ok(result);
+    }
+
+    [HttpGet("get-updated-producers/", Name = nameof(GetUpdatedProducers))]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> GetUpdatedProducers([FromRoute] DateTime from, DateTime to)
+    {
+        var result = await producerDetailsService.GetUpdatedProducers(from, to);
 
         return result is null ? NoContent() : Ok(result);
     }
