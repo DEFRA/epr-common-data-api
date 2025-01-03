@@ -3,9 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
     DROP PROCEDURE [dbo].[sp_GetCsoMemberDetailsByOrganisationId];
 GO
 
-CREATE PROCEDURE dbo.sp_GetCsoMemberDetailsByOrganisationId
-    @organisationId INT
-AS
+CREATE PROC [dbo].[sp_GetCsoMemberDetailsByOrganisationId] @organisationId [INT],@complianceSchemeId [nvarchar](50) AS
 BEGIN
     SET NOCOUNT ON;
 
@@ -21,7 +19,7 @@ WITH LatestFile AS (
         AND metadata.FileType = 'CompanyDetails'
         AND metadata.IsSubmitted = 1
         AND metadata.SubmissionType = 'Registration'
-        AND metadata.ComplianceSchemeId IS NOT NULL
+        AND metadata.ComplianceSchemeId = @complianceSchemeId
     ORDER BY 
         metadata.Created DESC
 ),
@@ -67,7 +65,6 @@ FROM
     OrganisationDetails od
 LEFT JOIN 
     SubsidiaryDetails sd ON sd.OrganisationId = od.OrganisationId;
-
 
 END;
 
