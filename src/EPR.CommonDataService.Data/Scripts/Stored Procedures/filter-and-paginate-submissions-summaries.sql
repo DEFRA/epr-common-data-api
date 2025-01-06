@@ -1,9 +1,9 @@
 ﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_FilterAndPaginateSubmissionsSummaries]'))
-DROP PROCEDURE [apps].[sp_FilterAndPaginateSubmissionsSummaries];
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_FilterAndPaginateSubmissionsSummaries_TstPom]'))
+DROP PROCEDURE [apps].[sp_FilterAndPaginateSubmissionsSummaries_TstPom];
 GO
 
-CREATE PROC [apps].[sp_FilterAndPaginateSubmissionsSummaries] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
+CREATE PROC [apps].[sp_FilterAndPaginateSubmissionsSummaries_TstPom] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
 BEGIN
 	
 	-- get regulator user nation id
@@ -22,8 +22,8 @@ WHERE
 
 -- Initial Filter CTE
 ;WITH InitialFilter AS (
-    SELECT distinct SubmissionId,	OrganisationId,	ComplianceSchemeId,	OrganisationName,	OrganisationReference,	OrganisationType,	ProducerType,	UserId,	FirstName,	LastName,	Email,	Telephone,	ServiceRole,	FileId,	SubmissionYear,	Combined_SubmissionCode as SubmissionCode,	Combined_ActualSubmissionPeriod as ActualSubmissionPeriod,	SubmissionPeriod,	SubmittedDate,	Decision,	IsResubmissionRequired,	Comments,	IsResubmission,	PreviousRejectionComments,	NationId
-    FROM apps.SubmissionsSummaries
+    SELECT distinct SubmissionId,	OrganisationId,	ComplianceSchemeId,	OrganisationName,	OrganisationReference,	OrganisationType,	ProducerType,	UserId,	FirstName,	LastName,	Email,	Telephone,	ServiceRole,	FileId,	SubmissionYear,	Combined_SubmissionCode as SubmissionCode,	Combined_ActualSubmissionPeriod as ActualSubmissionPeriod,	SubmissionPeriod,	SubmittedDate,	Decision,	IsResubmissionRequired,	Comments,	IsResubmission,	PreviousRejectionComments,	NationId, PomFileName,  PomBlobName
+    FROM apps.SubmissionsSummaries_TstPom
     WHERE
         (
                 (NULLIF(@OrganisationName, '') IS NOT NULL AND OrganisationName LIKE '%' + @OrganisationName + '%')
@@ -121,6 +121,8 @@ WHERE
      [IsResubmission],
      [PreviousRejectionComments],
      [NationId],
+     [PomFileName],
+     [PomBlobName],
      (SELECT COUNT(*) FROM StatusFilteredResults where UpdatedDecision in ('Pending','Rejected','Accepted')) AS TotalItems
  FROM StatusFilteredResults
  WHERE RowNum > (@PageSize * (@PageNumber - 1))

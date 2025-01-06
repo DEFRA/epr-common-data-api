@@ -1,9 +1,9 @@
-﻿IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[SubmissionsSummaries]') AND type in (N'U'))
+﻿IF EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[SubmissionsSummaries_TstPom]') AND type in (N'U'))
 BEGIN
-	DROP TABLE [apps].[SubmissionsSummaries]
+	DROP TABLE [apps].[SubmissionsSummaries_TstPom]
 END;
 
-CREATE TABLE [apps].[SubmissionsSummaries]
+CREATE TABLE [apps].[SubmissionsSummaries_TstPom]
 (
 	[SubmissionId] [nvarchar](4000) NULL,
 	[OrganisationId] [nvarchar](4000) NULL,
@@ -31,7 +31,9 @@ CREATE TABLE [apps].[SubmissionsSummaries]
 	[Comments] [nvarchar](4000) NULL,
 	[IsResubmission] [bit] NULL,
 	[PreviousRejectionComments] [nvarchar](4000) NULL,
-	[NationId] [int] NULL
+	[NationId] [int] NULL,
+	[PomFileName] NVARCHAR(4000),
+	[PomBlobName] NVARCHAR(4000)
 )
 WITH
 (

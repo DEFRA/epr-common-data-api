@@ -1,18 +1,18 @@
 ﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_AggregateAndMergePomData]'))
-DROP PROCEDURE [apps].[sp_AggregateAndMergePomData];
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_AggregateAndMergePomData_TstPom]'))
+DROP PROCEDURE [apps].[sp_AggregateAndMergePomData_TstPom];
 GO
 
-CREATE PROCEDURE apps.sp_AggregateAndMergePomData
+CREATE PROCEDURE apps.sp_AggregateAndMergePomData_TstPom
     AS
 BEGIN
 
 IF OBJECT_ID('tempdb..#SubmissionsSummariesTemp') IS NOT NULL
-DROP TABLE #SubmissionsSummariesTemp;
+DROP TABLE #SubmissionsSummariesTemp_TstPom;
 
 
 -- Create temp table
-CREATE TABLE #SubmissionsSummariesTemp
+CREATE TABLE #SubmissionsSummariesTemp_TstPom
 (
     [SubmissionId] NVARCHAR(4000),
     [OrganisationId] NVARCHAR(4000),
@@ -40,10 +40,12 @@ CREATE TABLE #SubmissionsSummariesTemp
     [Comments] NVARCHAR(4000),
     [IsResubmission] BIT,
     [PreviousRejectionComments] NVARCHAR(4000),
-    [NationId] INT
+    [NationId] INT,
+    [PomFileName] NVARCHAR(4000),
+	[PomBlobName] NVARCHAR(4000)
 	);
 
-INSERT INTO #SubmissionsSummariesTemp
+INSERT INTO #SubmissionsSummariesTemp_TstPom
 SELECT
     [SubmissionId],
     [OrganisationId],
@@ -71,11 +73,13 @@ SELECT
     [Comments],
     [IsResubmission],
     [PreviousRejectionComments],
-    [NationId]
-FROM apps.v_SubmissionsSummaries;
+    [NationId],
+    [PomFileName],
+	[PomBlobName]
+FROM apps.v_SubmissionsSummaries_TstPom;
 
-MERGE INTO apps.SubmissionsSummaries AS Target
-    USING #SubmissionsSummariesTemp AS Source
+MERGE INTO apps.SubmissionsSummaries_TstPom AS Target
+    USING #SubmissionsSummariesTemp_TstPom AS Source
     ON Target.FileId = Source.FileId and Target.SubmissionCode = Source.SubmissionCode
     WHEN MATCHED THEN
         UPDATE SET
@@ -105,7 +109,9 @@ MERGE INTO apps.SubmissionsSummaries AS Target
             Target.Comments = Source.Comments,
             Target.IsResubmission = Source.IsResubmission,
             Target.PreviousRejectionComments = Source.PreviousRejectionComments,
-            Target.NationId = Source.NationId
+            Target.NationId = Source.NationId,
+            Target.PomFileName = Source.PomFileName,
+            Target.PomBlobName = Source.PomBlobName
     WHEN NOT MATCHED BY TARGET THEN
     INSERT (
     SubmissionId,
@@ -134,7 +140,9 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Comments,
     IsResubmission,
     PreviousRejectionComments,
-    NationId
+    NationId,
+    PomFileName,
+    PomBlobName
     )
     VALUES (
     Source.Submissionid,
@@ -163,12 +171,14 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Source.Comments,
     Source.IsResubmission,
     Source.PreviousRejectionComments,
-    Source.NationId
+    Source.NationId,
+    Source.PomFileName,
+    Source.PomBlobName
     )
     WHEN NOT MATCHED BY SOURCE THEN
         DELETE; -- delete from table when no longer in source
 
-DROP TABLE #SubmissionsSummariesTemp;
+DROP TABLE #SubmissionsSummariesTemp_TstPom;
 
 END;
 GO
