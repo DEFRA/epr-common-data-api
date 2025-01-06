@@ -31,7 +31,9 @@ CREATE TABLE [apps].[SubmissionsSummaries]
 	[Comments] [nvarchar](4000) NULL,
 	[IsResubmission] [bit] NULL,
 	[PreviousRejectionComments] [nvarchar](4000) NULL,
-	[NationId] [int] NULL
+	[NationId] [int] NULL,
+	[PomFileName] NVARCHAR(4000),
+	[PomBlobName] NVARCHAR(4000)
 )
 WITH
 (

@@ -203,7 +203,7 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
 
 -- Query the CTE to return latest row per org with isResubmission status
 SELECT
-    SubmissionId,
+    r.SubmissionId,
     r.OrganisationId,
     r.ComplianceSchemeId,
     o.Name As OrganisationName,
@@ -220,12 +220,12 @@ SELECT
     p.Telephone,
     sr.Name as ServiceRole,
     r.FileId,
-	'20'+reverse(substring(reverse(trim(SubmissionPeriod)),1,2)) as 'SubmissionYear',
+	'20'+reverse(substring(reverse(trim(r.SubmissionPeriod)),1,2)) as 'SubmissionYear',
 	SubmissionCode,
 	ActualSubmissionPeriod,
 	Combined_SubmissionCode,
 	Combined_ActualSubmissionPeriod,
-    SubmissionPeriod,
+    r.SubmissionPeriod,
     SubmittedDate,
     CASE
         WHEN Decision IS NULL THEN 'Pending'
@@ -243,7 +243,9 @@ SELECT
     CASE
         WHEN r.ComplianceSchemeId IS NOT NULL THEN cs.NationId
         ELSE o.NationId
-        END AS NationId
+        END AS NationId,
+	meta.[OriginalFileName] AS PomFileName,
+    meta.[BlobName] AS PomBlobName
 FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
          INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
     LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
@@ -254,5 +256,6 @@ FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
     INNER JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
     LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
 	left join File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
+    left join rpd.cosmos_file_metadata meta on meta.FileId = r.FileId
 WHERE o.IsDeleted=0 and poc.IsDeleted=0;
 GO
