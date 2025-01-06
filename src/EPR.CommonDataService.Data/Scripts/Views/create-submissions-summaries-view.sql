@@ -255,7 +255,7 @@ FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
     INNER JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
     INNER JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
     LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
-	left join File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
-    left join rpd.cosmos_file_metadata meta on meta.FileId = r.FileId
+	LEFT JOIN File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
+    LEFT JOIN rpd.cosmos_file_metadata meta on meta.FileId = r.FileId
 WHERE o.IsDeleted=0 and poc.IsDeleted=0;
 GO
