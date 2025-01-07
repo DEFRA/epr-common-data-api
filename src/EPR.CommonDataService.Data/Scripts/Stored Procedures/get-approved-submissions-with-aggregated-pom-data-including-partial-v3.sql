@@ -1,7 +1,8 @@
-SET ANSI_NULLS ON
+-- Dropping stored procedure if it exists
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3];
 GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 CREATE PROC [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX) AS
 BEGIN
 
