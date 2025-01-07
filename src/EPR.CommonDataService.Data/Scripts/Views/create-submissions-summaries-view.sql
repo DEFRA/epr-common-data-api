@@ -4,7 +4,17 @@ DROP VIEW [apps].[v_SubmissionsSummaries];
 GO
 
 CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH 
-	File_id_code_description as 
+	cf_meta_first_record as
+        (
+                select Fileid, blobname, OriginalFileName
+                from
+                (
+                        select Fileid, blobname, OriginalFileName, row_number() over(partition by Fileid order by CONVERT(DATETIME,substring(Created,1,23))) as rn
+                from [rpd].[cosmos_file_metadata]
+                ) a
+                where rn = 1
+    ),
+    File_id_code_description as 
 	(
 		select distinct meta.fileid, p.filename, p.submission_period as SubmissionCode, Text as ActualSubmissionPeriod
 		from rpd.pom p
