@@ -4,17 +4,18 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 
 namespace EPR.CommonDataService.Core.Services;
 
 public interface IProducerDetailsService
 {
     Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId);
-    Task<List<UpdatedProducersResponse>> GetUpdatedProducers(DateTime from, DateTime to);
+    Task<List<UpdatedProducersResponseModel>> GetUpdatedProducers(DateTime from, DateTime to);
 }
 
 public class ProducerDetailsService(
-    SynapseContext synapseContext)
+    SynapseContext synapseContext, ILogger<SubmissionsService> logger)
     : IProducerDetailsService
 {
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
@@ -46,33 +47,27 @@ public class ProducerDetailsService(
         return null;
     }
 
-    public async Task<List<UpdatedProducersResponse>> GetUpdatedProducers(DateTime from, DateTime to)
+    public async Task<List<UpdatedProducersResponseModel>> GetUpdatedProducers(DateTime from, DateTime to)
     {
-        var organisations = new List<UpdatedProducersResponse>();
         try
         {
-            const string Sql = "EXECUTE dbo.sp_Producerdetla_Test";
+            const string Sql = "EXECUTE [dbo].[sp_PRN_Delta_Extract] @From_Date, @To_Date";
 
-            var fromDateParam = new SqlParameter("@FromDate", SqlDbType.DateTime)
-            {
-                Value = from
-            };
+            var parameters = new[]
+                {
+                new SqlParameter("@From_Date", SqlDbType.DateTime2) { Value = from },
+                new SqlParameter("@To_Date", SqlDbType.DateTime2) { Value = to }
+                };
 
-            var toDateParam = new SqlParameter("@ToDate", SqlDbType.DateTime)
-            {
-                Value = to
-            };
+            var dbResponse = await synapseContext.RunSqlAsync<UpdatedProducersResponseModel>(Sql, parameters);
 
-            var dbResponse = await synapseContext.RunSqlAsync<List<UpdatedProducersResponse>>(Sql, fromDateParam, toDateParam);
-            if (dbResponse != null && dbResponse.Count > 0)
-            {
-                organisations = (List<UpdatedProducersResponse>)dbResponse;
-            }
+            return dbResponse?.ToList() ?? new List<UpdatedProducersResponseModel>();
         }
-        catch
+        catch (Exception ex)
         {
-            return null;
+            logger.LogError(ex, "Error occurred in GetUpdatedProducers method. From: {FromDate}, To: {ToDate}", from, to);
+
+            return new List<UpdatedProducersResponseModel>();
         }
-        return organisations;
     }
 }

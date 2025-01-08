@@ -33,7 +33,7 @@ public class ProducerDetailsController(
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetUpdatedProducers([FromRoute] DateTime from, DateTime to)
+    public async Task<IActionResult> GetUpdatedProducers(DateTime from, DateTime to)
     {
         var result = await producerDetailsService.GetUpdatedProducers(from, to);
 
