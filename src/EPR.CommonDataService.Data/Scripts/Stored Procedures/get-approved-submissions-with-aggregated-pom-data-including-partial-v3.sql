@@ -181,21 +181,21 @@ BEGIN
         WHERE mc.SubmissionPeriod IN (SELECT period FROM #PeriodYearTable);
 
         -- Step 1: Identify Partial duplicate materials based on #PartialPeriodYearTableP2 and #PartialPeriodYearTableP3 and combine them
-        SELECT OrganisationId, PackagingMaterial, Weight
+        SELECT OrganisationId, PackagingMaterial, TotalWeight AS Weight
         INTO #PartialDuplicateMaterials
         FROM (
-            SELECT OrganisationId, PackagingMaterial, Weight
+            SELECT OrganisationId, PackagingMaterial, SUM (Weight) AS TotalWeight
             FROM #AggregatedWeightsForDuplicates
             WHERE SubmissionPeriod IN (SELECT period FROM #PartialPeriodYearTableP2)
-            GROUP BY OrganisationId, PackagingMaterial, Weight
+            GROUP BY OrganisationId, PackagingMaterial
             HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP2)
 
             UNION
 
-            SELECT OrganisationId, PackagingMaterial, Weight
+            SELECT OrganisationId, PackagingMaterial, SUM (Weight) AS TotalWeight
             FROM #AggregatedWeightsForDuplicates
             WHERE SubmissionPeriod IN (SELECT period FROM #PartialPeriodYearTableP3)
-            GROUP BY OrganisationId, PackagingMaterial, Weight
+            GROUP BY OrganisationId, PackagingMaterial
             HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP3)
         ) CombinedData;
 
