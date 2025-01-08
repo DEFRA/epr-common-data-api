@@ -46,7 +46,7 @@ CREATE TABLE #SubmissionsSummariesTemp
 	);
 
 INSERT INTO #SubmissionsSummariesTemp
-SELECT
+SELECT DISTINCT
     [SubmissionId],
     [OrganisationId],
     [ComplianceSchemeId],
