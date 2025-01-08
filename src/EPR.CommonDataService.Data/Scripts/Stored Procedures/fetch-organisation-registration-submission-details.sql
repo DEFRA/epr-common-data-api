@@ -6,14 +6,7 @@ WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionD
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails];
 GO
 
-/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails]    Script Date: 06/01/2025 17:59:10 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-ALTER PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails] @SubmissionId [nvarchar](36) AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails] @SubmissionId [nvarchar](36) AS
 BEGIN
 SET NOCOUNT ON;
 
@@ -170,6 +163,7 @@ DECLARE @IsComplianceScheme bit;
 						WHEN 'EN' THEN 1
 						WHEN 'SC' THEN 3
 						WHEN 'WS' THEN 4
+						WHEN 'WA' THEN 4
 						WHEN 'NI' THEN 2
 					 END AS NationId
 					,CASE
@@ -178,6 +172,7 @@ DECLARE @IsComplianceScheme bit;
 						WHEN 'NI' THEN 'GB-NIR'
 						WHEN 'SC' THEN 'GB-SCT'
 						WHEN 'WS' THEN 'GB-WLS'
+						WHEN 'WA' THEN 'GB-WLS'
 					END AS NationCode
 					,s.SubmissionType
 					,s.UserId AS SubmittedUserId
@@ -276,7 +271,7 @@ DECLARE @IsComplianceScheme bit;
             ,submission.SubmittedDateTime
             ,submission.IsLateSubmission
             ,submission.SubmissionPeriod
-            ,ISNULL(ISNULL(submission.SubmissionStatus, decision.SubmissionStatus),'Pending') as SubmissionStatus
+            ,ISNULL(ISNULL(decision.SubmissionStatus, submission.SubmissionStatus),'Pending') as SubmissionStatus
             ,decision.StatusPendingDate
             ,submission.ApplicationReferenceNumber
             ,submission.RegistrationReferenceNumber
@@ -307,7 +302,7 @@ DECLARE @IsComplianceScheme bit;
                 LEFT JOIN LatestRelatedRegulatorDecisionsCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
         ) 
-    ,CompliancePaycalCTE
+		,CompliancePaycalCTE
         AS
         (
             SELECT
@@ -429,6 +424,5 @@ DECLARE @IsComplianceScheme bit;
     BEGIN
         DROP TABLE ##ProdCommentsRegulatorDecisions;
     END
-
 END;
 GO
