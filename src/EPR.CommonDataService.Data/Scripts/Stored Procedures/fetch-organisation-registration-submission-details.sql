@@ -6,365 +6,303 @@ WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionD
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails];
 GO
 
-CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails]
-    @SubmissionId UNIQUEIDENTIFIER
-AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails] @SubmissionId [nvarchar](36) AS
 BEGIN
 SET NOCOUNT ON;
- 
-    DECLARE @OrganisationIDForSubmission INT;
-    DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
-    DECLARE @SubmissionPeriod nvarchar(4000);
-    DECLARE @CSOReferenceNumber nvarchar(4000);
-    DECLARE @ApplicationReferenceNumber nvarchar(4000);
-    DECLARE @IsComplianceScheme bit;
-    -- Fetch global IDs for the submission
+
+DECLARE @OrganisationIDForSubmission INT;
+DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
+DECLARE @SubmissionPeriod nvarchar(100);
+DECLARE @CSOReferenceNumber nvarchar(100);
+DECLARE @ComplianceSchemeId nvarchar(50);
+DECLARE @ApplicationReferenceNumber nvarchar(4000);
+DECLARE @IsComplianceScheme bit;
+
     SELECT
-        @OrganisationIDForSubmission = O.Id -- the int id of the organisation
-
-    ,@OrganisationUUIDForSubmission = O.ExternalId -- the uuid of the organisation
-
-    ,@CSOReferenceNumber = O.ReferenceNumber -- the reference number of the organisation
-
-    ,@IsComplianceScheme = O.IsComplianceScheme -- whether the org is a compliance scheme
-
-    ,@SubmissionPeriod = S.SubmissionPeriod -- the submission period of the submissions
-
-    ,@ApplicationReferenceNumber = S.AppReferenceNumber
-    -- the AppRef number of the submission
+        @OrganisationIDForSubmission = O.Id 
+		,@OrganisationUUIDForSubmission = O.ExternalId 
+		,@CSOReferenceNumber = O.ReferenceNumber 
+		,@IsComplianceScheme = O.IsComplianceScheme
+		,@ComplianceSchemeId = S.ComplianceSchemeId
+		,@SubmissionPeriod = S.SubmissionPeriod
+	    ,@ApplicationReferenceNumber = S.AppReferenceNumber
     FROM
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
+
+	IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
+    BEGIN
+        DROP TABLE ##ProdCommentsRegulatorDecisions;
+    END;
+
+    DECLARE @ProdCommentsSQL NVARCHAR(MAX);
+
+	SET @ProdCommentsSQL = N'
+	SELECT
+        CONVERT( UNIQUEIDENTIFIER, TRIM(decisions.SubmissionId)) AS SubmissionId,
+        decisions.SubmissionEventId AS DecisionEventId,
+        decisions.Created AS DecisionDate,
+        decisions.Comments AS Comment,
+        decisions.UserId,
+        CASE
+            WHEN LTRIM(RTRIM(decisions.Decision)) = ''Accepted'' THEN ''Granted''
+            WHEN LTRIM(RTRIM(decisions.Decision)) = ''Rejected'' THEN ''Refused''
+            WHEN decisions.Decision IS NULL THEN ''Pending''
+            ELSE decisions.Decision
+        END AS SubmissionStatus,
+        CASE 
+            WHEN decisions.Type = ''RegistrationApplicationSubmitted'' THEN 1
+            ELSE 0
+        END AS IsProducerComment,
+	';
+
+	IF EXISTS (
+		SELECT 1
+		FROM sys.columns
+		WHERE [name] = 'RegistrationReferenceNumber' AND [object_id] = OBJECT_ID('rpd.SubmissionEvents')
+	)
+	BEGIN
+		SET @ProdCommentsSQL = CONCAT(@ProdCommentsSQL, N'        decisions.RegistrationReferenceNumber AS RegistrationReferenceNumber,
+		')
+	END
+	ELSE
+	BEGIN
+		SET @ProdCommentsSQL = CONCAT(@ProdCommentsSQL, N'        NULL AS RegistrationReferenceNumber,
+		');
+	END;
+
+	IF EXISTS (
+		SELECT 1
+		FROM sys.columns
+		WHERE [name] = 'DecisionDate' AND [object_id] = OBJECT_ID('rpd.SubmissionEvents')
+	)
+	BEGIN
+		SET @ProdCommentsSQL = CONCAT(@ProdCommentsSQL, N'        decisions.DecisionDate AS StatusPendingDate,
+		');
+	END
+	ELSE
+	BEGIN
+		SET @ProdCommentsSQL = CONCAT(@ProdCommentsSQL, N'    NULL AS StatusPendingDate,
+		');
+	END;
+	SET @ProdCommentsSQL = CONCAT(@ProdCommentsSQL, N'
+            ROW_NUMBER() OVER (
+                PARTITION BY decisions.SubmissionId, decisions.Type
+                ORDER BY decisions.Created DESC
+            ) AS RowNum
+        INTO ##ProdCommentsRegulatorDecisions
+        FROM rpd.SubmissionEvents AS decisions
+        WHERE decisions.Type IN (''RegistrationApplicationSubmitted'', ''RegulatorRegistrationDecision'')
+            AND decisions.SubmissionId = @SubId;
+	');
+
+	EXEC sp_executesql @ProdCommentsSQL, N'@SubId nvarchar(50)', @SubId = @SubmissionId;
+
     WITH
-        -- basic OrganisationInformation
-        SubmissionSummary
+		ProdCommentsRegulatorDecisionsCTE as (
+			SELECT
+				decisions.SubmissionId
+				,decisions.DecisionEventId
+				,decisions.DecisionDate
+				,decisions.Comment
+				,decisions.UserId
+				,decisions.RegistrationReferenceNumber
+				,decisions.SubmissionStatus
+				,decisions.StatusPendingDate
+				,IsProducerComment
+				,RowNum
+			FROM
+				##ProdCommentsRegulatorDecisions as decisions
+			WHERE decisions.SubmissionId = @SubmissionId
+		)
+		,GrantedDecisionsCTE as (
+			SELECT TOP 1 *
+			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
+			WHERE IsProducerComment = 0
+					AND SubmissionStatus = 'Granted'
+			ORDER BY DecisionDate DESC
+		)
+		,UploadedDataCTE as (
+			select *
+			from dbo.fn_GetUploadedOrganisationDetails(@OrganisationUUIDForSubmission, @SubmissionPeriod)
+		)
+		,ProducerPaycalParametersCTE
+			AS
+			(
+				SELECT
+				ExternalId
+				,FileName
+				,ProducerSize
+				,IsOnlineMarketplace
+				,NumberOfSubsidiaries
+				,NumberOfSubsidiariesBeingOnlineMarketPlace
+				FROM
+					[dbo].[v_ProducerPaycalParameters] AS ppp
+				inner join UploadedDataCTE udc on udc.CompanyFileName = ppp.FileName
+			WHERE ppp.ExternalId = @OrganisationUUIDForSubmission
+		)
+        ,SubmissionDetails AS (
+		    select a.* FROM (
+				SELECT
+					o.Name AS OrganisationName
+					,org.UploadOrgName as UploadedOrganisationName
+					,o.ReferenceNumber
+					,org.SubmittingExternalId as OrganisationId
+					,s.AppReferenceNumber AS ApplicationReferenceNumber
+					,granteddecision.RegistrationReferenceNumber
+					,granteddecision.SubmissionStatus
+					,granteddecision.UserId as RegulatorUserId
+					,granteddecision.DecisionDate as RegulatorDecisionDate
+            		,s.SubmissionPeriod
+					,s.SubmissionId
+					,s.OrganisationId AS InternalOrgId
+					,s.Created AS SubmittedDateTime
+					,CASE 
+						UPPER(org.NationCode)
+						WHEN 'EN' THEN 1
+						WHEN 'SC' THEN 3
+						WHEN 'WS' THEN 4
+						WHEN 'WA' THEN 4
+						WHEN 'NI' THEN 2
+					 END AS NationId
+					,CASE
+						UPPER(org.NationCode)
+						WHEN 'EN' THEN 'GB-ENG'
+						WHEN 'NI' THEN 'GB-NIR'
+						WHEN 'SC' THEN 'GB-SCT'
+						WHEN 'WS' THEN 'GB-WLS'
+						WHEN 'WA' THEN 'GB-WLS'
+					END AS NationCode
+					,s.SubmissionType
+					,s.UserId AS SubmittedUserId
+					,CAST(
+						SUBSTRING(
+							s.SubmissionPeriod,
+							PATINDEX('%[0-9][0-9][0-9][0-9]%', s.SubmissionPeriod),
+							4
+						) AS INT
+					) AS RelevantYear
+					,CAST(
+						CASE
+							WHEN se.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+											s.SubmissionPeriod,
+											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
+											4
+										)),4,1) THEN 1
+							ELSE 0
+						END AS BIT
+					) AS IsLateSubmission
+					,CASE UPPER(TRIM(org.organisationsize))
+						WHEN 'S' THEN 'Small'
+						WHEN 'L' THEN 'Large'
+					 END as ProducerSize
+					,o.IsComplianceScheme
+					,CASE 
+						WHEN o.IsComplianceScheme = 1 THEN 'Compliance'
+						WHEN UPPER(TRIM(org.organisationsize)) = 'S' THEN 'Small'
+						WHEN UPPER(TRIM(org.organisationsize)) = 'L' THEN 'Large'
+					 END AS OrganisationType
+					,CONVERT(bit, ISNULL(ppp.IsOnlineMarketplace, 0)) AS IsOnlineMarketplace
+					,ISNULL(ppp.NumberOfSubsidiaries, 0) AS NumberOfSubsidiaries
+					,ISNULL(ppp.NumberOfSubsidiariesBeingOnlineMarketPlace,0) AS NumberOfSubsidiariesBeingOnlineMarketPlace
+					,org.CompanyFileId AS CompanyDetailsFileId
+					,org.CompanyUploadFileName AS CompanyDetailsFileName
+					,org.CompanyBlobName AS CompanyDetailsBlobName
+					,org.BrandFileId AS BrandsFileId
+					,org.BrandUploadFileName AS BrandsFileName
+					,org.BrandBlobName BrandsBlobName
+					,org.PartnerUploadFileName AS PartnershipFileName
+					,org.PartnerFileId AS PartnershipFileId
+					,org.PartnerBlobName AS PartnershipBlobName
+					,ROW_NUMBER() OVER (
+						PARTITION BY s.OrganisationId,
+						s.SubmissionPeriod
+						ORDER BY s.load_ts DESC -- mark latest submission synced from cosmos
+					) AS RowNum
+				FROM
+					[rpd].[Submissions] AS s
+					INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
+					INNER JOIN UploadedDataCTE org ON org.SubmittingExternalId = s.OrganisationId
+					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
+					LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
+	                LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.ExternalId = s.OrganisationId
+				WHERE s.SubmissionId = @SubmissionId
+			) as a
+			WHERE a.RowNum = 1
+		)
+		,LatestRelatedRegulatorDecisionsCTE AS
+		(
+			select a.SubmissionId
+				,a.DecisionEventId
+				,a.DecisionDate as RegulatorDecisionDate
+				,a.UserId as RegulatorUserId
+				,a.Comment as RegulatorComment
+				,a.RegistrationReferenceNumber
+				,a.SubmissionStatus
+				,a.StatusPendingDate
+			from ProdCommentsRegulatorDecisionsCTE as a
+			where a.IsProducerComment = 0 and a.RowNum = 1
+		)
+		,LatestProducerCommentEventsCTE
         AS
         (
             SELECT DISTINCT
-                submission.SubmissionId
-            ,submission.OrganisationId
-            ,submission.OrganisationName
-            ,submission.OrganisationReferenceNumber
-            ,submission.IsComplianceScheme
-            ,submission.ProducerSize
-            ,CASE
-				WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
-				ELSE submission.ProducerSize
-			END AS OrganisationType
-            ,submission.RelevantYear
-            ,submission.IsLateSubmission
-            ,submission.SubmittedDateTime
-            ,submission.SubmissionStatus
-            ,submission.SubmissionPeriod
-            ,submission.StatusPendingDate
-            ,submission.ApplicationReferenceNumber
-            ,RegistrationReferenceNumber
-            ,submission.NationId
-            ,submission.NationCode
-            ,submission.RegulatorUserId
-            ,submission.SubmittedUserId
-            ,submission.RegulatorDecisionDate
-            ,submission.ProducerCommentDate
-            ,submission.ProducerSubmissionEventId
-            ,submission.RegulatorSubmissionEventId
+				comment.SubmissionId
+				,comment.DecisionEventId
+				,Comment AS ProducerComment
+				,DecisionDate AS ProducerCommentDate
             FROM
-                [dbo].[v_OrganisationRegistrationSummaries] AS submission
-            WHERE submission.SubmissionId = @SubmissionId
-        ) -- the paycal parameterisation for the organisation itself
-
-    ,ProducerPaycalParametersCTE
-        AS
-        (
-            SELECT
-                ExternalId
-            ,ProducerSize
-            ,IsOnlineMarketplace
-            ,NumberOfSubsidiaries
-            ,NumberOfSubsidiariesBeingOnlineMarketPlace
-            FROM
-                [dbo].[v_ProducerPaycalParameters] AS ppp
-            WHERE ppp.ExternalId = @OrganisationUUIDForSubmission
+                ProdCommentsRegulatorDecisionsCTE AS comment
+			WHERE comment.IsProducerComment = 1 and comment.RowNum = 1
         )
-    ,SubmissionOrganisationDetails
-        AS
-        (
-            SELECT
-                DISTINCT
-                submission.SubmissionId
-            ,submission.OrganisationId
-            ,submission.OrganisationName
-            ,submission.OrganisationReferenceNumber
-            ,submission.IsComplianceScheme
-            ,submission.ProducerSize
-            ,submission.ProducerSize AS OrganisationType
-            ,submission.RelevantYear
-            ,submission.SubmittedDateTime
-            ,submission.IsLateSubmission
-            ,submission.SubmissionPeriod
-            ,submission.SubmissionStatus
-            ,submission.StatusPendingDate
-            ,submission.ApplicationReferenceNumber
-            ,RegistrationReferenceNumber
-            ,submission.NationId
-            ,submission.NationCode
-            ,submission.RegulatorUserId
-            ,submission.SubmittedUserId
-            ,submission.RegulatorDecisionDate
-            ,submission.ProducerCommentDate
-            ,submission.ProducerSubmissionEventId
-            ,submission.RegulatorSubmissionEventId
-            ,CONVERT(bit, ISNULL(ppp.IsOnlineMarketplace, 0)) AS IsOnlineMarketplace
-            ,ISNULL(ppp.NumberOfSubsidiaries, 0) AS NumberOfSubsidiaries
-            ,ISNULL(
-            ppp.NumberOfSubsidiariesBeingOnlineMarketPlace,
-            0
-        ) AS NumberOfSubsidiariesBeingOnlineMarketPlace
-            FROM
-                SubmissionSummary AS submission
-                LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.ExternalId = submission.OrganisationId
-        )
-    ,LatestProducerCommentEventsCTE
-        AS
-        (
-            SELECT
-                DISTINCT
-                decision.SubmissionId
-            ,Comments AS ProducerComment
-            ,Created AS ProducerCommentDate
-            FROM
-                [apps].[SubmissionEvents] AS decision
-                INNER JOIN SubmissionOrganisationDetails submittedregistrations ON decision.SubmissionEventId = submittedregistrations.ProducerSubmissionEventId
-        )
-    ,LatestRegulatorCommentCTE
-        AS
-        (
-            SELECT
-                DISTINCT
-                decision.SubmissionId
-            ,Comments AS RegulatorComment
-            ,Created AS RegulatorCommentDate
-            FROM
-                [apps].[SubmissionEvents] AS decision
-                INNER JOIN SubmissionOrganisationDetails submittedregistrations ON decision.SubmissionEventId = submittedregistrations.RegulatorSubmissionEventId
-        )
-    ,SubmissionOrganisationCommentsDetailsCTE
+		,SubmissionOrganisationCommentsDetailsCTE
         AS
         (
             SELECT DISTINCT 
-                submission.SubmissionId
+             submission.SubmissionId
             ,submission.OrganisationId
             ,submission.OrganisationName
-            ,submission.OrganisationReferenceNumber
+            ,submission.ReferenceNumber as OrganisationReferenceNumber
             ,submission.IsComplianceScheme
             ,submission.ProducerSize
-            ,CASE
-				WHEN submission.IsComplianceScheme = 1 THEN 'compliance'
-				ELSE submission.ProducerSize
-			END AS OrganisationType
+            ,submission.OrganisationType
             ,submission.RelevantYear
             ,submission.SubmittedDateTime
             ,submission.IsLateSubmission
             ,submission.SubmissionPeriod
-            ,submission.SubmissionStatus
-            ,submission.StatusPendingDate
+            ,ISNULL(ISNULL(decision.SubmissionStatus, submission.SubmissionStatus),'Pending') as SubmissionStatus
+            ,decision.StatusPendingDate
             ,submission.ApplicationReferenceNumber
             ,submission.RegistrationReferenceNumber
             ,submission.NationId
             ,submission.NationCode
-            ,submission.RegulatorUserId
             ,submission.SubmittedUserId
-            ,decision.RegulatorCommentDate AS RegulatorDecisionDate
+            ,ISNULL(submission.RegulatorDecisionDate, decision.RegulatorDecisionDate) as RegulatorDecisionDate
             ,decision.RegulatorComment
             ,producer.ProducerComment
-            ,submission.ProducerCommentDate
+            ,producer.ProducerCommentDate
             ,submission.IsOnlineMarketplace
             ,submission.NumberOfSubsidiaries
             ,submission.NumberOfSubsidiariesBeingOnlineMarketPlace
-            ,submission.ProducerSubmissionEventId
-            ,submission.RegulatorSubmissionEventId
-            FROM
-                SubmissionOrganisationDetails submission
-                LEFT JOIN LatestRegulatorCommentCTE decision ON decision.SubmissionId = submission.SubmissionId
+            ,decision.DecisionEventId as RegulatorSubmissionEventId
+            ,ISNULL(submission.RegulatorUserId, decision.RegulatorUserId) as RegulatorUserId
+            ,producer.DecisionEventId as ProducerSubmissionEventId
+			,CompanyDetailsFileId
+			,CompanyDetailsFileName
+			,CompanyDetailsBlobName
+			,BrandsFileId
+			,BrandsFileName
+			,BrandsBlobName
+			,PartnershipFileName
+			,PartnershipFileId
+			,PartnershipBlobName
+			FROM
+                SubmissionDetails submission
+                LEFT JOIN LatestRelatedRegulatorDecisionsCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
-        ) --select * from SubmissionOrganisationCommentsDetailsCTE ;
-
-    ,AllOrganisationFiles
-        AS
-        (
-            SELECT
-                FileId
-            ,BlobName
-            ,FileType
-            ,FileName
-            ,TargetDirectoryName
-            ,RegistrationSetId
-            ,ExternalId
-            ,SubmissionType
-            ,created
-            FROM
-                (
-            SELECT
-                    FileId
-                ,BlobName
-                ,FileType
-                ,OriginalFileName AS FileName
-                ,TargetDirectoryName
-                ,RegistrationSetId
-                ,OrganisationId AS ExternalId
-                ,SubmissionType
-                ,created
-                ,ROW_NUMBER() OVER (
-                    PARTITION BY organisationid,
-                    filetype
-                    ORDER BY created DESC
-                ) AS row_num
-                FROM
-                    [rpd].[cosmos_file_metadata]
-                WHERE FileType IN ('Partnerships', 'Brands', 'CompanyDetails')
-                    AND IsSubmitted = 1
-                    AND SubmissionType = 'Registration'
-        ) AS a
-            WHERE a.row_num = 1
-                AND ExternalId = @OrganisationUUIDForSubmission
-        )
-    ,AllBrandFiles
-        AS
-        (
-            SELECT
-                FileId AS BrandFileId
-            ,BlobName AS BrandBlobName
-            ,FileType AS BrandFileType
-            ,FileName AS BrandFileName
-            ,ExternalId
-            ,created
-            ,ROW_NUMBER() OVER (
-            PARTITION BY ExternalId
-            ORDER BY created DESC
-        ) AS row_num
-            FROM
-                AllOrganisationFiles aof
-            WHERE aof.FileType = 'Brands'
-        )
-    ,AllPartnershipFiles
-        AS
-        (
-            SELECT
-                FileId AS PartnerFileId
-            ,BlobName AS PartnerBlobName
-            ,FileType AS PartnerFileType
-            ,FileName AS PartnerFileName
-            ,ExternalId
-            ,created
-            ,ROW_NUMBER() OVER (
-            PARTITION BY ExternalId
-            ORDER BY created DESC
-        ) AS row_num
-            FROM
-                AllOrganisationFiles aof
-            WHERE aof.FileType = 'Partnerships'
-        )
-    ,AllCompanyFiles
-        AS
-        (
-            SELECT
-                FileId AS CompanyFileId
-            ,BlobName AS CompanyBlobName
-            ,FileType AS CompanyFileType
-            ,FileName AS CompanyFileName
-            ,ExternalId
-            ,created
-            ,ROW_NUMBER() OVER (
-            PARTITION BY ExternalId
-            ORDER BY created DESC
-        ) AS row_num
-            FROM
-                AllOrganisationFiles aof
-            WHERE aof.FileType = 'CompanyDetails'
-        )
-    ,LatestBrandsFile
-        AS
-        (
-            SELECT
-                BrandFileId
-            ,BrandBlobName
-            ,BrandFileType
-            ,BrandFileName
-            ,ExternalId
-            FROM
-                AllBrandFiles abf
-            WHERE abf.row_num = 1
-        )
-    ,LatestPartnerFile
-        AS
-        (
-            SELECT
-                PartnerFileId
-            ,PartnerBlobName
-            ,PartnerFileType
-            ,PartnerFileName
-            ,ExternalId
-            FROM
-                AllPartnershipFiles apf
-            WHERE apf.row_num = 1
-        )
-    ,LatestCompanyFiles
-        AS
-        (
-            SELECT
-                CompanyFileId
-            ,CompanyBlobName
-            ,CompanyFileType
-            ,CompanyFileName
-            ,ExternalId
-            FROM
-                AllCompanyFiles acf
-            WHERE acf.row_num = 1
-        )
-    ,AllCombinedOrgFiles
-        AS
-        (
-            SELECT
-                lcf.ExternalId AS OrganisationExternalId
-            ,CompanyFileId
-            ,CompanyFileName
-            ,CompanyBlobName
-            ,BrandFileId
-            ,BrandFileName
-            ,BrandBlobName
-            ,PartnerFileId
-            ,PartnerFileName
-            ,PartnerBlobName
-            FROM
-                LatestCompanyFiles lcf
-                LEFT OUTER JOIN LatestBrandsFile lbf
-                LEFT OUTER JOIN LatestPartnerFile lpf ON lpf.ExternalId = lbf.ExternalId ON lcf.ExternalId = lbf.ExternalId
-        ) -- All submission data combined with the individual file data
-
-    ,JoinDataWithPartnershipAndBrandsCTE
-        AS
-        (
-            SELECT
-                joinedSubmissions.*
-            ,CompanyFileId AS CompanyDetailsFileId
-            ,CompanyFileName AS CompanyDetailsFileName
-            ,CompanyBlobName AS CompanyDetailsBlobName
-            ,BrandFileId AS BrandsFileId
-            ,BrandFileName AS BrandsFileName
-            ,BrandBlobName BrandsBlobName
-            ,PartnerFileName AS PartnershipFileName
-            ,PartnerFileId AS PartnershipFileId
-            ,PartnerBlobName AS PartnershipBlobName
-            FROM
-                SubmissionOrganisationCommentsDetailsCTE AS joinedSubmissions
-                LEFT JOIN AllCombinedOrgFiles acof ON acof.OrganisationExternalId = joinedSubmissions.OrganisationId
-        ) --		select * from JoinDataWithPartnershipAndBrandsCTE 
--- For the Submission Period of the Submission
--- Use the new view to obtain information required for the Paycal API
--- The Organisation reference number of the Submission's organisation is used
--- It is controlled by whether the IsComplianceScheme flag is 1
-
-    ,CompliancePaycalCTE
+        ) 
+		,CompliancePaycalCTE
         AS
         (
             SELECT
@@ -385,10 +323,9 @@ SET NOCOUNT ON;
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
-        ) -- Build a rowset of membership organisations and their producer paycal api parameter requirements
--- the properties of the above is built into a JSON string
-
-    ,JsonifiedCompliancePaycalCTE
+				AND csm.ComplianceSchemeId = @ComplianceSchemeId
+        ) 
+	,JsonifiedCompliancePaycalCTE
         AS
         (
             SELECT
@@ -397,16 +334,15 @@ SET NOCOUNT ON;
             ,'{"MemberId": "' + CAST(ReferenceNumber AS NVARCHAR(25)) + '", ' + '"MemberType": "' + ProducerSize + '", ' + '"IsOnlineMarketPlace": ' + CASE
             WHEN IsOnlineMarketPlace = 1 THEN 'true'
             ELSE 'false'
-        END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(MAX)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(
-            NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(MAX)
+        END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(
+            NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)
         ) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
             WHEN IsLateFeeApplicable = 1 THEN 'true'
             ELSE 'false'
         END + ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
             FROM
                 CompliancePaycalCTE
-        ) -- the above CTE is then compressed into a single row using the STRIN_AGG function
-
+        )
     ,AllCompliancePaycalParametersAsJSONCTE
         AS
         (
@@ -418,12 +354,11 @@ SET NOCOUNT ON;
             WHERE CSOReference = @CSOReferenceNumber
             GROUP BY CSOReference
         )
-    -- bring all the above into one 1
-    SELECT DISTINCT
+	SELECT DISTINCT
         r.SubmissionId
         ,r.OrganisationId
         ,r.OrganisationName AS OrganisationName
-        ,r.OrganisationReferenceNumber AS OrganisationReference
+        ,CONVERT(nvarchar(20), r.OrganisationReferenceNumber) AS OrganisationReference
         ,r.ApplicationReferenceNumber
         ,r.RegistrationReferenceNumber
         ,r.SubmissionStatus
@@ -474,18 +409,20 @@ SET NOCOUNT ON;
         ,r.BrandsFileId
         ,r.BrandsFileName
         ,r.BrandsBlobName
-        --,r.OrgFileId
-        --,r.OrgFileName
-        --,r.OrgBlobName
-        --,r.OrgOriginalFileName,
         ,acpp.FinalJson AS CSOJson
     FROM
-        JoinDataWithPartnershipAndBrandsCTE r
+        SubmissionOrganisationCommentsDetailsCTE r
         INNER JOIN [rpd].[Organisations] o
-        LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.ReferenceNumber ON o.ExternalId = r.OrganisationId
+			LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.ReferenceNumber 
+			ON o.ExternalId = r.OrganisationId
         INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
         INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
-        INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId
-END
+        INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
+
+	IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
+    BEGIN
+        DROP TABLE ##ProdCommentsRegulatorDecisions;
+    END
+END;
 GO
