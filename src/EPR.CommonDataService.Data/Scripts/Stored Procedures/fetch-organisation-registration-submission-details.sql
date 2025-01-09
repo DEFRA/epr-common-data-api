@@ -159,21 +159,33 @@ DECLARE @IsComplianceScheme bit;
 					,s.OrganisationId AS InternalOrgId
 					,s.Created AS SubmittedDateTime
 					,CASE 
-						UPPER(org.NationCode)
-						WHEN 'EN' THEN 1
-						WHEN 'SC' THEN 3
-						WHEN 'WS' THEN 4
-						WHEN 'WA' THEN 4
-						WHEN 'NI' THEN 2
+						WHEN cs.NationId IS NOT NULL THEN cs.NationId
+						ELSE
+						CASE UPPER(org.NationCode)
+							WHEN 'EN' THEN 1
+							WHEN 'NI' THEN 2
+							WHEN 'SC' THEN 3
+							WHEN 'WS' THEN 4
+							WHEN 'WA' THEN 4
+						 END
 					 END AS NationId
 					,CASE
-						UPPER(org.NationCode)
-						WHEN 'EN' THEN 'GB-ENG'
-						WHEN 'NI' THEN 'GB-NIR'
-						WHEN 'SC' THEN 'GB-SCT'
-						WHEN 'WS' THEN 'GB-WLS'
-						WHEN 'WA' THEN 'GB-WLS'
-					END AS NationCode
+						WHEN cs.NationId IS NOT NULL THEN
+							CASE cs.NationId
+								WHEN 1 THEN 'GB-ENG'
+								WHEN 2 THEN 'GB-NIR'
+								WHEN 3 THEN 'GB-SCT'
+								WHEN 4 THEN 'GB-WLS'
+							END
+						ELSE
+						CASE UPPER(org.NationCode)
+							WHEN 'EN' THEN 'GB-ENG'
+							WHEN 'NI' THEN 'GB-NIR'
+							WHEN 'SC' THEN 'GB-SCT'
+							WHEN 'WS' THEN 'GB-WLS'
+							WHEN 'WA' THEN 'GB-WLS'
+						END
+					 END AS NationCode
 					,s.SubmissionType
 					,s.UserId AS SubmittedUserId
 					,CAST(

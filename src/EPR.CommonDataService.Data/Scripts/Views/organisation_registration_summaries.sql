@@ -9,7 +9,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-ALTER VIEW [dbo].[v_OrganisationRegistrationSummaries] AS WITH
+CREATE VIEW [dbo].[v_OrganisationRegistrationSummaries] AS 
+WITH
 	ProdCommentsRegulatorDecisionsCTE as (
 		SELECT
 			decisions.SubmissionId
@@ -70,19 +71,33 @@ ALTER VIEW [dbo].[v_OrganisationRegistrationSummaries] AS WITH
                 ,s.OrganisationId AS InternalOrgId
                 ,s.Created AS SubmittedDateTime
                 ,CASE 
-					UPPER(org.NationCode)
-					WHEN 'EN' THEN 1
-					WHEN 'SC' THEN 3
-					WHEN 'WS' THEN 4
-					WHEN 'NI' THEN 2
+					WHEN cs.NationId IS NOT NULL THEN cs.NationId
+					ELSE
+					CASE UPPER(org.NationCode)
+						WHEN 'EN' THEN 1
+						WHEN 'NI' THEN 2
+						WHEN 'SC' THEN 3
+						WHEN 'WS' THEN 4
+						WHEN 'WA' THEN 4
+					 END
 				 END AS NationId
                 ,CASE
-                    UPPER(org.NationCode)
-                    WHEN 'EN' THEN 'GB-ENG'
-                    WHEN 'NI' THEN 'GB-NIR'
-                    WHEN 'SC' THEN 'GB-SCT'
-                    WHEN 'WS' THEN 'GB-WLS'
-                END AS NationCode
+					WHEN cs.NationId IS NOT NULL THEN
+						CASE cs.NationId
+							WHEN 1 THEN 'GB-ENG'
+							WHEN 2 THEN 'GB-NIR'
+							WHEN 3 THEN 'GB-SCT'
+							WHEN 4 THEN 'GB-WLS'
+						END
+					ELSE
+					CASE UPPER(org.NationCode)
+						WHEN 'EN' THEN 'GB-ENG'
+						WHEN 'NI' THEN 'GB-NIR'
+						WHEN 'SC' THEN 'GB-SCT'
+						WHEN 'WS' THEN 'GB-WLS'
+						WHEN 'WA' THEN 'GB-WLS'
+					END
+				 END AS NationCode
                 ,s.SubmissionType
                 ,s.UserId AS SubmittedUserId
                 ,CAST(
@@ -106,7 +121,7 @@ ALTER VIEW [dbo].[v_OrganisationRegistrationSummaries] AS WITH
 					WHEN 'S' THEN 'Small'
 					WHEN 'L' THEN 'Large'
 				END as ProducerSize
-				,o.IsComplianceScheme
+				,CASE WHEN s.ComplianceSchemeId is not null THEN 1 ELSE 0 END as IsComplianceScheme
                 ,ROW_NUMBER() OVER (
                     PARTITION BY s.OrganisationId,
                     s.SubmissionPeriod
@@ -119,6 +134,7 @@ ALTER VIEW [dbo].[v_OrganisationRegistrationSummaries] AS WITH
 					and org.SubmissionPeriod = s.SubmissionPeriod
 					and org.SubmissionId = s.SubmissionId
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
+				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 				LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
 				INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
             WHERE s.AppReferenceNumber IS NOT NULL
