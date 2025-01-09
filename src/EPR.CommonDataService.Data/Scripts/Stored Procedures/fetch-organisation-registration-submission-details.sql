@@ -237,6 +237,7 @@ DECLARE @IsComplianceScheme bit;
 					INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
 					INNER JOIN UploadedDataCTE org ON org.SubmittingExternalId = s.OrganisationId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
+					LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 					LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
 	                LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.ExternalId = s.OrganisationId
 				WHERE s.SubmissionId = @SubmissionId
@@ -437,4 +438,3 @@ DECLARE @IsComplianceScheme bit;
         DROP TABLE ##ProdCommentsRegulatorDecisions;
     END
 END;
-GO
