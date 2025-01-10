@@ -69,7 +69,7 @@ WITH
 				,s.SubmissionPeriod
                 ,s.SubmissionId
                 ,s.OrganisationId AS InternalOrgId
-                ,s.Created AS SubmittedDateTime
+                ,se.DecisionDate AS SubmittedDateTime
                 ,CASE 
 					WHEN cs.NationId IS NOT NULL THEN cs.NationId
 					ELSE

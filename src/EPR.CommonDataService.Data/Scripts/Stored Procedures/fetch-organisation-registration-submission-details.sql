@@ -31,10 +31,17 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
 
-	IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
-    BEGIN
-        DROP TABLE ##ProdCommentsRegulatorDecisions;
-    END;
+	--BEGIN TRY
+	--	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
+	--	BEGIN
+	--		DROP TABLE #ProdCommentsRegulatorDecisions;
+	--	END;
+	--END TRY
+	--BEGIN CATCH
+	--	-- Log or handle the error
+	--	-- PRINT 'An error occurred while attempting to drop the table ##ProdCommentsRegulatorDecisions.';
+	--	-- PRINT ERROR_MESSAGE(); -- Print the error message for debugging purposes
+	--END CATCH;
 
     DECLARE @ProdCommentsSQL NVARCHAR(MAX);
 
@@ -91,7 +98,7 @@ DECLARE @IsComplianceScheme bit;
                 PARTITION BY decisions.SubmissionId, decisions.Type
                 ORDER BY decisions.Created DESC
             ) AS RowNum
-        INTO ##ProdCommentsRegulatorDecisions
+        INTO #ProdCommentsRegulatorDecisions
         FROM rpd.SubmissionEvents AS decisions
         WHERE decisions.Type IN (''RegistrationApplicationSubmitted'', ''RegulatorRegistrationDecision'')
             AND decisions.SubmissionId = @SubId;
@@ -113,7 +120,7 @@ DECLARE @IsComplianceScheme bit;
 				,IsProducerComment
 				,RowNum
 			FROM
-				##ProdCommentsRegulatorDecisions as decisions
+				#ProdCommentsRegulatorDecisions as decisions
 			WHERE decisions.SubmissionId = @SubmissionId
 		)
 		,GrantedDecisionsCTE as (
@@ -157,7 +164,7 @@ DECLARE @IsComplianceScheme bit;
             		,s.SubmissionPeriod
 					,s.SubmissionId
 					,s.OrganisationId AS InternalOrgId
-					,s.Created AS SubmittedDateTime
+					,se.DecisionDate AS SubmittedDateTime
 					,CASE 
 						WHEN cs.NationId IS NOT NULL THEN cs.NationId
 						ELSE
@@ -433,8 +440,9 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
 
-	IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
-    BEGIN
-        DROP TABLE ##ProdCommentsRegulatorDecisions;
-    END
+	--IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
+    --BEGIN
+	--DROP TABLE ##ProdCommentsRegulatorDecisions;
+	--END
 END;
+GO
