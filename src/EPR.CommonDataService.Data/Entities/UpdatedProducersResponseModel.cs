@@ -9,7 +9,7 @@ public class UpdatedProducersResponseModel
     public string TradingName { get; set; }
     public string OrganisationType { get; set; }
     public string CompaniesHouseNumber { get; set; }
-    public string organisation_id { get; set; }
+    public string organisationId { get; set; }
     public string AddressLine1 { get; set; }
     public string AddressLine2 { get; set; }
     public string Town { get; set; }

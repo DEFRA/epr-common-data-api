@@ -15,7 +15,7 @@ public interface IProducerDetailsService
 }
 
 public class ProducerDetailsService(
-    SynapseContext synapseContext, ILogger<SubmissionsService> logger)
+    SynapseContext synapseContext, ILogger<ProducerDetailsService> logger)
     : IProducerDetailsService
 {
     public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)

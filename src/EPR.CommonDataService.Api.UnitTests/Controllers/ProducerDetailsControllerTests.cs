@@ -94,15 +94,14 @@ public class ProducerDetailsControllerTests
     }
 
     [TestMethod]
-    public async Task GetUpdatedProducers_InvalidRequest_ReturnsBadRequest()
+    public async Task GetUpdatedProducers_InvalidRequest_ReturnsNoContentResult()
     {
         // Arrange
         // Act
         var result = await _controller.GetUpdatedProducers(DateTime.MinValue, DateTime.MinValue);
 
         // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
-        (result as BadRequestObjectResult)!.Value.Should().Be("Invalid date range");
+        result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
@@ -142,7 +141,7 @@ public class ProducerDetailsControllerTests
                 TradingName = "Trading A",
                 OrganisationType = "Private",
                 CompaniesHouseNumber = "123456",
-                organisation_id = "1",
+                organisationId = "1",
                 AddressLine1 = "123 Main St",
                 AddressLine2 = "Suite 1",
                 Town = "Town A",

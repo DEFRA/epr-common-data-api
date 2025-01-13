@@ -2,6 +2,7 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
@@ -11,12 +12,14 @@ public class ProducerDetailsServiceTests
 {
     private Mock<SynapseContext> _synapseContextMock = null!;
     private ProducerDetailsService _service = null!;
+    private Mock<ILogger<ProducerDetailsService>> _mockLogger = null;
 
     [TestInitialize]
     public void Setup()
     {
         _synapseContextMock = new Mock<SynapseContext>();
-        _service = new ProducerDetailsService(_synapseContextMock.Object);
+        _mockLogger = new Mock<ILogger<ProducerDetailsService>>();
+        _service = new ProducerDetailsService(_synapseContextMock.Object, _mockLogger.Object);
     }
 
     [TestMethod]
@@ -173,7 +176,7 @@ public class ProducerDetailsServiceTests
                 TradingName = "Trading A",
                 OrganisationType = "Private",
                 CompaniesHouseNumber = "123456",
-                organisation_id = "1",
+                organisationId = "1",
                 AddressLine1 = "123 Main St",
                 AddressLine2 = "Suite 1",
                 Town = "Town A",
@@ -189,7 +192,7 @@ public class ProducerDetailsServiceTests
                 TradingName = "Trading B",
                 OrganisationType = "Public",
                 CompaniesHouseNumber = "654321",
-                organisation_id = "2",
+                organisationId = "2",
                 AddressLine1 = "456 High St",
                 AddressLine2 = "Floor 2",
                 Town = "Town B",
@@ -217,7 +220,7 @@ public class ProducerDetailsServiceTests
         firstProducer.TradingName.Should().Be("Trading A");
         firstProducer.OrganisationType.Should().Be("Private");
         firstProducer.CompaniesHouseNumber.Should().Be("123456");
-        firstProducer.organisation_id.Should().Be("1");
+        firstProducer.organisationId.Should().Be("1");
         firstProducer.AddressLine1.Should().Be("123 Main St");
         firstProducer.AddressLine2.Should().Be("Suite 1");
         firstProducer.Town.Should().Be("Town A");
@@ -232,7 +235,7 @@ public class ProducerDetailsServiceTests
         secondProducer.TradingName.Should().Be("Trading B");
         secondProducer.OrganisationType.Should().Be("Public");
         secondProducer.CompaniesHouseNumber.Should().Be("654321");
-        secondProducer.organisation_id.Should().Be("2");
+        secondProducer.organisationId.Should().Be("2");
         secondProducer.AddressLine1.Should().Be("456 High St");
         secondProducer.AddressLine2.Should().Be("Floor 2");
         secondProducer.Town.Should().Be("Town B");
