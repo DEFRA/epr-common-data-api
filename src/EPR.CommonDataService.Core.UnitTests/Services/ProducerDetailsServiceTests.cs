@@ -176,7 +176,7 @@ public class ProducerDetailsServiceTests
                 TradingName = "Trading A",
                 OrganisationType = "Private",
                 CompaniesHouseNumber = "123456",
-                organisationId = "1",
+                OrganisationId = "1",
                 AddressLine1 = "123 Main St",
                 AddressLine2 = "Suite 1",
                 Town = "Town A",
@@ -184,7 +184,7 @@ public class ProducerDetailsServiceTests
                 Country = "Country A",
                 Postcode = "A1 1AA",
                 pEPRID = "PEPRID1",
-                status = "CS Deleted"
+                Status = "CS Deleted"
             },
             new UpdatedProducersResponseModel
             {
@@ -192,7 +192,7 @@ public class ProducerDetailsServiceTests
                 TradingName = "Trading B",
                 OrganisationType = "Public",
                 CompaniesHouseNumber = "654321",
-                organisationId = "2",
+                OrganisationId = "2",
                 AddressLine1 = "456 High St",
                 AddressLine2 = "Floor 2",
                 Town = "Town B",
@@ -200,7 +200,7 @@ public class ProducerDetailsServiceTests
                 Country = "Country B",
                 Postcode = "B2 2BB",
                 pEPRID = "PEPRID2",
-                status = "DR Moved to CS"
+                Status = "DR Moved to CS"
             }
         };
 
@@ -220,7 +220,7 @@ public class ProducerDetailsServiceTests
         firstProducer.TradingName.Should().Be("Trading A");
         firstProducer.OrganisationType.Should().Be("Private");
         firstProducer.CompaniesHouseNumber.Should().Be("123456");
-        firstProducer.organisationId.Should().Be("1");
+        firstProducer.OrganisationId.Should().Be("1");
         firstProducer.AddressLine1.Should().Be("123 Main St");
         firstProducer.AddressLine2.Should().Be("Suite 1");
         firstProducer.Town.Should().Be("Town A");
@@ -228,14 +228,14 @@ public class ProducerDetailsServiceTests
         firstProducer.Country.Should().Be("Country A");
         firstProducer.Postcode.Should().Be("A1 1AA");
         firstProducer.pEPRID.Should().Be("PEPRID1");
-        firstProducer.status.Should().Be("CS Deleted");
+        firstProducer.Status.Should().Be("CS Deleted");
 
         var secondProducer = result[1];
         secondProducer.OrganisationName.Should().Be("Organisation B");
         secondProducer.TradingName.Should().Be("Trading B");
         secondProducer.OrganisationType.Should().Be("Public");
         secondProducer.CompaniesHouseNumber.Should().Be("654321");
-        secondProducer.organisationId.Should().Be("2");
+        secondProducer.OrganisationId.Should().Be("2");
         secondProducer.AddressLine1.Should().Be("456 High St");
         secondProducer.AddressLine2.Should().Be("Floor 2");
         secondProducer.Town.Should().Be("Town B");
@@ -243,7 +243,7 @@ public class ProducerDetailsServiceTests
         secondProducer.Country.Should().Be("Country B");
         secondProducer.Postcode.Should().Be("B2 2BB");
         secondProducer.pEPRID.Should().Be("PEPRID2");
-        secondProducer.status.Should().Be("DR Moved to CS");
+        secondProducer.Status.Should().Be("DR Moved to CS");
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),

@@ -141,7 +141,7 @@ public class ProducerDetailsControllerTests
                 TradingName = "Trading A",
                 OrganisationType = "Private",
                 CompaniesHouseNumber = "123456",
-                organisationId = "1",
+                OrganisationId = "1",
                 AddressLine1 = "123 Main St",
                 AddressLine2 = "Suite 1",
                 Town = "Town A",
@@ -149,7 +149,7 @@ public class ProducerDetailsControllerTests
                 Country = "Country A",
                 Postcode = "A1 1AA",
                 pEPRID = "PEPRID1",
-                status = "Active"
+                Status = "Active"
             }
         };
 
