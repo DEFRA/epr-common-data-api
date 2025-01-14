@@ -1,6 +1,7 @@
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
+using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -90,5 +91,91 @@ public class ProducerDetailsControllerTests
         // Assert
         result.Should().BeOfType<OkObjectResult>();
         (result as OkObjectResult)!.Value.Should().Be(expectedResult);
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducers_InvalidRequest_ReturnsNoContentResult()
+    {
+        // Arrange
+        // Act
+        var result = await _controller.GetUpdatedProducers(DateTime.MinValue, DateTime.MinValue);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducers_ValidRequest_NoResult_ReturnsNoRecords()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        _producerDetailsServiceMock
+            .Setup(service => service.GetUpdatedProducers(fromDate, toDate))
+            .ReturnsAsync(new List<UpdatedProducersResponseModel>());
+
+        // Act
+        var result = await _controller.GetUpdatedProducers(fromDate, toDate);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        var okResult = result as OkObjectResult;
+        okResult!.Value.Should().BeOfType<List<UpdatedProducersResponseModel>>();
+        var resultList = okResult.Value as List<UpdatedProducersResponseModel>;
+        resultList!.Count.Should().Be(0);
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducers_ValidRequest_WithResult_ReturnsOk()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        var expectedResult = new List<UpdatedProducersResponseModel>
+        {
+            new UpdatedProducersResponseModel
+            {
+                OrganisationName = "Organisation A",
+                TradingName = "Trading A",
+                OrganisationType = "Private",
+                CompaniesHouseNumber = "123456",
+                OrganisationId = "1",
+                AddressLine1 = "123 Main St",
+                AddressLine2 = "Suite 1",
+                Town = "Town A",
+                County = "County A",
+                Country = "Country A",
+                Postcode = "A1 1AA",
+                pEPRID = "PEPRID1",
+                Status = "Active"
+            }
+        };
+
+        _producerDetailsServiceMock
+            .Setup(service => service.GetUpdatedProducers(fromDate, toDate))
+            .ReturnsAsync(expectedResult);
+
+        // Act
+        var result = await _controller.GetUpdatedProducers(fromDate, toDate);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        (result as OkObjectResult)!.Value.Should().Be(expectedResult);
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducers_InvalidDateRange_ReturnsBadRequest()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2024, 12, 31);
+
+        // Act
+        var result = await _controller.GetUpdatedProducers(fromDate, toDate);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
     }
 }
