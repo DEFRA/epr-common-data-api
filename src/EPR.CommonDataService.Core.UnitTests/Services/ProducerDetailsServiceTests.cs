@@ -12,7 +12,7 @@ public class ProducerDetailsServiceTests
 {
     private Mock<SynapseContext> _synapseContextMock = null!;
     private ProducerDetailsService _service = null!;
-    private Mock<ILogger<ProducerDetailsService>> _mockLogger = null;
+    private Mock<ILogger<ProducerDetailsService>> _mockLogger = null!;
 
     [TestInitialize]
     public void Setup()
