@@ -313,4 +313,46 @@ public class ProducerDetailsServiceTests
         // Assert
         result.Should().BeEmpty();
     }
+
+    [TestMethod]
+    public async Task GetUpdatedProducers_InvalidDateRange_ReturnsEmptyList()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 10);
+        var toDate = new DateTime(2025, 1, 5);
+
+        var emptyData = new List<UpdatedProducersResponseModel>();
+
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(emptyData);
+
+        // Act
+        var result = await _service.GetUpdatedProducers(fromDate, toDate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(0);
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducers_NoUpdatesInDateRange_ReturnsEmptyList()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        var emptyData = new List<UpdatedProducersResponseModel>();
+
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(emptyData);
+
+        // Act
+        var result = await _service.GetUpdatedProducers(fromDate, toDate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(0);
+    }
 }
