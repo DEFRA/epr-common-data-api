@@ -155,7 +155,11 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<FeeCalculationDetailsModel>(entity => {
             entity.HasNoKey();
         });
-        
+
+        modelBuilder.Entity<UpdatedProducersResponseModel>(entity => {
+            entity.HasNoKey();
+        });
+
         modelBuilder.Entity<SubmissionEvent>(entity =>
         {
             if (Database.ProviderName == InMemoryProvider)
