@@ -31,10 +31,17 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
 
-	IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
-    BEGIN
-        DROP TABLE ##ProdCommentsRegulatorDecisions;
-    END;
+	--BEGIN TRY
+	--	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
+	--	BEGIN
+	--		DROP TABLE #ProdCommentsRegulatorDecisions;
+	--	END;
+	--END TRY
+	--BEGIN CATCH
+	--	-- Log or handle the error
+	--	-- PRINT 'An error occurred while attempting to drop the table ##ProdCommentsRegulatorDecisions.';
+	--	-- PRINT ERROR_MESSAGE(); -- Print the error message for debugging purposes
+	--END CATCH;
 
     DECLARE @ProdCommentsSQL NVARCHAR(MAX);
 
@@ -91,7 +98,7 @@ DECLARE @IsComplianceScheme bit;
                 PARTITION BY decisions.SubmissionId, decisions.Type
                 ORDER BY decisions.Created DESC
             ) AS RowNum
-        INTO ##ProdCommentsRegulatorDecisions
+        INTO #ProdCommentsRegulatorDecisions
         FROM rpd.SubmissionEvents AS decisions
         WHERE decisions.Type IN (''RegistrationApplicationSubmitted'', ''RegulatorRegistrationDecision'')
             AND decisions.SubmissionId = @SubId;
@@ -113,7 +120,7 @@ DECLARE @IsComplianceScheme bit;
 				,IsProducerComment
 				,RowNum
 			FROM
-				##ProdCommentsRegulatorDecisions as decisions
+				#ProdCommentsRegulatorDecisions as decisions
 			WHERE decisions.SubmissionId = @SubmissionId
 		)
 		,GrantedDecisionsCTE as (
@@ -157,23 +164,35 @@ DECLARE @IsComplianceScheme bit;
             		,s.SubmissionPeriod
 					,s.SubmissionId
 					,s.OrganisationId AS InternalOrgId
-					,s.Created AS SubmittedDateTime
+					,se.DecisionDate AS SubmittedDateTime
 					,CASE 
-						UPPER(org.NationCode)
-						WHEN 'EN' THEN 1
-						WHEN 'SC' THEN 3
-						WHEN 'WS' THEN 4
-						WHEN 'WA' THEN 4
-						WHEN 'NI' THEN 2
+						WHEN cs.NationId IS NOT NULL THEN cs.NationId
+						ELSE
+						CASE UPPER(org.NationCode)
+							WHEN 'EN' THEN 1
+							WHEN 'NI' THEN 2
+							WHEN 'SC' THEN 3
+							WHEN 'WS' THEN 4
+							WHEN 'WA' THEN 4
+						 END
 					 END AS NationId
 					,CASE
-						UPPER(org.NationCode)
-						WHEN 'EN' THEN 'GB-ENG'
-						WHEN 'NI' THEN 'GB-NIR'
-						WHEN 'SC' THEN 'GB-SCT'
-						WHEN 'WS' THEN 'GB-WLS'
-						WHEN 'WA' THEN 'GB-WLS'
-					END AS NationCode
+						WHEN cs.NationId IS NOT NULL THEN
+							CASE cs.NationId
+								WHEN 1 THEN 'GB-ENG'
+								WHEN 2 THEN 'GB-NIR'
+								WHEN 3 THEN 'GB-SCT'
+								WHEN 4 THEN 'GB-WLS'
+							END
+						ELSE
+						CASE UPPER(org.NationCode)
+							WHEN 'EN' THEN 'GB-ENG'
+							WHEN 'NI' THEN 'GB-NIR'
+							WHEN 'SC' THEN 'GB-SCT'
+							WHEN 'WS' THEN 'GB-WLS'
+							WHEN 'WA' THEN 'GB-WLS'
+						END
+					 END AS NationCode
 					,s.SubmissionType
 					,s.UserId AS SubmittedUserId
 					,CAST(
@@ -225,6 +244,7 @@ DECLARE @IsComplianceScheme bit;
 					INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
 					INNER JOIN UploadedDataCTE org ON org.SubmittingExternalId = s.OrganisationId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
+					LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 					LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
 	                LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.ExternalId = s.OrganisationId
 				WHERE s.SubmissionId = @SubmissionId
@@ -420,9 +440,9 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
 
-	IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
-    BEGIN
-        DROP TABLE ##ProdCommentsRegulatorDecisions;
-    END
+	--IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
+    --BEGIN
+	--DROP TABLE ##ProdCommentsRegulatorDecisions;
+	--END
 END;
 GO
