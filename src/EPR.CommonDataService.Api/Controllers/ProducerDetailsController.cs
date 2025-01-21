@@ -37,18 +37,6 @@ public class ProducerDetailsController(
     {
         var result = await producerDetailsService.GetUpdatedProducers(from, to);
 
-        return result is null ? NoContent() : Ok(result);
-    }
-
-    [HttpGet("get-updated-producers/", Name = nameof(GetUpdatedProducers))]
-    [Produces("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetUpdatedProducers(DateTime from, DateTime to)
-    {
-        var result = await producerDetailsService.GetUpdatedProducers(from, to);
-
         if (result == null || !result.Any())
         {
             return NoContent();
