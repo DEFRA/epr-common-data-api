@@ -2,6 +2,8 @@ using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -119,11 +121,7 @@ public class ProducerDetailsControllerTests
         var result = await _controller.GetUpdatedProducers(fromDate, toDate);
 
         // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        var okResult = result as OkObjectResult;
-        okResult!.Value.Should().BeOfType<List<UpdatedProducersResponseModel>>();
-        var resultList = okResult.Value as List<UpdatedProducersResponseModel>;
-        resultList!.Count.Should().Be(0);
+        result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
