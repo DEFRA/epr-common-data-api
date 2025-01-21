@@ -37,7 +37,7 @@ public class ProducerDetailsController(
     {
         var result = await producerDetailsService.GetUpdatedProducers(from, to);
 
-        if (result == null || !result.Any())
+        if (result == null || result.Count == 0)
         {
             return NoContent();
         }
