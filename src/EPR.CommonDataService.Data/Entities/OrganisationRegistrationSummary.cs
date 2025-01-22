@@ -23,6 +23,7 @@ namespace EPR.CommonDataService.Data.Entities
         public string ProducerCommentDate { get; set; }
         public Guid? RegulatorUserId { get; set; }
         public int NationId { get; set; }
+        public bool IsResubmission { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
