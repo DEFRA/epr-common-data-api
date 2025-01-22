@@ -22,6 +22,11 @@ public class ProducerDetailsController(
     {
         var result = await producerDetailsService.GetUpdatedProducers(from, to);
 
-        return result is null ? NoContent() : Ok(result);
+        if (result == null || result.Count == 0)
+        {
+            return NoContent();
+        }
+
+        return Ok(result);
     }
 }

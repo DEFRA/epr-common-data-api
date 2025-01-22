@@ -47,11 +47,7 @@ public class ProducerDetailsControllerTests
         var result = await _controller.GetUpdatedProducers(fromDate, toDate);
 
         // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        var okResult = result as OkObjectResult;
-        okResult!.Value.Should().BeOfType<List<UpdatedProducersResponseModel>>();
-        var resultList = okResult.Value as List<UpdatedProducersResponseModel>;
-        resultList!.Count.Should().Be(0);
+        result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]

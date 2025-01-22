@@ -8,4 +8,6 @@ public class PomSubmissionSummary: SubmissionSummaryModel
     public int SubmissionYear { get; set; }
     public string SubmissionCode { get; set; }
     public string ActualSubmissionPeriod { get; set; }
+    public string PomFileName { get; set; }
+    public string PomBlobName { get; set; }
 }
