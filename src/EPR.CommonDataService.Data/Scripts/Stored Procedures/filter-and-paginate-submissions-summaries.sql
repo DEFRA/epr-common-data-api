@@ -22,7 +22,7 @@ WHERE
 
 -- Initial Filter CTE
 ;WITH InitialFilter AS (
-    SELECT distinct SubmissionId,	OrganisationId,	ComplianceSchemeId,	OrganisationName,	OrganisationReference,	OrganisationType,	ProducerType,	UserId,	FirstName,	LastName,	Email,	Telephone,	ServiceRole,	FileId,	SubmissionYear,	Combined_SubmissionCode as SubmissionCode,	Combined_ActualSubmissionPeriod as ActualSubmissionPeriod,	SubmissionPeriod,	SubmittedDate,	Decision,	IsResubmissionRequired,	Comments,	IsResubmission,	PreviousRejectionComments,	NationId
+    SELECT distinct SubmissionId,	OrganisationId,	ComplianceSchemeId,	OrganisationName,	OrganisationReference,	OrganisationType,	ProducerType,	UserId,	FirstName,	LastName,	Email,	Telephone,	ServiceRole,	FileId,	SubmissionYear,	Combined_SubmissionCode as SubmissionCode,	Combined_ActualSubmissionPeriod as ActualSubmissionPeriod,	SubmissionPeriod,	SubmittedDate,	Decision,	IsResubmissionRequired,	Comments,	IsResubmission,	PreviousRejectionComments,	NationId, PomFileName,  PomBlobName
     FROM apps.SubmissionsSummaries
     WHERE
         (
@@ -121,6 +121,8 @@ WHERE
      [IsResubmission],
      [PreviousRejectionComments],
      [NationId],
+     [PomFileName],
+     [PomBlobName],
      (SELECT COUNT(*) FROM StatusFilteredResults where UpdatedDecision in ('Pending','Rejected','Accepted')) AS TotalItems
  FROM StatusFilteredResults
  WHERE RowNum > (@PageSize * (@PageNumber - 1))
