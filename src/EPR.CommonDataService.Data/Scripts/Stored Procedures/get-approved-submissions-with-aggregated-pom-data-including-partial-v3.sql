@@ -1,7 +1,8 @@
-SET ANSI_NULLS ON
+-- Dropping stored procedure if it exists
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3];
 GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 CREATE PROC [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX) AS
 BEGIN
 
@@ -73,10 +74,10 @@ BEGIN
         INSERT INTO #PartialPeriodYearTableP3 (Period) VALUES ('2024-P4');
         
         --get approved submissions from the start of the year
-        SELECT SubmissionId, Created
+        SELECT DISTINCT SubmissionId, Max(Created) As Created 
         INTO #ApprovedSubmissions
-        FROM [rpd].[SubmissionEvents]
-        WHERE TRY_CAST([Created] AS datetime2) > @StartDate AND Decision = 'Accepted';
+        FROM [rpd].[SubmissionEvents] WHERE TRY_CAST([Created] AS datetime2) > @StartDate AND Decision = 'Accepted'
+        GROUP BY SubmissionId;
 
         --get most recent file id for approved submissions
         SELECT s.SubmissionId, se.FileId, se.Created as SubmissionApprovedDate, s.Created
@@ -171,7 +172,7 @@ BEGIN
         HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable);
 
         -- Step 2: Insert valid records into #ValidDuplicateMaterials based on #DuplicateMaterials
-        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod
+        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight
         INTO #ValidDuplicateMaterials
         FROM #AggregatedWeightsForDuplicates AS mc
         JOIN #DuplicateMaterials AS dm
@@ -180,10 +181,10 @@ BEGIN
         WHERE mc.SubmissionPeriod IN (SELECT period FROM #PeriodYearTable);
 
         -- Step 1: Identify Partial duplicate materials based on #PartialPeriodYearTableP2 and #PartialPeriodYearTableP3 and combine them
-        SELECT OrganisationId, PackagingMaterial
+        SELECT OrganisationId, PackagingMaterial, TotalWeight AS Weight
         INTO #PartialDuplicateMaterials
         FROM (
-            SELECT OrganisationId, PackagingMaterial
+            SELECT OrganisationId, PackagingMaterial, SUM (Weight) AS TotalWeight
             FROM #AggregatedWeightsForDuplicates
             WHERE SubmissionPeriod IN (SELECT period FROM #PartialPeriodYearTableP2)
             GROUP BY OrganisationId, PackagingMaterial
@@ -191,7 +192,7 @@ BEGIN
 
             UNION
 
-            SELECT OrganisationId, PackagingMaterial
+            SELECT OrganisationId, PackagingMaterial, SUM (Weight) AS TotalWeight
             FROM #AggregatedWeightsForDuplicates
             WHERE SubmissionPeriod IN (SELECT period FROM #PartialPeriodYearTableP3)
             GROUP BY OrganisationId, PackagingMaterial
@@ -200,20 +201,19 @@ BEGIN
 
 
         -- Step 3: Insert valid partial records into #ValidDuplicateMaterials based on #PartialDuplicateMaterials so now should contain full years data and partial data
-        INSERT INTO #ValidDuplicateMaterials (OrganisationId, PackagingMaterial, LatestDate, SubmissionPeriod)
-        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod
+        INSERT INTO #ValidDuplicateMaterials (OrganisationId, PackagingMaterial, LatestDate, SubmissionPeriod, Weight)
+        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight
         FROM #AggregatedWeightsForDuplicates AS mc
         JOIN #PartialDuplicateMaterials AS dm
         ON mc.OrganisationId = dm.OrganisationId
-        AND mc.PackagingMaterial = dm.PackagingMaterial
-        WHERE mc.SubmissionPeriod IN (SELECT period FROM #PeriodYearTable);
+        AND mc.PackagingMaterial = dm.PackagingMaterial;
 
         -- Get Real organisation Id and also get the data that has data after approved date
-        SELECT 
+        SELECT DISTINCT
             CAST(f.SubmissionId AS uniqueidentifier) AS SubmissionId,
             p.submission_period AS SubmissionPeriod,
             p.packaging_material AS PackagingMaterial,
-            p.packaging_material_weight AS PackagingMaterialWeight,
+            m.Weight AS PackagingMaterialWeight,
             CAST(o.ExternalId AS uniqueidentifier) AS OrganisationId
         INTO #AggregatedMaterials
         FROM #FileNames f
@@ -228,15 +228,17 @@ BEGIN
             ON p.organisation_id = o.ReferenceNumber
         WHERE TRY_CAST([Created] AS datetime2) > @ApprovedAfter
 
-        -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data
+        -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data and round to the nearest whole number
         UPDATE #AggregatedMaterials
-        SET PackagingMaterialWeight = PackagingMaterialWeight * 
+        SET PackagingMaterialWeight = ROUND(
+            PackagingMaterialWeight * 
             CASE 
-                WHEN SubmissionPeriod = @PartialPeriod THEN (@NumberOfDaysInWholePeriod / @NumberOfDaysInReportingPeriod)
-                WHEN SubmissionPeriod = @PartialPeriodP3 THEN (@NumberOfDaysInWholePeriod / @NumberOfDaysInReportingPeriodP3)
+                WHEN SubmissionPeriod = @PartialPeriod THEN (CAST(@NumberOfDaysInWholePeriod AS FLOAT) / @NumberOfDaysInReportingPeriod)
+                WHEN SubmissionPeriod = @PartialPeriodP3 THEN (CAST(@NumberOfDaysInWholePeriod AS FLOAT) / @NumberOfDaysInReportingPeriodP3)
                 ELSE 1 -- No adjustment for other periods
-            END
+            END, 0) -- Round to 0 decimal places
         WHERE SubmissionPeriod IN (@PartialPeriod, @PartialPeriodP3);
+
 
 
         --aggregate duplicate materials weight for duplicate materials for org id
@@ -267,6 +269,16 @@ BEGIN
         DROP TABLE #AggregatedMaterials;
 
     END
-
+    ELSE
+    BEGIN
+        -- Return an empty result set with the expected schema
+        SELECT 
+            CAST(NULL AS VARCHAR(10)) AS SubmissionPeriod,
+            CAST(NULL AS VARCHAR(50)) AS PackagingMaterial,
+            CAST(NULL AS FLOAT) AS PackagingMaterialWeight,
+            CAST(NULL AS UNIQUEIDENTIFIER) AS OrganisationId
+        WHERE 1 = 0; -- Ensures no rows are returned
+    END
 END
 GO
+
