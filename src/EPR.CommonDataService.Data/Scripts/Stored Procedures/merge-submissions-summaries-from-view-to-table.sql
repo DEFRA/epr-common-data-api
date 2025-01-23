@@ -40,11 +40,13 @@ CREATE TABLE #SubmissionsSummariesTemp
     [Comments] NVARCHAR(4000),
     [IsResubmission] BIT,
     [PreviousRejectionComments] NVARCHAR(4000),
-    [NationId] INT
+    [NationId] INT,
+    [PomFileName] NVARCHAR(4000),
+	[PomBlobName] NVARCHAR(4000)
 	);
 
 INSERT INTO #SubmissionsSummariesTemp
-SELECT
+SELECT DISTINCT
     [SubmissionId],
     [OrganisationId],
     [ComplianceSchemeId],
@@ -71,7 +73,9 @@ SELECT
     [Comments],
     [IsResubmission],
     [PreviousRejectionComments],
-    [NationId]
+    [NationId],
+    [PomFileName],
+	[PomBlobName]
 FROM apps.v_SubmissionsSummaries;
 
 MERGE INTO apps.SubmissionsSummaries AS Target
@@ -105,7 +109,9 @@ MERGE INTO apps.SubmissionsSummaries AS Target
             Target.Comments = Source.Comments,
             Target.IsResubmission = Source.IsResubmission,
             Target.PreviousRejectionComments = Source.PreviousRejectionComments,
-            Target.NationId = Source.NationId
+            Target.NationId = Source.NationId,
+            Target.PomFileName = Source.PomFileName,
+            Target.PomBlobName = Source.PomBlobName
     WHEN NOT MATCHED BY TARGET THEN
     INSERT (
     SubmissionId,
@@ -134,7 +140,9 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Comments,
     IsResubmission,
     PreviousRejectionComments,
-    NationId
+    NationId,
+    PomFileName,
+    PomBlobName
     )
     VALUES (
     Source.Submissionid,
@@ -163,7 +171,9 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Source.Comments,
     Source.IsResubmission,
     Source.PreviousRejectionComments,
-    Source.NationId
+    Source.NationId,
+    Source.PomFileName,
+    Source.PomBlobName
     )
     WHEN NOT MATCHED BY SOURCE THEN
         DELETE; -- delete from table when no longer in source
