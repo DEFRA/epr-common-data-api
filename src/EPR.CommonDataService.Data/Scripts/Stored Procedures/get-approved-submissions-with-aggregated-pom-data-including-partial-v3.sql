@@ -34,29 +34,31 @@ BEGIN
         DROP TABLE #DuplicateMaterials;	    
 
         --Get start date from approved after date which will be used to get all data from the start of the year
-        DECLARE @Year VARCHAR(4) = CAST(YEAR(@ApprovedAfter) AS VARCHAR(4));
-        DECLARE @StartDate DATETIME2 = CAST(@Year + '-01-01' AS DATETIME2);	
+        DECLARE @StartDate DATETIME2 = CAST(CAST(YEAR(GETDATE()) AS VARCHAR(4)) + '-01-01' AS DATETIME2);	
         
         
-        --This script results in a temporary table, #PeriodYearTable, populated with each period value prefixed by the specified year (e.g., 2024-P1, 2024-P4).
+        --This script results in a temporary table, #PeriodYearTable, populated with each period value(e.g., 2024-P1, 2024-P4).
         CREATE TABLE #PeriodYearTable (Period VARCHAR(10));
         DECLARE @Delimiter CHAR(1) = ',';
         DECLARE @Pos INT;
-        DECLARE @Token VARCHAR(10);
         DECLARE @PeriodValue VARCHAR(10);  -- Variable to hold the concatenated value
-
         SET @Periods = @Periods + ','; -- Add trailing comma for parsing
         SET @Pos = CHARINDEX(@Delimiter, @Periods);
 
         WHILE @Pos > 0
         BEGIN
-            SET @Token = LTRIM(RTRIM(SUBSTRING(@Periods, 1, @Pos - 1))); -- Get the token
-            SET @PeriodValue = @Year + '-' + @Token;  -- Concatenate into a single variable
+            SET @PeriodValue = LTRIM(RTRIM(SUBSTRING(@Periods, 1, @Pos - 1))); -- Get the token
             INSERT INTO #PeriodYearTable (Period) VALUES (@PeriodValue);  -- Insert the variable
 
             SET @Periods = SUBSTRING(@Periods, @Pos + 1, LEN(@Periods)); -- Update the string for the next iteration
             SET @Pos = CHARINDEX(@Delimiter, @Periods); -- Find the next delimiter
         END
+
+
+        DECLARE @PeriodYear VARCHAR(4);
+        -- Get the year from the first period
+        SET @PeriodYear = (SELECT TOP 1 LEFT(Period, 4) FROM #PeriodYearTable);
+
 
         --This script results in a temp table, populated with each period value prefixed by the specified year (e.g., 2024-P2, 2024-P4) for a partial scenario
         DECLARE @PartialPeriod VARCHAR(10) = '2024-P2'; 
@@ -92,22 +94,39 @@ BEGIN
         ) se;
         
             --get filenames for fileid
-        SELECT f.SubmissionId, fm.[FileName], f.Created
+        SELECT f.SubmissionId, fm.[FileName], f.Created, fm.ComplianceSchemeId
         INTO #FileNames
         FROM #FileIdss f
         JOIN [rpd].[cosmos_file_metadata] fm ON f.FileId = fm.FileId;
         
-        --Get All approved data for the Approved after year
+        -- Get Organisation Id for Compliance Scheme and producer but keep original 6 digit orgId column -(SixDigitOrgId)
+        SELECT fn.SubmissionId, fn.FileName, fn.Created, fn.ComplianceSchemeId,
+            CASE 
+                WHEN fn.ComplianceSchemeId IS NULL THEN NULL
+                ELSE org.ExternalId
+            END AS ComplianceOrgId
+        INTO #EnhancedFileNames
+        FROM #FileNames fn
+        LEFT JOIN [rpd].[ComplianceSchemes] cs
+        ON fn.ComplianceSchemeId = cs.ExternalId
+        LEFT JOIN [rpd].[Organisations] org
+        ON cs.CompaniesHouseNumber = org.CompaniesHouseNumber
+
         SELECT 
         p.submission_period AS SubmissionPeriod,
         p.packaging_material AS PackagingMaterial,
-        p.organisation_id AS OrganisationId,
+            CASE
+                WHEN f.ComplianceSchemeId IS NULL THEN CAST(o.ExternalId AS uniqueidentifier)
+                ELSE CAST(f.ComplianceOrgId AS uniqueidentifier)
+            END AS OrganisationId,
         f.Created AS Created,
-        p.packaging_material_weight as weight
+        p.packaging_material_weight as weight,
+        p.organisation_id AS SixDigitOrgId
         INTO #FilteredByApproveAfterYear
-        FROM #FileNames f
+        FROM #EnhancedFileNames f
         JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
-        WHERE LEFT(p.submission_period, 4) = @Year
+        JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
+        WHERE LEFT(p.submission_period, 4) = @PeriodYear
 
         -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
@@ -139,7 +158,8 @@ BEGIN
             END AS PackagingMaterial, 
             a.OrganisationId,
             ld.LatestDate,
-            SUM(a.Weight) AS Weight
+            SUM(a.Weight) AS Weight,
+            a.SixDigitOrgId AS SixDigitOrgId
         INTO
             #AggregatedWeightsForDuplicates
         FROM 
@@ -161,7 +181,8 @@ BEGIN
                 ELSE a.PackagingMaterial
             END, 
             a.OrganisationId, 
-            ld.LatestDate;
+            ld.LatestDate,
+            a.SixDigitOrgId;
 
         -- Step 1: Identify duplicate materials based on #PeriodYearTable
         SELECT OrganisationId, PackagingMaterial
@@ -172,7 +193,7 @@ BEGIN
         HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable);
 
         -- Step 2: Insert valid records into #ValidDuplicateMaterials based on #DuplicateMaterials
-        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight
+        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight, mc.SixDigitOrgId
         INTO #ValidDuplicateMaterials
         FROM #AggregatedWeightsForDuplicates AS mc
         JOIN #DuplicateMaterials AS dm
@@ -199,10 +220,9 @@ BEGIN
             HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP3)
         ) CombinedData;
 
-
         -- Step 3: Insert valid partial records into #ValidDuplicateMaterials based on #PartialDuplicateMaterials so now should contain full years data and partial data
-        INSERT INTO #ValidDuplicateMaterials (OrganisationId, PackagingMaterial, LatestDate, SubmissionPeriod, Weight)
-        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight
+        INSERT INTO #ValidDuplicateMaterials (OrganisationId, PackagingMaterial, LatestDate, SubmissionPeriod, Weight, SixDigitOrgId)
+        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight, mc.SixDigitOrgId
         FROM #AggregatedWeightsForDuplicates AS mc
         JOIN #PartialDuplicateMaterials AS dm
         ON mc.OrganisationId = dm.OrganisationId
@@ -214,7 +234,7 @@ BEGIN
             p.submission_period AS SubmissionPeriod,
             p.packaging_material AS PackagingMaterial,
             m.Weight AS PackagingMaterialWeight,
-            CAST(o.ExternalId AS uniqueidentifier) AS OrganisationId
+            m.OrganisationId AS OrganisationId
         INTO #AggregatedMaterials
         FROM #FileNames f
         JOIN [rpd].[Pom] p 
@@ -222,7 +242,7 @@ BEGIN
         JOIN #ValidDuplicateMaterials m 
             ON p.submission_period = m.SubmissionPeriod
             AND p.packaging_material = m.PackagingMaterial
-            AND p.organisation_id = m.OrganisationId
+            AND p.organisation_id = m.SixDigitOrgId
             AND f.Created = m.LatestDate
         JOIN [rpd].[Organisations] o 
             ON p.organisation_id = o.ReferenceNumber
@@ -243,7 +263,7 @@ BEGIN
 
         --aggregate duplicate materials weight for duplicate materials for org id
         SELECT 
-        @Year AS SubmissionPeriod,  -- Hardcoded variable
+        @PeriodYear AS SubmissionPeriod,  -- Hardcoded variable
         PackagingMaterial AS PackagingMaterial,
         SUM(PackagingMaterialWeight) / 1000.0 AS PackagingMaterialWeight,
         OrganisationId
@@ -267,6 +287,7 @@ BEGIN
         DROP TABLE #PartialDuplicateMaterials;
         DROP TABLE #ValidDuplicateMaterials;
         DROP TABLE #AggregatedMaterials;
+        DROP TABLE #EnhancedFileNames;
 
     END
     ELSE
