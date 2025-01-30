@@ -31,7 +31,8 @@ public class ProducerDetailsServiceTests
                 ProducerSize = "L",
                 NumberOfSubsidiaries = 54,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 29,
-                IsOnlineMarketplace = true
+                IsOnlineMarketplace = true,
+                NationFromUploadedFile = "SC"
             }
         };
         _synapseContextMock
@@ -47,6 +48,7 @@ public class ProducerDetailsServiceTests
         result.NumberOfSubsidiaries.Should().Be(54);
         result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
         result.IsOnlineMarketplace.Should().BeTrue();
+        result.NationFromUploadedFile.Should().Be("SC");
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
@@ -67,7 +69,8 @@ public class ProducerDetailsServiceTests
                 ProducerSize = "s",
                 NumberOfSubsidiaries = 100,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
-                IsOnlineMarketplace = false
+                IsOnlineMarketplace = false,
+                NationFromUploadedFile = "SC"
             }
         };
 
@@ -84,6 +87,7 @@ public class ProducerDetailsServiceTests
         result.NumberOfSubsidiaries.Should().Be(100);
         result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
         result.IsOnlineMarketplace.Should().BeFalse();
+        result.NationFromUploadedFile.Should().Be("SC");
     }
 
     [TestMethod]
@@ -136,7 +140,8 @@ public class ProducerDetailsServiceTests
                 ProducerSize = "X", // Invalid size
                 NumberOfSubsidiaries = 10,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 5,
-                IsOnlineMarketplace = false
+                IsOnlineMarketplace = false,
+                NationFromUploadedFile = "SC"
             }
         };
         _synapseContextMock
@@ -152,6 +157,7 @@ public class ProducerDetailsServiceTests
         result.NumberOfSubsidiaries.Should().Be(10);
         result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(5);
         result.IsOnlineMarketplace.Should().BeFalse();
+        result.NationFromUploadedFile.Should().Be("SC");
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<ProducerDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),

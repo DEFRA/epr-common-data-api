@@ -9,4 +9,5 @@ public class GetProducerDetailsResponse
     public int NumberOfSubsidiariesBeingOnlineMarketPlace { get; set; }
     public string ProducerSize { get; set; } = string.Empty;
     public bool IsOnlineMarketplace  { get; set; }
+    public string NationFromUploadedFile { get; set; }
 }
