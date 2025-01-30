@@ -56,7 +56,14 @@ OrganisationDetails AS (
     SELECT 
         CD.organisation_id, 
         CASE WHEN  cd.packaging_activity_om IN ('Primary', 'Secondary') THEN 1  ELSE 0  END AS IsOnlineMarketPlace,
-		 cd.organisation_size 
+		 cd.organisation_size,
+		 CASE UPPER(cd.home_nation_code)
+							WHEN 'EN' THEN 'GB-ENG'
+							WHEN 'NI' THEN 'GB-NIR'
+							WHEN 'SC' THEN 'GB-SCT'
+							WHEN 'WS' THEN 'GB-WLS'
+							WHEN 'WA' THEN 'GB-WLS'
+						END as NationFromUploadedFile
     FROM  
         [rpd].[CompanyDetails] CD
     WHERE 
@@ -70,12 +77,14 @@ OrganisationDetails AS (
     GROUP BY 
         CD.organisation_id,
 		CD.packaging_activity_om,
-		CD.organisation_size 
+		CD.organisation_size,
+		cd.home_nation_code
 ) 
 
 SELECT sc.NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS OrganisationId,
     cd.organisation_size AS ProducerSize,
+	cd.NationFromUploadedFile,
     sub.appreferencenumber AS ApplicationReferenceNumber,
     ISNull( sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries,
     N.NationCode AS Regulator,
