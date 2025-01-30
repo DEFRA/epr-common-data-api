@@ -31,18 +31,6 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
 
-	--BEGIN TRY
-	--	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
-	--	BEGIN
-	--		DROP TABLE #ProdCommentsRegulatorDecisions;
-	--	END;
-	--END TRY
-	--BEGIN CATCH
-	--	-- Log or handle the error
-	--	-- PRINT 'An error occurred while attempting to drop the table ##ProdCommentsRegulatorDecisions.';
-	--	-- PRINT ERROR_MESSAGE(); -- Print the error message for debugging purposes
-	--END CATCH;
-
     DECLARE @ProdCommentsSQL NVARCHAR(MAX);
 
 	SET @ProdCommentsSQL = N'
@@ -235,9 +223,10 @@ DECLARE @IsComplianceScheme bit;
 					,org.PartnerFileId AS PartnershipFileId
 					,org.PartnerBlobName AS PartnershipBlobName
 					,ROW_NUMBER() OVER (
-						PARTITION BY s.OrganisationId,
-						s.SubmissionPeriod
-						ORDER BY s.load_ts DESC -- mark latest submission synced from cosmos
+						PARTITION BY s.OrganisationId
+								     ,s.SubmissionPeriod
+									 ,s.ComplianceSchemeId
+						ORDER BY s.load_ts DESC
 					) AS RowNum
 				FROM
 					[rpd].[Submissions] AS s
@@ -439,10 +428,5 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
-
-	--IF OBJECT_ID('tempdb..##ProdCommentsRegulatorDecisions') IS NOT NULL
-    --BEGIN
-	--DROP TABLE ##ProdCommentsRegulatorDecisions;
-	--END
 END;
 GO
