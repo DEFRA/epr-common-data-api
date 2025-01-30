@@ -10,4 +10,5 @@ public class ProducerDetailsModel
     public int NumberOfSubsidiariesBeingOnlineMarketPlace { get; set; }
     public string ProducerSize { get; set; }
     public bool IsOnlineMarketplace  { get; set; }
+    public string NationFromUploadedFile { get; set; }
 }

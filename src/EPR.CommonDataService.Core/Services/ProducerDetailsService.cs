@@ -31,6 +31,7 @@ public  class ProducerDetailsService(
                     IsOnlineMarketplace = dbResponse[0].IsOnlineMarketplace,
                     NumberOfSubsidiaries = dbResponse[0].NumberOfSubsidiaries,
                     NumberOfSubsidiariesBeingOnlineMarketPlace = dbResponse[0].NumberOfSubsidiariesBeingOnlineMarketPlace,
+                    NationFromUploadedFile = dbResponse[0].NationFromUploadedFile,
                     ProducerSize = ProducerSizeMapper.Map(dbResponse[0].ProducerSize)                   
                 };
                  
