@@ -31,7 +31,8 @@ public  class ProducerDetailsService(
                     IsOnlineMarketplace = dbResponse[0].IsOnlineMarketplace,
                     NumberOfSubsidiaries = dbResponse[0].NumberOfSubsidiaries,
                     NumberOfSubsidiariesBeingOnlineMarketPlace = dbResponse[0].NumberOfSubsidiariesBeingOnlineMarketPlace,
-                    ProducerSize = ProducerSizeMapper.Map(dbResponse[0].ProducerSize)                   
+                    ProducerSize = ProducerSizeMapper.Map(dbResponse[0].ProducerSize)  ,
+                    NationFromUploadedFile = dbResponse[0].NationFromUploadedFile,
                 };
                  
                 return response;
