@@ -33,7 +33,14 @@ SET NOCOUNT ON;
         SELECT 
             cd.Organisation_Id AS OrganisationId,
             CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
-            cd.Organisation_Size AS OrganisationSize
+            cd.Organisation_Size AS OrganisationSize,
+            CASE UPPER(cd.home_nation_code)
+                WHEN 'EN' THEN 1
+                WHEN 'NI' THEN 2
+                WHEN 'SC' THEN 3
+                WHEN 'WS' THEN 4
+                WHEN 'WA' THEN 4
+            END AS NationId
         FROM
             [rpd].[CompanyDetails] cd
         WHERE
@@ -45,7 +52,8 @@ SET NOCOUNT ON;
         od.OrganisationSize AS OrganisationSize,
         ISNULL(sd.TotalSubsidiaries, 0) AS NumberOfSubsidiaries,
         ISNULL(sd.OnlineMarketPlaceSubsidiaries, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
-        CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace
+        CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
+        NationId
     FROM
         OrganisationDetails od
     LEFT JOIN

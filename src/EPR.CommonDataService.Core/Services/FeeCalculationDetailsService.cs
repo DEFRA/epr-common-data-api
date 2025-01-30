@@ -30,7 +30,8 @@ public class FeeCalculationDetailsService(
                     NumberOfSubsidiaries = resp.NumberOfSubsidiaries,
                     NumberOfSubsidiariesBeingOnlineMarketPlace = resp.NumberOfSubsidiariesBeingOnlineMarketPlace,
                     OrganisationSize = OrganisationSizeMapper.Map(resp.OrganisationSize),
-                    OrganisationId = resp.OrganisationId.ToString()
+                    OrganisationId = resp.OrganisationId.ToString(),
+                    NationId = resp.NationId
                 }).ToArray();
 
                 return response;
