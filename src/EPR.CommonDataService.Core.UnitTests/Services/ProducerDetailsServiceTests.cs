@@ -31,7 +31,8 @@ public class ProducerDetailsServiceTests
                 ProducerSize = "L",
                 NumberOfSubsidiaries = 54,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 29,
-                IsOnlineMarketplace = true
+                IsOnlineMarketplace = true,
+                NationFromUploadedFile ="GB-ENG"
             }
         };
         _synapseContextMock
@@ -44,6 +45,7 @@ public class ProducerDetailsServiceTests
         // Assert
         result.Should().NotBeNull();
         result!.ProducerSize.Should().Be("Large");
+        result!.NationFromUploadedFile.Should().Be("GB-ENG");
         result.NumberOfSubsidiaries.Should().Be(54);
         result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
         result.IsOnlineMarketplace.Should().BeTrue();
@@ -84,6 +86,7 @@ public class ProducerDetailsServiceTests
         result.NumberOfSubsidiaries.Should().Be(100);
         result.NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
         result.IsOnlineMarketplace.Should().BeFalse();
+        result.NationFromUploadedFile.Should().Be(null);
     }
 
     [TestMethod]
