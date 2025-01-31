@@ -81,7 +81,7 @@ OrganisationDetails AS (
 		cd.home_nation_code
 ) 
 
-SELECT sc.NumberOfSubsidiariesBeingOnlineMarketPlace,
+SELECT ISNull(sc.NumberOfSubsidiariesBeingOnlineMarketPlace,0) as NumberOfSubsidiariesBeingOnlineMarketPlace,
     cd.organisation_id AS OrganisationId,
     cd.organisation_size AS ProducerSize,
 	cd.NationFromUploadedFile,
