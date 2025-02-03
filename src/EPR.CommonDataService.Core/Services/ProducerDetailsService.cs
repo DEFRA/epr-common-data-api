@@ -10,7 +10,6 @@ namespace EPR.CommonDataService.Core.Services;
 
 public interface IProducerDetailsService
 {
-    Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId);
     Task<List<UpdatedProducersResponseModel>> GetUpdatedProducers(DateTime from, DateTime to);
 }
 
@@ -18,35 +17,6 @@ public class ProducerDetailsService(
     SynapseContext synapseContext, ILogger<ProducerDetailsService> logger)
     : IProducerDetailsService
 {
-    public async Task<GetProducerDetailsResponse?> GetProducerDetails(int organisationId)
-    {
-        GetProducerDetailsResponse response;
-
-        try
-        {
-            const string Sql = "EXECUTE dbo.sp_GetProducerDetailsByOrganisationId @OrganisationId";
-            var dbResponse = await synapseContext.RunSqlAsync<ProducerDetailsModel>(Sql, new SqlParameter("@OrganisationId", SqlDbType.Int) { Value = organisationId });
-            if (dbResponse.Count > 0)
-            {
-                response = new GetProducerDetailsResponse()
-                {
-                    IsOnlineMarketplace = dbResponse[0].IsOnlineMarketplace,
-                    NumberOfSubsidiaries = dbResponse[0].NumberOfSubsidiaries,
-                    NumberOfSubsidiariesBeingOnlineMarketPlace = dbResponse[0].NumberOfSubsidiariesBeingOnlineMarketPlace,
-                    ProducerSize = ProducerSizeMapper.Map(dbResponse[0].ProducerSize)
-                };
-
-                return response;
-            }
-        }
-        catch
-        {
-            return null;
-        }
-
-        return null;
-    }
-
     public async Task<List<UpdatedProducersResponseModel>> GetUpdatedProducers(DateTime from, DateTime to)
     {
         try

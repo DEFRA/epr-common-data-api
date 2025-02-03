@@ -44,8 +44,6 @@ public class PaginatedResponseExtensionsTests
     public void ToPaginatedResponse_ShouldSetTotalItemsToZeroIfNoRows()
     {
         // Arrange
-        var rows = new List<PomSubmissionSummaryRow>();
-
         var request = new SubmissionsSummariesRequest<RegulatorPomDecision>
         {
             PageNumber = 1,

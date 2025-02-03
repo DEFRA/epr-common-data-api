@@ -52,7 +52,7 @@ public static class ServiceProviderExtensions
 
     private static void RegisterServices(IServiceCollection services)
     {
-        services.AddScoped<ICsoMemberDetailsService, CsoMemberDetailsService>();
+        services.AddScoped<IFeeCalculationDetailsService, FeeCalculationDetailsService>();
         services.AddScoped<IProducerDetailsService, ProducerDetailsService>();
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();

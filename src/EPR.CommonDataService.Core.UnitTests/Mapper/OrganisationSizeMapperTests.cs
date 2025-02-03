@@ -3,7 +3,7 @@
 namespace EPR.CommonDataService.Core.UnitTests.Mapper
 {
     [TestClass]
-    public class ProducerSizeMapperTests
+    public class OrganisationSizeMapperTests
     {
         [TestMethod]
         [DataRow("s", "Small")]  // Lowercase valid input
@@ -18,7 +18,7 @@ namespace EPR.CommonDataService.Core.UnitTests.Mapper
         public void Map_ReturnsExpectedResult(string? input, string expected)
         {
             // Act
-            var result = ProducerSizeMapper.Map(input);
+            var result = OrganisationSizeMapper.Map(input);
 
             // Assert
             Assert.AreEqual(expected, result);
