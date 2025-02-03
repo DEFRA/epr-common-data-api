@@ -58,7 +58,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     {
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods} and ecluding packaging types {ExcludePackagingTypes}", _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods, excludePackagingTypes);
 
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3 @ApprovedAfter, @Periods, @ExcludePackagingTypes";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @ExcludePackagingTypes";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
 
         try
@@ -67,9 +67,9 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
-			    new SqlParameter("@ExcludePackagingTypes", SqlDbType.VarChar) { Value = excludePackagingTypes ?? (object)DBNull.Value });
+                new SqlParameter("@ExcludePackagingTypes", SqlDbType.VarChar) { Value = excludePackagingTypes ?? (object)DBNull.Value });
 
-			logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
             return paginatedResponse;
         }
         catch (Exception ex)
