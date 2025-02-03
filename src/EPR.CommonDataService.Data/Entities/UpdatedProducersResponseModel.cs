@@ -18,4 +18,5 @@ public class UpdatedProducersResponseModel
     public string Postcode { get; set; }
     public string pEPRID { get; set; }
     public string Status { get; set; }
+    public string BusinessCountry { get; set; }
 }

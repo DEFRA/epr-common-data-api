@@ -145,7 +145,8 @@ public class ProducerDetailsControllerTests
                 Country = "Country A",
                 Postcode = "A1 1AA",
                 pEPRID = "PEPRID1",
-                Status = "Active"
+                Status = "Active",
+                BusinessCountry = "Scotland"
             }
         };
 
