@@ -1,9 +1,9 @@
 -- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3]'))
-DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3];
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissions]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissions];
 GO
 
-CREATE PROC [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX) AS
+CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@ExcludePackagingTypes [VARCHAR](MAX) AS
 BEGIN
 
     -- Check if there are any approved submissions after the specified date
@@ -33,26 +33,27 @@ BEGIN
         IF OBJECT_ID('tempdb..#DuplicateMaterials') IS NOT NULL
         DROP TABLE #DuplicateMaterials;	    
 
-        --Get start date from approved after date which will be used to get all data from the start of the year
-        DECLARE @StartDate DATETIME2 = CAST(CAST(YEAR(GETDATE()) AS VARCHAR(4)) + '-01-01' AS DATETIME2);	
-        
-        
-        --This script results in a temporary table, #PeriodYearTable, populated with each period value(e.g., 2024-P1, 2024-P4).
+        -- Get start date for the current year
+        DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
+
+        -- Create temporary tables
         CREATE TABLE #PeriodYearTable (Period VARCHAR(10));
+        CREATE TABLE #ExcludePackagingTypesTable (PackagingType VARCHAR(10));
+
+        -- Generic procedure to split a delimited string and insert into a given table
         DECLARE @Delimiter CHAR(1) = ',';
-        DECLARE @Pos INT;
-        DECLARE @PeriodValue VARCHAR(10);  -- Variable to hold the concatenated value
-        SET @Periods = @Periods + ','; -- Add trailing comma for parsing
-        SET @Pos = CHARINDEX(@Delimiter, @Periods);
 
-        WHILE @Pos > 0
-        BEGIN
-            SET @PeriodValue = LTRIM(RTRIM(SUBSTRING(@Periods, 1, @Pos - 1))); -- Get the token
-            INSERT INTO #PeriodYearTable (Period) VALUES (@PeriodValue);  -- Insert the variable
+        WITH CTE_Split AS (
+        SELECT value AS Period FROM STRING_SPLIT(@Periods, @Delimiter)
+        )
+        INSERT INTO #PeriodYearTable (Period)
+        SELECT Period FROM CTE_Split;
 
-            SET @Periods = SUBSTRING(@Periods, @Pos + 1, LEN(@Periods)); -- Update the string for the next iteration
-            SET @Pos = CHARINDEX(@Delimiter, @Periods); -- Find the next delimiter
-        END
+        WITH CTE_Split_Exclude AS (
+        SELECT value AS PackagingType FROM STRING_SPLIT(@ExcludePackagingTypes, @Delimiter)
+        )
+        INSERT INTO #ExcludePackagingTypesTable (PackagingType)
+        SELECT PackagingType FROM CTE_Split_Exclude;
 
 
         DECLARE @PeriodYear VARCHAR(4);
@@ -110,7 +111,7 @@ BEGIN
         LEFT JOIN [rpd].[ComplianceSchemes] cs
         ON fn.ComplianceSchemeId = cs.ExternalId
         LEFT JOIN [rpd].[Organisations] org
-        ON cs.CompaniesHouseNumber = org.CompaniesHouseNumber
+        ON cs.CompaniesHouseNumber = org.CompaniesHouseNumber;
 
         SELECT 
         p.submission_period AS SubmissionPeriod,
@@ -121,12 +122,14 @@ BEGIN
             END AS OrganisationId,
         f.Created AS Created,
         p.packaging_material_weight as weight,
-        p.organisation_id AS SixDigitOrgId
+        p.organisation_id AS SixDigitOrgId,
+        p.packaging_type as PackType
         INTO #FilteredByApproveAfterYear
         FROM #EnhancedFileNames f
         JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
         JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
-        WHERE LEFT(p.submission_period, 4) = @PeriodYear
+        WHERE LEFT(p.submission_period, 4) = @PeriodYear 
+        AND NOT p.packaging_type IN (SELECT * FROM #ExcludePackagingTypesTable);
 
         -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
@@ -288,6 +291,8 @@ BEGIN
         DROP TABLE #ValidDuplicateMaterials;
         DROP TABLE #AggregatedMaterials;
         DROP TABLE #EnhancedFileNames;
+        DROP TABLE #ExcludePackagingTypesTable;
+
 
     END
     ELSE
@@ -302,3 +307,4 @@ BEGIN
     END
 END
 GO
+
