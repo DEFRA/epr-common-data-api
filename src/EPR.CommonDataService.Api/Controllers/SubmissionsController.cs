@@ -10,10 +10,10 @@ namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> baseApiConfigOptions, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(baseApiConfigOptions)
+public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> apiConfig, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(apiConfig)
 {
     private readonly string? _logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
-    private readonly IOptions<ApiConfig> _baseApiConfigOptions = baseApiConfigOptions;
+    private readonly ApiConfig apiConfig = apiConfig.Value;
 
     [HttpPost("pom/summary")]
     [Produces("application/json")]
@@ -70,7 +70,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, _baseApiConfigOptions.Value.PomDataSubmissionPeriods, _baseApiConfigOptions.Value.ExcludePackagingTypes);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, apiConfig.PomDataSubmissionPeriods, apiConfig.ExcludePackagingTypes, apiConfig.IncludePackagingMaterials);
 
             if (!approvedSubmissions.Any())
             {
