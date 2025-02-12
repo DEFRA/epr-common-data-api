@@ -54,11 +54,11 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         return paginatedResponse;
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods, string excludePackagingTypes)
     {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods}", _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods);
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods} and ecluding packaging types {ExcludePackagingTypes}", _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods, excludePackagingTypes);
 
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3 @ApprovedAfter, @Periods";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @ExcludePackagingTypes";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
 
         try
@@ -66,7 +66,8 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
             var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
-                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value });
+                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
+                new SqlParameter("@ExcludePackagingTypes", SqlDbType.VarChar) { Value = excludePackagingTypes ?? (object)DBNull.Value });
 
             logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
             return paginatedResponse;
