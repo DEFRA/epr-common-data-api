@@ -301,7 +301,7 @@ BEGIN
         DROP TABLE #ValidDuplicateMaterials;
         DROP TABLE #AggregatedMaterials;
         DROP TABLE #EnhancedFileNames;
-        DROP TABLE #ExcludePackagingTypesTable;
+        DROP TABLE #IncludePackagingTypesTable;
         DROP TABLE #IncludePackagingMaterialsTable;
 
 
