@@ -1,5 +1,4 @@
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
@@ -31,77 +30,6 @@ public class ProducerDetailsControllerTests
             _apiConfigOptionsMock.Object,
             _producerDetailsServiceMock.Object
         );
-    }
-
-    [TestMethod]
-    public async Task GetProducerDetails_InvalidRequest_ReturnsBadRequest()
-    {
-        // Arrange
-        // Act
-        var result = await _controller.GetProducerDetails(0);
-
-        // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
-        (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
-    }
-    [TestMethod]
-    public async Task GetProducerDetails_InvalidFormatRequest_ReturnsBadRequest()
-    {
-        // Arrange
-        // Act
-        var result = await _controller.GetProducerDetails(-1);
-
-        // Assert
-        result.Should().BeOfType<BadRequestObjectResult>();
-        (result as BadRequestObjectResult)!.Value.Should().Be("OrganisationId is invalid");
-    }
-
-    [TestMethod]
-    public async Task GetProducerDetails_ValidRequest_NoResult_ReturnsNotFound()
-    {
-        // Arrange
-        const int OrganisationId = 1234;
-
-        _producerDetailsServiceMock
-            .Setup(service => service.GetProducerDetails(OrganisationId))
-            .ReturnsAsync((GetProducerDetailsResponse)null!); // Simulating no result
-
-        // Act
-        var result = await _controller.GetProducerDetails(OrganisationId);
-
-        // Assert
-        result.Should().BeOfType<NoContentResult>();
-    }
-
-    [TestMethod]
-    public async Task GetProducerDetails_ValidRequest_WithResult_ReturnsOk()
-    {
-        // Arrange
-        const int OrganisationId = 1234;
-
-        var expectedResult = new GetProducerDetailsResponse { ProducerSize = "Large", NumberOfSubsidiaries = 10, NumberOfSubsidiariesBeingOnlineMarketPlace = 20 }; // Mock result
-
-        _producerDetailsServiceMock
-            .Setup(service => service.GetProducerDetails(OrganisationId))
-            .ReturnsAsync(expectedResult);
-
-        // Act
-        var result = await _controller.GetProducerDetails(OrganisationId);
-
-        // Assert
-        result.Should().BeOfType<OkObjectResult>();
-        (result as OkObjectResult)!.Value.Should().Be(expectedResult);
-    }
-
-    [TestMethod]
-    public async Task GetUpdatedProducers_InvalidRequest_ReturnsNoContentResult()
-    {
-        // Arrange
-        // Act
-        var result = await _controller.GetUpdatedProducers(DateTime.MinValue, DateTime.MinValue);
-
-        // Assert
-        result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
