@@ -1,5 +1,6 @@
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
+using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -185,6 +186,51 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         catch (Exception ex)
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("pom-resubmission-paycal-parameters/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PomResubmissionPaycalParameters>> POMResubmission_PaycalParameters([FromRoute] Guid SubmissionId, [FromQuery] Guid? ComplianceSchemeId)
+    {
+        var sanitisedSubmissionId = SubmissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedComplianceSchemeId = ComplianceSchemeId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+        if (!string.IsNullOrWhiteSpace(sanitisedComplianceSchemeId))
+        {
+            logger.LogInformation("{LogPrefix}: SubmissionsController - Api Route 'v1/pom-resubmission-paycal-parameters/{SubmissionId}?{ComplianceSchemeId}: Get resubmissions paycal parameters for Submission and ComplianceScheme", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
+        }
+        else
+        {
+            logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom-resubmission-paycal-parameters/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
+        }
+
+        try
+        {
+            PomResubmissionPaycalParameters objRet = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
+
+            if (objRet is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NoContent();
+            }
+
+            return objRet;
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }

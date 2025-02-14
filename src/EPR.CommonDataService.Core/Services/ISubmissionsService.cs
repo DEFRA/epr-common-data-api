@@ -16,4 +16,5 @@ public interface ISubmissionsService
 
     Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request);
 
+    Task<PomResubmissionPaycalParameters?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId);
 }

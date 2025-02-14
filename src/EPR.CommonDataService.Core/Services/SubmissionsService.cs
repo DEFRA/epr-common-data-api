@@ -138,4 +138,45 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             throw new DataException("An exception occurred when executing query.", ex);
         }
     }
+
+    public async Task<PomResubmissionPaycalParameters?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
+        var sql = "[dbo].[sp_PomResubmissionPaycalParameters]";
+
+        SqlParameter[] sqlParameters =
+{           new("@SubmissionId", SqlDbType.NVarChar,40)
+            {
+                Value = (object)sanitisedSubmissionId ?? (object)DBNull.Value
+            }
+        };
+        if (!string.IsNullOrWhiteSpace(sanitisedComplianceSchemeId))
+        {
+            sqlParameters = (SqlParameter[])sqlParameters.Append(
+                new SqlParameter("@ComplianceSchemeId", SqlDbType.NVarChar, 40)
+                {
+                    Value = (object)sanitisedComplianceSchemeId
+                }
+            );
+        }
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+            var dbSet = await accountsDbContext.RunSPCommandAsync<PomResubmissionPaycalParameters>(sql, logger, _logPrefix, sqlParameters);
+            logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get GetResubmissionPaycalParameters Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
+
+            return dbSet.FirstOrDefault();
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
 }
