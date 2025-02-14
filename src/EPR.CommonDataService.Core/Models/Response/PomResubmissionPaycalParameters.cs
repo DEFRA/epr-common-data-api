@@ -9,6 +9,6 @@ namespace EPR.CommonDataService.Core.Models.Response
     public class PomResubmissionPaycalParameters
     {
         public int? MemberCount { get; set; }
-        public string? ReferenceNumber { get; set; }
+        public string? Reference { get; set; }
     }
 }
