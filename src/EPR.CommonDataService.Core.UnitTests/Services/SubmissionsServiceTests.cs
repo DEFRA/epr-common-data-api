@@ -727,9 +727,25 @@ public class SubmissionsServiceTests
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
                 It.IsAny<SqlParameter[]>()))
-            .ThrowsAsync(new TimeoutException());
+            .ThrowsAsync(BuildSqlException(-2));
 
         // Act & Assert
         await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsDataException_When_SQLException_Occurs()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParameters>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-1));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
     }
 }
