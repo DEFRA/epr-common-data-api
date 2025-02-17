@@ -445,7 +445,7 @@ public class SubmissionsControllerTests
         var objectResult = result.Result as ObjectResult;
         objectResult.Should().NotBeNull();
         objectResult!.StatusCode.Should().Be(StatusCodes.Status428PreconditionRequired);
-        objectResult.Value.Should().Be("No Resubmissions have been received");
+        objectResult.Value.Should().Be("Db Schema isn't updated to include PomResubmission ReferenceNumber");
     }
 
     [TestMethod]

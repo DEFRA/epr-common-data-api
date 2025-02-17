@@ -223,11 +223,16 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            if ( !dbResult.ReferenceAvailable )
+            if ( !dbResult.ReferenceAvailable)
             {
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
-                return StatusCode(StatusCodes.Status428PreconditionRequired, "No Resubmissions have been received");
-            }
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
+            } 
+            //else if (dbResult.ReferenceAvailable && dbResult.Reference is null)
+            //{
+            //    logger.LogError("The Data for POM Resubmissions doesn't have a ReferenceNumber.");
+            //    return StatusCode(StatusCodes.Status428PreconditionRequired, "Pom Resubmission doesn't have a reference number");
+            //}
 
             PomResubmissionPaycalParametersDto objRet = new PomResubmissionPaycalParametersDto { Reference = dbResult.Reference, MemberCount = dbResult.MemberCount };
             return Ok(objRet);

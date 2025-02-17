@@ -9,6 +9,7 @@ BEGIN
 	DECLARE @original_file_accepted NVARCHAR(4000);
 	DECLARE @original_file_resubmitted NVARCHAR(4000);
 
+
 --IDENTIFY FILES TO COMPARE--
 WITH latestSubmittedFiles AS (
     -- Identify the latest submitted file for each organization and submission period
@@ -209,6 +210,4 @@ SELECT @MemberCount = COUNT(DISTINCT organisation_id) FROM(
 	FROM find_removed_members))sub;
 
 	END;
-
-SELECT @MemberCount as MemberCount;
 GO
