@@ -141,24 +141,20 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
     public async Task<PomResubmissionPaycalParameters?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
     {
-        logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get sp_PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
         var sql = "[dbo].[sp_PomResubmissionPaycalParameters]";
 
         SqlParameter[] sqlParameters =
-{           new("@SubmissionId", SqlDbType.NVarChar,40)
+        {           
+            new("@SubmissionId", SqlDbType.NVarChar,40)
             {
-                Value = (object)sanitisedSubmissionId ?? (object)DBNull.Value
+                Value = sanitisedSubmissionId ?? (object)DBNull.Value
+            },
+            new ("@ComplianceSchemeId", SqlDbType.NVarChar, 40)
+            {
+                Value = sanitisedComplianceSchemeId ?? (object)DBNull.Value
             }
         };
-        if (!string.IsNullOrWhiteSpace(sanitisedComplianceSchemeId))
-        {
-            sqlParameters = (SqlParameter[])sqlParameters.Append(
-                new SqlParameter("@ComplianceSchemeId", SqlDbType.NVarChar, 40)
-                {
-                    Value = (object)sanitisedComplianceSchemeId
-                }
-            );
-        }
 
         try
         {

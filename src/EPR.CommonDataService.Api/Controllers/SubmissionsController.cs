@@ -194,10 +194,12 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PomResubmissionPaycalParameters>> POMResubmission_PaycalParameters([FromRoute] Guid SubmissionId, [FromQuery] Guid? ComplianceSchemeId)
+    public async Task<ActionResult<PomResubmissionPaycalParametersDto>> POMResubmission_PaycalParameters([FromRoute] Guid SubmissionId, [FromQuery] Guid? ComplianceSchemeId)
     {
         var sanitisedSubmissionId = SubmissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         var sanitisedComplianceSchemeId = ComplianceSchemeId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
@@ -213,15 +215,22 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
         try
         {
-            PomResubmissionPaycalParameters objRet = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
+            PomResubmissionPaycalParameters? dbResult = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
 
-            if (objRet is null)
+            if (dbResult is null)
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
                 return NoContent();
             }
 
-            return objRet;
+            if ( !dbResult.ReferenceAvailable )
+            {
+                logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "No Resubmissions have been received");
+            }
+
+            PomResubmissionPaycalParametersDto objRet = new PomResubmissionPaycalParametersDto { Reference = dbResult.Reference, MemberCount = dbResult.MemberCount };
+            return Ok(objRet);
         }
         catch (TimeoutException ex)
         {
