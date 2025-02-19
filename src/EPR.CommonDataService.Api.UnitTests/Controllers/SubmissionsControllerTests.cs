@@ -410,20 +410,20 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
-    public async Task POMResubmission_PaycalParameters_ShouldReturnNoContent_WhenSubmissionNotFound()
+    public async Task POMResubmission_PaycalParameters_ShouldReturnNotFound_WhenSubmissionNotFound()
     {
         // Arrange
         var submissionId = Guid.NewGuid();
 
         _mockSubmissionsService
             .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((PomResubmissionPaycalParametersDto)null);
+            .ReturnsAsync(default(PomResubmissionPaycalParametersDto));
 
         // Act
         var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
 
         // Assert
-        result.Result.Should().BeOfType<NoContentResult>();
+        result.Result.Should().BeOfType<NotFoundResult>();
     }
 
     [TestMethod]
