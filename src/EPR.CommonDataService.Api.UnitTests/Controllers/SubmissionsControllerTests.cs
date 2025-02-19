@@ -395,7 +395,7 @@ public class SubmissionsControllerTests
         // Arrange
         var submissionId = Guid.NewGuid();
         var complianceSchemeId = Guid.NewGuid();
-        var expectedResult = new PomResubmissionPaycalParameters { MemberCount = 0, Reference = "Ref", ReferenceAvailable = true };
+        var expectedResult = new PomResubmissionPaycalParametersDto { MemberCount = 0, Reference = "Ref", ReferenceFieldAvailable = true };
 
         _mockSubmissionsService
             .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
@@ -417,7 +417,7 @@ public class SubmissionsControllerTests
 
         _mockSubmissionsService
             .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((PomResubmissionPaycalParameters)null);
+            .ReturnsAsync((PomResubmissionPaycalParametersDto)null);
 
         // Act
         var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
@@ -432,7 +432,7 @@ public class SubmissionsControllerTests
         // Arrange
         var submissionId = Guid.NewGuid();
         var complianceSchemeId = Guid.NewGuid();
-        var response = new PomResubmissionPaycalParameters { ReferenceAvailable = false };
+        var response = new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = false };
 
         _mockSubmissionsService
             .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))

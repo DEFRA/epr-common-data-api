@@ -5,7 +5,7 @@ GO
 CREATE PROC [dbo].[sp_PomResubmissionPaycalParameters] @SubmissionId nvarchar(40), @ComplianceSchemeId nvarchar(40)
 as
 begin
-	declare @IsResubmission BIT = 0,
+	declare @IsResubmission BIT = NULL,
 		    @ResubmissionDate nvarchar(50),
 			@Membercount INT = NULL,
 			@Reference nvarchar(50) = NULL,
@@ -65,20 +65,43 @@ begin
 															@SubmissionPeriod, 
 															@MemberCount OUTPUT;
 			END
+
+			SELECT 
+			CASE 
+				WHEN @ComplianceSchemeId IS NOT NULL THEN @MemberCount
+				ELSE CAST(NULL as INT)
+			END AS MemberCount,
+			CASE 
+				WHEN @ComplianceSchemeId IS NULL AND @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
+				ELSE @Reference
+			END AS Reference,
+			@ResubmissionDate as ResubmissionDate,
+			@IsResubmission as IsResubmission,
+			@ReferenceAvailable AS ReferenceFieldAvailable
+		END
+		ELSE
+		BEGIN
+			if (@IsResubmission = 0)
+			BEGIN
+				SELECT 
+					CAST(NULL as INT) AS MemberCount,
+					CAST(NULL AS NVARCHAR(50)) as Reference,
+					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
+					CAST(0 AS BIT) as IsResubmission,
+					@ReferenceAvailable as ReferenceFieldAvailable
+			END
+
+			if (@IsResubmission IS NULL)
+			BEGIN
+				SELECT 
+					CAST(NULL as INT) AS MemberCount,
+					CAST(NULL AS NVARCHAR(50)) as Reference,
+					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
+					CAST(NULL AS BIT) as IsResubmission,
+					CAST(NULL AS BIT) as ReferenceFieldAvailable
+				WHERE 1=0;
+			END
 		END
 	END
-
-	SELECT 
-    CASE 
-        WHEN @ComplianceSchemeId IS NOT NULL THEN @MemberCount
-        ELSE CAST(NULL as INT)
-    END AS MemberCount,
-    CASE 
-        WHEN @ComplianceSchemeId IS NULL AND @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
-        ELSE @Reference
-    END AS Reference,
-	@ResubmissionDate as ResubmissionDate,
-	@IsResubmission as IsResubmission,
-    @ReferenceAvailable AS ReferenceAvailable
 end;
 GO

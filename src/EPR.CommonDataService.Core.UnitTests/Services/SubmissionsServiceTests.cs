@@ -677,13 +677,13 @@ public class SubmissionsServiceTests
     public async Task GetResubmissionPaycalParameters_ReturnsValidData()
     {
         // Arrange
-        var mockData = new List<PomResubmissionPaycalParameters>
+        var mockData = new List<PomResubmissionPaycalParametersDto>
         {
-            new PomResubmissionPaycalParameters { ReferenceAvailable = true }
+            new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = true }
         };
 
         _mockSynapseContext
-            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParameters>(
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -695,7 +695,7 @@ public class SubmissionsServiceTests
 
         // Assert
         Assert.IsNotNull(result);
-        Assert.IsTrue(result.ReferenceAvailable);
+        Assert.IsTrue(result.ReferenceFieldAvailable);
     }
 
     [TestMethod]
@@ -703,12 +703,12 @@ public class SubmissionsServiceTests
     {
         // Arrange
         _mockSynapseContext
-            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParameters>(
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
                 It.IsAny<SqlParameter[]>()))
-            .ReturnsAsync(new List<PomResubmissionPaycalParameters>());
+            .ReturnsAsync(new List<PomResubmissionPaycalParametersDto>());
 
         // Act
         var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
@@ -722,7 +722,7 @@ public class SubmissionsServiceTests
     {
         // Arrange
         _mockSynapseContext
-            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParameters>(
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -738,7 +738,7 @@ public class SubmissionsServiceTests
     {
         // Arrange
         _mockSynapseContext
-            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParameters>(
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),

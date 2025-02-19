@@ -139,7 +139,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         }
     }
 
-    public async Task<PomResubmissionPaycalParameters?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
+    public async Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get sp_PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
         var sql = "[dbo].[sp_PomResubmissionPaycalParameters]";
@@ -159,7 +159,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSPCommandAsync<PomResubmissionPaycalParameters>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await accountsDbContext.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(sql, logger, _logPrefix, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get GetResubmissionPaycalParameters Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
 
             return dbSet.FirstOrDefault();

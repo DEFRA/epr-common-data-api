@@ -215,27 +215,27 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
         try
         {
-            PomResubmissionPaycalParameters? dbResult = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
+            PomResubmissionPaycalParametersDto? dbResult = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
 
             if (dbResult is null)
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
-                return NoContent();
+                return NotFound();
             }
 
-            if ( !dbResult.ReferenceAvailable)
+            if (!dbResult.ReferenceFieldAvailable)
             {
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
                 return StatusCode(StatusCodes.Status428PreconditionRequired, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
-            } 
-            //else if (dbResult.ReferenceAvailable && dbResult.Reference is null)
+            }
+            //else if (dbResult.Reference is null)
             //{
-            //    logger.LogError("The Data for POM Resubmissions doesn't have a ReferenceNumber.");
-            //    return StatusCode(StatusCodes.Status428PreconditionRequired, "Pom Resubmission doesn't have a reference number");
+            //    var message = $"The data for POM Resubmissions {sanitisedSubmissionId} doesn't have a required reference number.";
+            //    logger.LogWarning(message);
+            //    return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
             //}
 
-            PomResubmissionPaycalParametersDto objRet = new PomResubmissionPaycalParametersDto { Reference = dbResult.Reference, MemberCount = dbResult.MemberCount };
-            return Ok(objRet);
+        return Ok(dbResult);
         }
         catch (TimeoutException ex)
         {
