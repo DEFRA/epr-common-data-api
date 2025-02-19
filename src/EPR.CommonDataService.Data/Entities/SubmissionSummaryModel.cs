@@ -27,5 +27,5 @@ public class SubmissionSummaryModel
 
     public int MemberCount { get; set; } = 0;
 
-    public string ReferenceNumber { get; set; } = string.Empty
+    public string ReferenceNumber { get; set; } = string.Empty;
 }
