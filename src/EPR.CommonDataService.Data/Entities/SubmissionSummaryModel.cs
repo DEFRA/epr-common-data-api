@@ -24,4 +24,8 @@ public class SubmissionSummaryModel
     public bool IsResubmission { get; set; }
     public string PreviousRejectionComments { get; set; }
     public int NationId { get; set; }
+
+    public int MemberCount { get; set; } = 0;
+
+    public string ReferenceNumber { get; set; } = string.Empty;
 }
