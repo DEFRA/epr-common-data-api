@@ -6,13 +6,16 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-ALTER PROC [dbo].[sp_OrganisationRegistrationSummaries_R9] AS
+CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries_R9] AS
 BEGIN
 	SET NOCOUNT ON;
 
     -- Variable to hold the dynamically constructed SQL query
     DECLARE @ProdCommentsSQL NVARCHAR(MAX);
 
+	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
+		DROP TABLE #ProdCommentsRegulatorDecisions;
+	
 	SET @ProdCommentsSQL = N'
 		select *, ROW_NUMBER() OVER(
 					  ORDER BY orderedsubevents.DecisionDate DESC
@@ -257,7 +260,7 @@ BEGIN
 			,submissions.OrganisationInternalId
             ,submissions.OrganisationName
 			,submissions.UploadedOrganisationName
-            ,submissions.ReferenceNumber as OrganisationReferenceNumber
+            ,submissions.ReferenceNumber as OrganisationReference
             ,submissions.SubmittedUserId
             ,submissions.IsComplianceScheme
 			,CASE 
@@ -291,4 +294,3 @@ BEGIN
 		AllSubmissionsAndDecisionsAndCommentCTE submissions;
 	END;
 GO
-

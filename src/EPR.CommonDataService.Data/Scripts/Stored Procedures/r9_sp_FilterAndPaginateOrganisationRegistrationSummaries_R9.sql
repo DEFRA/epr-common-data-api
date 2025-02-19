@@ -6,7 +6,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_R9] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
+CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_R9] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100), @ResubmissionStatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (
@@ -15,13 +15,15 @@ BEGIN
 		WHERE [name] = 'AppReferenceNumber' AND [object_id] = OBJECT_ID('rpd.Submissions')
 	)
 	BEGIN
+		IF OBJECT_ID('tempdb..#TempTable') IS NOT NULL
+			DROP TABLE #TempTable;
 		CREATE TABLE #TempTable (
 			SubmissionId NVARCHAR(150) NULL,
 			OrganisationId NVARCHAR(150) NULL,
 			OrganisationInternalId INT NULL,
 			OrganisationName NVARCHAR(500) NULL,
 			UploadedOrganisationName NVARCHAR(500) NULL,
-			OrganisationReferenceNumber NVARCHAR(25) NULL,
+			OrganisationReference NVARCHAR(25) NULL,
 			SubmittedUserId NVARCHAR(150) NULL,
 			IsComplianceScheme BIT,
 			OrganisationType NVARCHAR(50) NULL,
@@ -54,7 +56,7 @@ BEGIN
 					OrganisationId,
 					OrganisationInternalId,
 					OrganisationName,
-					OrganisationReferenceNumber,
+					OrganisationReference,
 					OrganisationType,
 					ProducerSize,
 					SubmissionStatus,
@@ -102,7 +104,7 @@ BEGIN
                         1
                     FROM
                         STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
-                    WHERE OrganisationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    WHERE OrganisationReference LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
                         OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
                         OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
                             )
@@ -126,7 +128,7 @@ BEGIN
                         1
                     FROM
                         STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
-                    WHERE OrganisationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    WHERE OrganisationReference LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
                         OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
                         OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
                             )
@@ -158,13 +160,22 @@ BEGIN
                             )
                     )
                 )
-                    AND (
+                AND (
                     ISNULL(@StatusesCommaSeparated, '') = ''
                     OR SubmissionStatus IN (
                         SELECT
                         TRIM(value)
                     FROM
                         STRING_SPLIT(@StatusesCommaSeparated, ',')
+                    )
+                )
+                AND (
+                    ISNULL(@ResubmissionStatusesCommaSeparated, '') = ''
+                    OR ResubmissionStatus IN (
+                        SELECT
+                        TRIM(value)
+                    FROM
+                        STRING_SPLIT(@ResubmissionStatusesCommaSeparated, ',')
                     )
                 )
             )
@@ -176,14 +187,16 @@ BEGIN
 						*
 					,ROW_NUMBER() OVER (
 					ORDER BY CASE
-						WHEN SubmissionStatus = 'Cancelled' THEN 6
-						WHEN SubmissionStatus = 'Refused' THEN 5
-						WHEN SubmissionStatus = 'Granted' THEN 4
-						WHEN SubmissionStatus = 'Queried' THEN 3
+						WHEN ResubmissionStatus = 'Rejected' THEN 6
+						WHEN ResubmissionStatus = 'Accepted' THEN 3
+						WHEN SubmissionStatus = 'Cancelled' THEN 8
+						WHEN SubmissionStatus = 'Refused' THEN 7
+						WHEN SubmissionStatus = 'Granted' THEN 5
+						WHEN SubmissionStatus = 'Queried' THEN 4
 						WHEN SubmissionStatus = 'Pending' THEN 2
 						WHEN SubmissionStatus = 'Updated' THEN 1
 					END,
-					SubmittedDateTime
+					SubmittedDateTime DESC
 			) AS RowNum
 					FROM
 						NormalFilterCTE
