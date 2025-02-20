@@ -19,9 +19,6 @@ namespace EPR.CommonDataService.Data.Entities
         public string RegistrationReferenceNumber { get; set; }
         public int RelevantYear { get; set; }
         public string SubmittedDateTime { get; set; }
-        public string RegulatorCommentDate { get; set; }
-        public string ProducerCommentDate { get; set; }
-        public Guid? RegulatorUserId { get; set; }
         public int NationId { get; set; }
         public bool IsResubmission { get; set; }
     }

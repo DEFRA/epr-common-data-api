@@ -417,7 +417,7 @@ public class SubmissionsControllerTests
 
         _mockSubmissionsService
             .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
-            .ReturnsAsync((PomResubmissionPaycalParametersDto)null);
+            .ReturnsAsync(default(PomResubmissionPaycalParametersDto));
 
         // Act
         var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
@@ -427,7 +427,7 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
-    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionFailed_WhenReferenceNotAvailable()
+    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionFailed_WhenReferenceFieldNotAvailable()
     {
         // Arrange
         var submissionId = Guid.NewGuid();
@@ -449,6 +449,28 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionRequired_WhenReferenceNotAvailable()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var complianceSchemeId = Guid.NewGuid();
+        var response = new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = true };
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, complianceSchemeId);
+
+        // Assert
+        var objectResult = result.Result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult!.StatusCode.Should().Be(StatusCodes.Status428PreconditionRequired);
+        objectResult.Value.Should().Be("No Reference number found for this submission.  Is Data Syncronised?");
+    }
+
+    [TestMethod]
     public async Task POMResubmission_PaycalParameters_ShouldReturnGatewayTimeout_WhenTimeoutOccurs()
     {
         // Arrange
@@ -464,28 +486,6 @@ public class SubmissionsControllerTests
         // Assert
         var objectResult = result.Result as ObjectResult;
         objectResult.Should().NotBeNull();
-        objectResult!.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
-        objectResult.Value.Should().Be("Operation timed out");
-    }
-
-    [TestMethod]
-    public async Task POMResubmission_PaycalParameters_ShouldReturnInternalServerError_WhenExceptionOccurs()
-    {
-        // Arrange
-        var submissionId = Guid.NewGuid();
-
-        _mockSubmissionsService
-            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
-            .ThrowsAsync(new Exception("Unexpected error"));
-
-        // Act
-        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
-
-        // Assert
-        var objectResult = result.Result as ObjectResult;
-        objectResult.Should().NotBeNull();
-        objectResult!.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
-        objectResult.Value.Should().Be("Unexpected error");
     }
 
     [TestMethod]

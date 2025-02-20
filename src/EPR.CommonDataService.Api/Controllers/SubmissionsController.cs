@@ -230,10 +230,9 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
             }
             
-            if (dbResult.Reference is null)
+            if (string.IsNullOrWhiteSpace(dbResult.Reference))
             {
-                var message = $"The data for POM Resubmissions {sanitisedSubmissionId} doesn't have a required reference number.";
-                logger.LogError(message);
+                logger.LogError("The data for POM Resubmissions {SubmissionId} doesn't have a required reference number.", sanitisedSubmissionId);
                 return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
             }
 
