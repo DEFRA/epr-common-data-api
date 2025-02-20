@@ -1,5 +1,6 @@
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
+using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
@@ -185,6 +186,65 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         catch (Exception ex)
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("pom-resubmission-paycal-parameters/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PomResubmissionPaycalParametersDto>> POMResubmission_PaycalParameters([FromRoute] Guid SubmissionId, [FromQuery] Guid? ComplianceSchemeId)
+    {
+        var sanitisedSubmissionId = SubmissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedComplianceSchemeId = ComplianceSchemeId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+        if (!string.IsNullOrWhiteSpace(sanitisedComplianceSchemeId))
+        {
+            logger.LogInformation("{LogPrefix}: SubmissionsController - Api Route 'v1/pom-resubmission-paycal-parameters/{SubmissionId}?{ComplianceSchemeId}: Get resubmissions paycal parameters for Submission and ComplianceScheme", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
+        }
+        else
+        {
+            logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom-resubmission-paycal-parameters/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
+        }
+
+        try
+        {
+            PomResubmissionPaycalParametersDto? dbResult = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
+
+            if (dbResult is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NotFound();
+            }
+
+            if (!dbResult.ReferenceFieldAvailable)
+            {
+                logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
+            }
+            //else if (dbResult.Reference is null)
+            //{
+            //    var message = $"The data for POM Resubmissions {sanitisedSubmissionId} doesn't have a required reference number.";
+            //    logger.LogWarning(message);
+            //    return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
+            //}
+
+        return Ok(dbResult);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }

@@ -73,5 +73,6 @@ namespace EPR.CommonDataService.Data.Entities
         public string BrandsFileName { get; set; }
         public string BrandsBlobName { get; set; }
         public string CSOJson { get; set; }
+        public bool IsResubmission { get; set; }
     }
 }

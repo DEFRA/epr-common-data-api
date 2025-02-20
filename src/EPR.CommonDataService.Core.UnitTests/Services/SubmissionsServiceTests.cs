@@ -1,8 +1,10 @@
 ﻿using AutoFixture;
 using EPR.CommonDataService.Core.Models.Requests;
+using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
+using FluentAssertions.Common;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -668,5 +670,82 @@ public class SubmissionsServiceTests
             Console.WriteLine(ex);
             throw;
         }
+    }
+
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ReturnsValidData()
+    {
+        // Arrange
+        var mockData = new List<PomResubmissionPaycalParametersDto>
+        {
+            new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = true }
+        };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result.ReferenceFieldAvailable);
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ReturnsNull_WhenNoData()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(new List<PomResubmissionPaycalParametersDto>());
+
+        // Act
+        var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
+
+        // Assert
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsTimeoutException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsDataException_When_SQLException_Occurs()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-1));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
     }
 }

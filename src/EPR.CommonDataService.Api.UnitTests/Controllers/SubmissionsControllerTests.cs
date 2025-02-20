@@ -20,7 +20,7 @@ public class SubmissionsControllerTests
 {
     private readonly Mock<ILogger<SubmissionsController>> _logger = new();
     private SubmissionsController _submissionsController = null!;
-    private readonly Mock<ISubmissionsService> _submissionsService = new();
+    private readonly Mock<ISubmissionsService> _mockSubmissionsService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
     private Fixture _fixture = null!;
 
@@ -40,7 +40,7 @@ public class SubmissionsControllerTests
         var configurationMock = new Mock<IConfiguration>();
         configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
-        _submissionsController = new SubmissionsController(_submissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
+        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -56,7 +56,7 @@ public class SubmissionsControllerTests
         var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorPomDecision>>();
         var serviceResponse = _fixture.Create<PaginatedResponse<PomSubmissionSummary>>();
 
-        _submissionsService.Setup(service => service.GetSubmissionPomSummaries(request))
+        _mockSubmissionsService.Setup(service => service.GetSubmissionPomSummaries(request))
             .ReturnsAsync(serviceResponse);
 
         // Act
@@ -74,7 +74,7 @@ public class SubmissionsControllerTests
         var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorRegistrationDecision>>();
         var serviceResponse = _fixture.Create<PaginatedResponse<RegistrationSubmissionSummary>>();
 
-        _submissionsService.Setup(service => service.GetSubmissionRegistrationSummaries(request))
+        _mockSubmissionsService.Setup(service => service.GetSubmissionRegistrationSummaries(request))
             .ReturnsAsync(serviceResponse);
 
         // Act
@@ -91,7 +91,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
 
-        _submissionsService
+        _mockSubmissionsService
             .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(expectedResponse);
 
@@ -107,7 +107,7 @@ public class SubmissionsControllerTests
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNoContent()
     {
         // Arrange
-        _submissionsService
+        _mockSubmissionsService
             .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new List<ApprovedSubmissionEntity>());
 
@@ -139,7 +139,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "The operation has timed out.";
 
-        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
+        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -158,7 +158,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "An unexpected error occurred.";
 
-        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
+        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -198,11 +198,11 @@ public class SubmissionsControllerTests
                     .With(x => x.PageNumber, 1)
                     .Create();
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, It.IsAny<OrganisationRegistrationFilterRequest>())).Verifiable();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, It.IsAny<OrganisationRegistrationFilterRequest>())).Verifiable();
 
         await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
-        _submissionsService.Verify(
+        _mockSubmissionsService.Verify(
             x => x.GetOrganisationRegistrationSubmissionSummaries(
                 1,
                 It.IsAny<OrganisationRegistrationFilterRequest>()
@@ -221,7 +221,7 @@ public class SubmissionsControllerTests
                     .Create();
 
         _submissionsController.ModelState.AddModelError("PageSize", "PageSize is required");
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1,It.IsAny<OrganisationRegistrationFilterRequest>())).Verifiable();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1,It.IsAny<OrganisationRegistrationFilterRequest>())).Verifiable();
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
@@ -241,7 +241,7 @@ public class SubmissionsControllerTests
                     .With(x => x.PageNumber, 1)
                     .Create();
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).Throws<TimeoutException>();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).Throws<TimeoutException>();
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
@@ -259,7 +259,7 @@ public class SubmissionsControllerTests
                     .With(x => x.PageNumber, 1)
                     .Create();
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).Throws<Exception>();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).Throws<Exception>();
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
@@ -279,7 +279,7 @@ public class SubmissionsControllerTests
 
         PaginatedResponse<OrganisationRegistrationSummaryDto>? innerResult = new PaginatedResponse<OrganisationRegistrationSummaryDto> { Items = [], CurrentPage = 1, PageSize = 1, TotalItems = 0 };
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).ReturnsAsync(innerResult);
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).ReturnsAsync(innerResult);
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
         var properResult = result as NoContentResult;
@@ -302,7 +302,7 @@ public class SubmissionsControllerTests
             }], 
             CurrentPage = 1, PageSize = 1, TotalItems = 1 };
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).ReturnsAsync(innerResult);
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).ReturnsAsync(innerResult);
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
         var properResult = result as OkObjectResult;
@@ -329,11 +329,11 @@ public class SubmissionsControllerTests
     {
         var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
         
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Verifiable();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Verifiable();
         
         await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
-        _submissionsService.Verify(
+        _mockSubmissionsService.Verify(
                     x => x.GetOrganisationRegistrationSubmissionDetails(
                         It.IsAny<OrganisationRegistrationDetailRequest>()
                     ),
@@ -346,7 +346,7 @@ public class SubmissionsControllerTests
     {
         var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<TimeoutException>();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<TimeoutException>();
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
@@ -360,7 +360,7 @@ public class SubmissionsControllerTests
     {
         var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<Exception>();
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<Exception>();
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
@@ -381,11 +381,113 @@ public class SubmissionsControllerTests
             SubmissionId = Guid.NewGuid()
         };
 
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).ReturnsAsync(innerResult);
+        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).ReturnsAsync(innerResult);
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
         var properResult = result as OkObjectResult;
         properResult.Should().NotBeNull();
         properResult?.StatusCode.Should().Be(StatusCodes.Status200OK);
     }
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnOk_WhenValidSubmissionExists()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var complianceSchemeId = Guid.NewGuid();
+        var expectedResult = new PomResubmissionPaycalParametersDto { MemberCount = 0, Reference = "Ref", ReferenceFieldAvailable = true };
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(expectedResult);
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, complianceSchemeId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().BeOfType<PomResubmissionPaycalParametersDto>();
+    }
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnNotFound_WhenSubmissionNotFound()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(default(PomResubmissionPaycalParametersDto));
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
+
+        // Assert
+        result.Result.Should().BeOfType<NotFoundResult>();
+    }
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionRequired_WhenReferenceNotAvailable()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var complianceSchemeId = Guid.NewGuid();
+        var response = new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = false };
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, complianceSchemeId);
+
+        // Assert
+        var objectResult = result.Result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult!.StatusCode.Should().Be(StatusCodes.Status428PreconditionRequired);
+        objectResult.Value.Should().Be("Db Schema isn't updated to include PomResubmission ReferenceNumber");
+    }
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnGatewayTimeout_WhenTimeoutOccurs()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new TimeoutException("Operation timed out"));
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
+
+        // Assert
+        var objectResult = result.Result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult!.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+        objectResult.Value.Should().Be("Operation timed out");
+    }
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnInternalServerError_WhenExceptionOccurs()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
+
+        // Assert
+        var objectResult = result.Result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult!.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        objectResult.Value.Should().Be("Unexpected error");
+    }
+
+
+
 }
