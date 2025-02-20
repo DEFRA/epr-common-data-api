@@ -7,24 +7,23 @@ using Microsoft.Data.SqlClient;
 
 namespace EPR.CommonDataService.Core.Services;
 
-public interface IFeeCalculationDetailsService
+public interface IRegistrationFeeCalculationDetailsService
 {
-    Task<FeeCalculationDetails[]?> GetFeeCalculationDetails(Guid fileId);
+    Task<RegistrationFeeCalculationDetails[]?> GetRegistrationFeeCalculationDetails(Guid fileId);
 }
 
-public class FeeCalculationDetailsService(
-    SynapseContext synapseContext)
-    : IFeeCalculationDetailsService
+public class RegistrationFeeCalculationDetailsService(SynapseContext synapseContext)
+    : IRegistrationFeeCalculationDetailsService
 {
-    public async Task<FeeCalculationDetails[]?> GetFeeCalculationDetails(Guid fileId)
+    public async Task<RegistrationFeeCalculationDetails[]?> GetRegistrationFeeCalculationDetails(Guid fileId)
     {
         try
         {
-            const string Sql = "EXECUTE dbo.sp_GetFeeCalculationDetails @fileId";
-            var dbResponse = await synapseContext.RunSqlAsync<FeeCalculationDetailsModel>(Sql, new SqlParameter("@fileId", SqlDbType.VarChar, 40) { Value = fileId.ToString("D") });
+            const string Sql = "EXECUTE dbo.sp_GetRegistrationFeeCalculationDetails @fileId";
+            var dbResponse = await synapseContext.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(Sql, new SqlParameter("@fileId", SqlDbType.VarChar, 40) { Value = fileId.ToString("D") });
             if (dbResponse.Count > 0)
             {
-                var response = dbResponse.Select(resp => new FeeCalculationDetails
+                var response = dbResponse.Select(resp => new RegistrationFeeCalculationDetails
                 {
                     IsOnlineMarketplace = resp.IsOnlineMarketplace,
                     NumberOfSubsidiaries = resp.NumberOfSubsidiaries,

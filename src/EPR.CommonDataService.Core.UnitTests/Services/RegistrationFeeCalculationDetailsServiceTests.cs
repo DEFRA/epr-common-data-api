@@ -7,16 +7,16 @@ using Moq;
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
 [TestClass]
-public class FeeCalculationDetailsServiceTests
+public class RegistrationFeeCalculationDetailsServiceTests
 {
     private Mock<SynapseContext> _synapseContextMock = null!;
-    private FeeCalculationDetailsService _service = null!;
+    private RegistrationFeeCalculationDetailsService _service = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _synapseContextMock = new Mock<SynapseContext>();
-        _service = new FeeCalculationDetailsService(_synapseContextMock.Object);
+        _service = new RegistrationFeeCalculationDetailsService(_synapseContextMock.Object);
     }
 
     [TestMethod]
@@ -24,9 +24,9 @@ public class FeeCalculationDetailsServiceTests
     {
         // Arrange
         var fileId = Guid.NewGuid();
-        var expectedData = new List<FeeCalculationDetailsModel>
+        var expectedData = new List<RegistrationFeeCalculationDetailsModel>
         {
-            new FeeCalculationDetailsModel
+            new RegistrationFeeCalculationDetailsModel
             {
                 OrganisationSize = "L",
                 NumberOfSubsidiaries = 54,
@@ -35,11 +35,11 @@ public class FeeCalculationDetailsServiceTests
             }
         };
         _synapseContextMock
-         .Setup(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+         .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
            .ReturnsAsync(expectedData);
 
         // Act
-        var result = await _service.GetFeeCalculationDetails(fileId);
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
 
         // Assert
         result.Should().NotBeNull();
@@ -49,7 +49,7 @@ public class FeeCalculationDetailsServiceTests
         result[0].IsOnlineMarketplace.Should().BeTrue();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
+            .Verify(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
                 Times.Once);
 
     }
@@ -60,9 +60,9 @@ public class FeeCalculationDetailsServiceTests
         // Arrange
         var fileId = Guid.NewGuid();
 
-        var expectedData = new List<FeeCalculationDetailsModel>
+        var expectedData = new List<RegistrationFeeCalculationDetailsModel>
         {
-            new FeeCalculationDetailsModel
+            new RegistrationFeeCalculationDetailsModel
             {
                 OrganisationSize = "s",
                 NumberOfSubsidiaries = 100,
@@ -72,11 +72,11 @@ public class FeeCalculationDetailsServiceTests
         };
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(expectedData);
 
         // Act
-        var result = await _service.GetFeeCalculationDetails(fileId);
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
 
         // Assert
         result.Should().NotBeNull();
@@ -92,14 +92,14 @@ public class FeeCalculationDetailsServiceTests
         // Arrange
         var fileId = Guid.NewGuid();
 
-        var emptyData = new List<FeeCalculationDetailsModel>();
+        var emptyData = new List<RegistrationFeeCalculationDetailsModel>();
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ReturnsAsync(emptyData);
 
         // Act
-        var result = await _service.GetFeeCalculationDetails(fileId);
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
 
         // Assert
         result.Should().BeNull();
@@ -112,12 +112,12 @@ public class FeeCalculationDetailsServiceTests
         var fileId = Guid.NewGuid();
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+             .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
             .ThrowsAsync(new Exception("Database error"));
 
 
         // Act
-        var result = await _service.GetFeeCalculationDetails(fileId);
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
 
         // Assert
         result.Should().BeNull();
@@ -125,13 +125,13 @@ public class FeeCalculationDetailsServiceTests
 
 
     [TestMethod]
-    public async Task GetFeeCalculationDetails_WhenProducerSizeIsInvalid_ReturnsUnknown()
+    public async Task GetRegistrationFeeCalculationDetails_WhenProducerSizeIsInvalid_ReturnsUnknown()
     {
         // Arrange
         var fileId = Guid.NewGuid();
-        var expectedData = new List<FeeCalculationDetailsModel>
+        var expectedData = new List<RegistrationFeeCalculationDetailsModel>
         {
-            new FeeCalculationDetailsModel
+            new RegistrationFeeCalculationDetailsModel
             {
                 OrganisationSize = "X", // Invalid size
                 NumberOfSubsidiaries = 10,
@@ -140,11 +140,11 @@ public class FeeCalculationDetailsServiceTests
             }
         };
         _synapseContextMock
-           .Setup(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+           .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
            .ReturnsAsync(expectedData);
 
         // Act
-        var result = await _service.GetFeeCalculationDetails(fileId);
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
 
         // Assert
         result.Should().NotBeNull();
@@ -154,7 +154,7 @@ public class FeeCalculationDetailsServiceTests
         result[0].IsOnlineMarketplace.Should().BeFalse();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<FeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
+            .Verify(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
                 Times.Once);
     }
 }

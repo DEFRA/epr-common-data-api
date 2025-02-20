@@ -1,9 +1,9 @@
 ﻿IF EXISTS (SELECT 1 FROM sys.procedures
-            WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetFeeCalculationDetails]'))
-DROP PROCEDURE [dbo].[sp_GetFeeCalculationDetails];
+            WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetRegistrationFeeCalculationDetails]'))
+DROP PROCEDURE [dbo].[sp_GetRegistrationFeeCalculationDetails];
 GO
 
-CREATE PROC [dbo].[sp_GetFeeCalculationDetails] @fileId [varchar](40) AS
+CREATE PROC [dbo].[sp_GetRegistrationFeeCalculationDetails] @fileId [varchar](40) AS
 BEGIN
 SET NOCOUNT ON;
 

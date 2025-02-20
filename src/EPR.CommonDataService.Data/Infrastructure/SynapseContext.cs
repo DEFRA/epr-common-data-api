@@ -22,7 +22,7 @@ public class SynapseContext : DbContext
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
-    public DbSet<FeeCalculationDetailsModel> FeeCalculationDetails { get; set; }
+    public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
     
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -152,7 +152,7 @@ public class SynapseContext : DbContext
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<FeeCalculationDetailsModel>(entity => {
+        modelBuilder.Entity<RegistrationFeeCalculationDetailsModel>(entity => {
             entity.HasNoKey();
         });
 

@@ -1,17 +1,17 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Core.Models.Response;
+namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
-public class FeeCalculationDetails
+public class RegistrationFeeCalculationDetailsModel
 {
-    public string OrganisationId { get; set; } = string.Empty;
+    public int OrganisationId { get; set; }
     
     public int NumberOfSubsidiaries { get; set; }
     
     public int NumberOfSubsidiariesBeingOnlineMarketPlace { get; set; }
     
-    public string OrganisationSize { get; set; } = string.Empty;
+    public string OrganisationSize { get; set; }
     
     public bool IsOnlineMarketplace  { get; set; }
     
