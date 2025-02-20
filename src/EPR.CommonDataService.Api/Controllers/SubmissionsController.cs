@@ -238,15 +238,16 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             return Ok(dbResult);
         }
-        catch (TimeoutException ex)
-        {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
-            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
-        }
         catch (Exception ex)
         {
+            var statusCode = StatusCodes.Status500InternalServerError;
+            if (ex is TimeoutException)
+            {
+                statusCode = StatusCodes.Status504GatewayTimeout;
+            }
+
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            return StatusCode(statusCode, ex.Message);
         }
     }
 
