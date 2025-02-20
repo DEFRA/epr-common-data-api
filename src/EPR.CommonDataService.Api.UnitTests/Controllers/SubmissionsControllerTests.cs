@@ -410,7 +410,7 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
-    public async Task POMResubmission_PaycalParameters_ShouldReturnNotFound_WhenSubmissionNotFound()
+    public async Task POMResubmission_PaycalParameters_ShouldReturnNoContent_WhenSubmissionNotFound()
     {
         // Arrange
         var submissionId = Guid.NewGuid();
@@ -423,11 +423,11 @@ public class SubmissionsControllerTests
         var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
 
         // Assert
-        result.Result.Should().BeOfType<NotFoundResult>();
+        result.Result.Should().BeOfType<NoContentResult>();
     }
 
     [TestMethod]
-    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionRequired_WhenReferenceNotAvailable()
+    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionFailed_WhenReferenceFieldNotAvailable()
     {
         // Arrange
         var submissionId = Guid.NewGuid();
@@ -444,8 +444,30 @@ public class SubmissionsControllerTests
         // Assert
         var objectResult = result.Result as ObjectResult;
         objectResult.Should().NotBeNull();
-        objectResult!.StatusCode.Should().Be(StatusCodes.Status428PreconditionRequired);
+        objectResult!.StatusCode.Should().Be(StatusCodes.Status412PreconditionFailed);
         objectResult.Value.Should().Be("Db Schema isn't updated to include PomResubmission ReferenceNumber");
+    }
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldReturnPreconditionRequired_WhenReferenceNotAvailable()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var complianceSchemeId = Guid.NewGuid();
+        var response = new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = true };
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(response);
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, complianceSchemeId);
+
+        // Assert
+        var objectResult = result.Result as ObjectResult;
+        objectResult.Should().NotBeNull();
+        objectResult!.StatusCode.Should().Be(StatusCodes.Status428PreconditionRequired);
+        objectResult.Value.Should().Be("No Reference number found for this submission.  Is Data Syncronised?");
     }
 
     [TestMethod]

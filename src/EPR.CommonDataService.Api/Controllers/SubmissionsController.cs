@@ -220,22 +220,22 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             if (dbResult is null)
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
-                return NotFound();
+                return NoContent();
             }
 
             if (!dbResult.ReferenceFieldAvailable)
             {
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
-                return StatusCode(StatusCodes.Status428PreconditionRequired, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
+                return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
             }
-            //else if (dbResult.Reference is null)
-            //{
-            //    var message = $"The data for POM Resubmissions {sanitisedSubmissionId} doesn't have a required reference number.";
-            //    logger.LogWarning(message);
-            //    return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
-            //}
+            
+            if (string.IsNullOrWhiteSpace(dbResult.Reference))
+            {
+                logger.LogError("The data for POM Resubmissions {SubmissionId} doesn't have a required reference number.", sanitisedSubmissionId);
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
+            }
 
-        return Ok(dbResult);
+            return Ok(dbResult);
         }
         catch (TimeoutException ex)
         {
