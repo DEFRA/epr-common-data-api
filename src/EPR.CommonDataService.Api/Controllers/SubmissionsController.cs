@@ -2,6 +2,7 @@ using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -157,7 +158,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
         logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Get org registration submissions details for the submission {SubmissionId}", _logPrefix, sanitisedSubmissionId);
-        
+
         try
         {
             if (!SubmissionId.HasValue)
@@ -220,22 +221,23 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             if (dbResult is null)
             {
                 logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
-                return NotFound();
+                return NoContent();
             }
 
             if (!dbResult.ReferenceFieldAvailable)
             {
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
-                return StatusCode(StatusCodes.Status428PreconditionRequired, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
+                return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
             }
-            //else if (dbResult.Reference is null)
-            //{
-            //    var message = $"The data for POM Resubmissions {sanitisedSubmissionId} doesn't have a required reference number.";
-            //    logger.LogWarning(message);
-            //    return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
-            //}
+            
+            if (dbResult.Reference is null)
+            {
+                var message = $"The data for POM Resubmissions {sanitisedSubmissionId} doesn't have a required reference number.";
+                logger.LogError(message);
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
+            }
 
-        return Ok(dbResult);
+            return Ok(dbResult);
         }
         catch (TimeoutException ex)
         {
@@ -245,6 +247,82 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         catch (Exception ex)
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("is_file_synced_with_cosmos/{FileId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<bool>> IsCosmosFileSynchronised([FromRoute] Guid FileId)
+    {
+        var sanitisedFileId = FileId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/is_file_synced_with_cosmos/{FileId}'", _logPrefix, sanitisedFileId);
+
+        try
+        {
+            bool? dbRet = await submissionsService.IsCosmosDataAvailable(null, sanitisedFileId);
+
+            if (!dbRet.HasValue)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedFileId);
+                return Ok(false);
+            }
+
+            return Ok(dbRet);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("is_submission_synced_with_cosmos/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<bool>> IsSubmissionSynchronised([FromRoute] Guid SubmissionId)
+    {
+        var sanitisedSubmissionId = SubmissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/is_submission_synced_with_cosmos/{FileId}'", _logPrefix, sanitisedSubmissionId);
+
+        try
+        {
+            bool? dbRet = await submissionsService.IsCosmosDataAvailable(sanitisedSubmissionId, null);
+
+            if (!dbRet.HasValue)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return Ok(false);
+            }
+
+            return Ok(dbRet);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
