@@ -82,7 +82,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     public async Task<PaginatedResponse<OrganisationRegistrationSummaryDto>?> GetOrganisationRegistrationSubmissionSummaries(int NationId, OrganisationRegistrationFilterRequest filter)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionSummaries: Get OrganisationRegistrationSubmissions for given request", _logPrefix);
-        var sql = "EXECUTE dbo.sp_FilterAndPaginateOrganisationRegistrationSummaries @OrganisationNameCommaSeparated, @OrganisationReferenceCommaSeparated, @SubmissionYearsCommaSeparated, @StatusesCommaSeparated, @OrganisationTypeCommaSeparated, @NationId, @AppRefNumbersCommaSeparated, @PageSize, @PageNumber";
+        var sql = "EXECUTE dbo.sp_FilterAndPaginateOrganisationRegistrationSummaries_R9 @OrganisationNameCommaSeparated, @OrganisationReferenceCommaSeparated, @SubmissionYearsCommaSeparated, @StatusesCommaSeparated, @ResubmissionStatusesCommaSeparated, @OrganisationTypeCommaSeparated, @NationId, @AppRefNumbersCommaSeparated, @PageSize, @PageNumber";
 
         SqlParameter[] sqlParameters = filter.ToProcParams();
 
