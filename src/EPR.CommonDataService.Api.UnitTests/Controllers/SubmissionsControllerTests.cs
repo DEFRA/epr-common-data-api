@@ -488,6 +488,25 @@ public class SubmissionsControllerTests
         objectResult.Should().NotBeNull();
     }
 
+
+    [TestMethod]
+    public async Task POMResubmission_PaycalParameters_ShouldThrow_WhenSqlExceptionOccurrs()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+
+        _mockSubmissionsService
+            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new Exception("DB exception"));
+
+        // Act
+        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
+
+        // Assert
+        var objectResult = result.Result as ObjectResult;
+        objectResult.Should().NotBeNull();
+    }
+
     [TestMethod]
     public async Task IsCosmosFileSynchronised_Should_Return_Ok_False_When_IsCosmosDataAvailable_Returns_Null()
     {

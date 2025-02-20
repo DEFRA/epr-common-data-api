@@ -8,6 +8,6 @@ namespace EPR.CommonDataService.Core.Models
 {
     public class CosmosSyncInfo
     {
-        public bool IsSynced { get; set; }
+        public bool? IsSynced { get; set; }
     }
 }

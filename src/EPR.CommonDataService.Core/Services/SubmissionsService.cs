@@ -200,7 +200,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
             if (dbSet.Count > 0)
             {
-                return dbSet.FirstOrDefault()?.IsSynced ?? false;
+                return dbSet[0].IsSynced;
             }
 
             return false;

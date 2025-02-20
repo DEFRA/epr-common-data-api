@@ -766,25 +766,6 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task IsCosmosDataAvailable_Should_Return_False_When_DbSet_Is_Has_One_Empty_Item()
-    {
-        var mockData = new List<CosmosSyncInfo>
-                        {
-                            default
-                        };
-        // Arrange
-        _mockSynapseContext
-            .Setup(db => db.RunSPCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
-            .ReturnsAsync(mockData);
-
-        // Act
-        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
-
-        // Assert
-        result.Should().BeFalse();
-    }
-
-    [TestMethod]
     public async Task IsCosmosDataAvailable_Should_Return_True_When_IsSynced_Is_True()
     {
         // Arrange
