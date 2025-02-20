@@ -20,12 +20,7 @@ namespace EPR.CommonDataService.Data.Entities
         public int RelevantYear { get; set; }
         public string SubmittedDateTime { get; set; }
         public int NationId { get; set; }
-
-        public string? RegulatorDecisionDate { get;set; }
         public bool IsResubmission { get; set; }
-        public string? ResubmissionStatus { get; set; }
-        public string? ResubmissionDate { get; set; }
-        public string? RegistrationDate { get; set; }
     }
 
     [ExcludeFromCodeCoverage]

@@ -1,4 +1,5 @@
 using EPR.CommonDataService.Core.Extensions;
+using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
@@ -158,11 +159,51 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
             var dbSet = await accountsDbContext.RunSPCommandAsync<PomResubmissionPaycalParametersDto>(sql, logger, _logPrefix, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get GetResubmissionPaycalParameters Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
 
             return dbSet.FirstOrDefault();
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
+
+    public async Task<bool?> IsCosmosDataAvailable(string? sanitisedSubmissionId, string? sanitisedFileId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - IsCosmosDataAvailable: Get sp_CheckForCosmosData for given submission/file {SubmissionId}/{FileId}", _logPrefix, sanitisedSubmissionId, sanitisedFileId);
+        var sql = "[dbo].[sp_CheckForCosmosData]";
+
+        SqlParameter[] sqlParameters =
+        {
+            new("@SubmissionId", SqlDbType.NVarChar,40)
+            {
+                Value = sanitisedSubmissionId ?? (object)DBNull.Value
+            },
+            new ("@FileId", SqlDbType.NVarChar, 40)
+            {
+                Value = sanitisedFileId ?? (object)DBNull.Value
+            }
+        };
+
+        try
+        {
+            var dbSet = await accountsDbContext.RunSPCommandAsync<CosmosSyncInfo>(sql, logger, _logPrefix, sqlParameters);
+            logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get GetResubmissionPaycalParameters Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
+
+            if (dbSet.Count > 0)
+            {
+                return dbSet.FirstOrDefault()?.IsSynced ?? false;
+            }
+
+            return false;
         }
         catch (SqlException ex) when (ex.Number == -2)
         {

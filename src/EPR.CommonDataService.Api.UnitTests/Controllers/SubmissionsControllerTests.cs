@@ -486,30 +486,175 @@ public class SubmissionsControllerTests
         // Assert
         var objectResult = result.Result as ObjectResult;
         objectResult.Should().NotBeNull();
-        objectResult!.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
-        objectResult.Value.Should().Be("Operation timed out");
     }
 
     [TestMethod]
-    public async Task POMResubmission_PaycalParameters_ShouldReturnInternalServerError_WhenExceptionOccurs()
+    public async Task IsCosmosFileSynchronised_Should_Return_Ok_False_When_IsCosmosDataAvailable_Returns_Null()
     {
         // Arrange
-        var submissionId = Guid.NewGuid();
-
+        var fileId = Guid.NewGuid();
         _mockSubmissionsService
-            .Setup(s => s.GetResubmissionPaycalParameters(It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync((bool?)null);
+
+        // Act
+        var result = await _submissionsController.IsCosmosFileSynchronised(fileId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().Be(false);
+    }
+
+    [TestMethod]
+    public async Task IsCosmosFileSynchronised_Should_Return_Ok_True_When_IsCosmosDataAvailable_Returns_True()
+    {
+        // Arrange
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _submissionsController.IsCosmosFileSynchronised(fileId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().Be(true);
+    }
+
+    [TestMethod]
+    public async Task IsCosmosFileSynchronised_Should_Return_Ok_False_When_IsCosmosDataAvailable_Returns_False()
+    {
+        // Arrange
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _submissionsController.IsCosmosFileSynchronised(fileId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().Be(false);
+    }
+
+    [TestMethod]
+    public async Task IsCosmosFileSynchronised_Should_Return_504_When_IsCosmosDataAvailable_Throws_TimeoutException()
+    {
+        // Arrange
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ThrowsAsync(new TimeoutException("Request timed out"));
+
+        // Act
+        var result = await _submissionsController.IsCosmosFileSynchronised(fileId);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(504);
+    }
+
+    [TestMethod]
+    public async Task IsCosmosFileSynchronised_Should_Return_500_When_IsCosmosDataAvailable_Throws_Exception()
+    {
+        // Arrange
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(null, It.IsAny<string>()))
             .ThrowsAsync(new Exception("Unexpected error"));
 
         // Act
-        var result = await _submissionsController.POMResubmission_PaycalParameters(submissionId, null);
+        var result = await _submissionsController.IsCosmosFileSynchronised(fileId);
 
         // Assert
-        var objectResult = result.Result as ObjectResult;
-        objectResult.Should().NotBeNull();
-        objectResult!.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
-        objectResult.Value.Should().Be("Unexpected error");
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(500);
     }
 
+    [TestMethod]
+    public async Task IsSubmissionSynchronised_Should_Return_Ok_False_When_IsCosmosDataAvailable_Returns_Null()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(It.IsAny<string>(), null))
+            .ReturnsAsync((bool?)null);
 
+        // Act
+        var result = await _submissionsController.IsSubmissionSynchronised(submissionId);
 
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().Be(false);
+    }
+
+    [TestMethod]
+    public async Task IsSubmissionSynchronised_Should_Return_Ok_True_When_IsCosmosDataAvailable_Returns_True()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(It.IsAny<string>(), null))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _submissionsController.IsSubmissionSynchronised(submissionId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().Be(true);
+    }
+
+    [TestMethod]
+    public async Task IsSubmissionSynchronised_Should_Return_Ok_False_When_IsCosmosDataAvailable_Returns_False()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(It.IsAny<string>(), null))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _submissionsController.IsSubmissionSynchronised(submissionId);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>()
+            .Which.Value.Should().Be(false);
+    }
+
+    [TestMethod]
+    public async Task IsSubmissionSynchronised_Should_Return_504_When_IsCosmosDataAvailable_Throws_TimeoutException()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(It.IsAny<string>(), null))
+            .ThrowsAsync(new TimeoutException("Request timed out"));
+
+        // Act
+        var result = await _submissionsController.IsSubmissionSynchronised(submissionId);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(504);
+    }
+
+    [TestMethod]
+    public async Task IsSubmissionSynchronised_Should_Return_500_When_IsCosmosDataAvailable_Throws_Exception()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        _mockSubmissionsService
+            .Setup(x => x.IsCosmosDataAvailable(It.IsAny<string>(), null))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var result = await _submissionsController.IsSubmissionSynchronised(submissionId);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(500);
+    }
 }

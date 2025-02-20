@@ -17,4 +17,6 @@ public interface ISubmissionsService
     Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request);
 
     Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId);
+    
+    Task<bool?> IsCosmosDataAvailable(string? sanitisedSubmissionId, string? sanitisedFileId);
 }
