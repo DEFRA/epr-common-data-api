@@ -17,16 +17,13 @@ namespace EPR.CommonDataService.Data.Infrastructure;
 public class SynapseContext : DbContext
 {
     public DbSet<SubmissionEvent> SubmissionEvents { get; set; } = null!;
-    public DbSet<ProducerDetailsModel> ProducerDetailsModel { get; set; } = null!;
-    public DbSet<CsoMemberDetailsModel> CsoMemberDetailsModel { get; set; } = null;
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
-    public DbSet<ProducerDetailsModel> ProducerDetails { get; set; }
-    public DbSet<CsoMemberDetailsModel> CsoMemberDetails { get; set; }
-
+    public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
+    
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
     public SynapseContext(DbContextOptions<SynapseContext> options)
@@ -155,11 +152,7 @@ public class SynapseContext : DbContext
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<ProducerDetailsModel>(entity => {
-            entity.HasNoKey();
-        });
-        
-        modelBuilder.Entity<CsoMemberDetailsModel>(entity => {
+        modelBuilder.Entity<RegistrationFeeCalculationDetailsModel>(entity => {
             entity.HasNoKey();
         });
 
@@ -246,7 +239,7 @@ public class SynapseContext : DbContext
         return await Set<TEntity>().FromSqlRaw(sql, parameters).AsAsyncEnumerable().ToListAsync();
     }
 
-    public virtual async Task<IList<TEntity>> RunSPCommandAsync<TEntity>(string storedProcName, ILogger logger, string logPrefix, params SqlParameter[] parameters) where TEntity : new()
+    public virtual async Task<IList<TEntity>> RunSpCommandAsync<TEntity>(string storedProcName, ILogger logger, string logPrefix, params SqlParameter[] parameters) where TEntity : new()
     {
         DbConnection connection = Database.GetDbConnection();
 

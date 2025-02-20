@@ -3,10 +3,17 @@
 namespace EPR.CommonDataService.Core.Models.Response;
 
 [ExcludeFromCodeCoverage]
-public class GetProducerDetailsResponse
+public class RegistrationFeeCalculationDetails
 {
+    public string OrganisationId { get; set; } = string.Empty;
+    
     public int NumberOfSubsidiaries { get; set; }
+    
     public int NumberOfSubsidiariesBeingOnlineMarketPlace { get; set; }
-    public string ProducerSize { get; set; } = string.Empty;
+    
+    public string OrganisationSize { get; set; } = string.Empty;
+    
     public bool IsOnlineMarketplace  { get; set; }
+    
+    public int NationId { get; set; }
 }
