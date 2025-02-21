@@ -371,7 +371,7 @@ public class SubmissionsServiceTests
             .Throws(BuildSqlException(-2));
 
         //Act and Assert
-        var result = Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1 ,request));
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1 ,request));
     }
 
     [TestMethod]
@@ -393,7 +393,7 @@ public class SubmissionsServiceTests
             .Throws(BuildSqlException(-1));
 
         //Act and Assert
-        var result = Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1, request));
+        Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1, request));
     }
 
     [TestMethod]
@@ -424,7 +424,7 @@ public class SubmissionsServiceTests
 
         //Assert
         result.Should().NotBeNull();
-        result.PageSize.Should().Be(10);
+        result!.PageSize.Should().Be(10);
         result.TotalItems.Should().Be(0);
         result.CurrentPage.Should().Be(1);
 
@@ -465,7 +465,7 @@ public class SubmissionsServiceTests
 
         //Assert
         result.Should().NotBeNull();
-        result.PageSize.Should().Be(PageSize);
+        result!.PageSize.Should().Be(PageSize);
         result.TotalItems.Should().Be(100);
         result.CurrentPage.Should().Be(PageNumber);
     }
@@ -498,7 +498,7 @@ public class SubmissionsServiceTests
 
         //Assert
         result.Should().NotBeNull();
-        result.PageSize.Should().Be(PageSize);
+        result!.PageSize.Should().Be(PageSize);
         result.TotalItems.Should().Be(PageSize + 10);
         result.CurrentPage.Should().Be(2);
     }
@@ -545,7 +545,7 @@ public class SubmissionsServiceTests
             .CreateMany(1).ToList();
 
         _mockSynapseContext
-            .Setup(x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+            .Setup(x => x.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -560,7 +560,7 @@ public class SubmissionsServiceTests
         result.Should().NotBeNull();
 
         _mockSynapseContext.Verify(
-            x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+            x => x.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -582,7 +582,7 @@ public class SubmissionsServiceTests
                 It.IsAny<object[]>()))
             .Throws(BuildSqlException(-2));
         _mockSynapseContext
-            .Setup(x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+            .Setup(x => x.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -604,7 +604,7 @@ public class SubmissionsServiceTests
                 It.IsAny<object[]>()))
             .Throws(BuildSqlException(-1));
         _mockSynapseContext
-            .Setup(x => x.RunSPCommandAsync<OrganisationRegistrationDetailsDto>(
+            .Setup(x => x.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -641,7 +641,7 @@ public class SubmissionsServiceTests
 
             var result = await svc.GetOrganisationRegistrationSubmissionSummaries(1, request);
 
-            result.Items.Should().HaveCountGreaterThan(1);
+            result!.Items.Should().HaveCountGreaterThan(1);
         }
         catch (Exception ex)
         {
