@@ -141,13 +141,10 @@ BEGIN
         AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable); 
 
 
-        -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
+         -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
             SubmissionPeriod,
-            CASE 
-                WHEN PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE PackagingMaterial
-            END AS PackagingMaterial, 
+            PackagingMaterial, 
             OrganisationId, 
             MAX(Created) AS LatestDate
         INTO 
@@ -156,46 +153,35 @@ BEGIN
             #FilteredByApproveAfterYear
         GROUP BY 
             SubmissionPeriod, 
-            CASE 
-                WHEN PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE PackagingMaterial
-            END,
+            PackagingMaterial,
             OrganisationId;
 
-        -- Step 2: Aggregate weight for each unique combination of OrganisationId, SubmissionPeriod, and PackagingMaterial (with "PC" and "FC" treated as "PC")
+        -- Step 2: Aggregate weight for each unique combination of OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
             a.SubmissionPeriod, 
-            CASE 
-                WHEN a.PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE a.PackagingMaterial
-            END AS PackagingMaterial, 
+            a.PackagingMaterial, 
             a.OrganisationId,
             ld.LatestDate,
             SUM(a.Weight) AS Weight,
             a.SixDigitOrgId AS SixDigitOrgId
         INTO
-            #AggregatedWeightsForDuplicates
+            #AggregatedWeightsForDuplicates            
         FROM 
             #FilteredByApproveAfterYear AS a
         JOIN 
             #LatestDates AS ld
         ON 
-            CASE 
-                WHEN a.PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE a.PackagingMaterial
-            END = ld.PackagingMaterial
+            a.PackagingMaterial = ld.PackagingMaterial
             AND a.SubmissionPeriod = ld.SubmissionPeriod
             AND a.OrganisationId = ld.OrganisationId
             AND a.Created = ld.LatestDate
         GROUP BY 
             a.SubmissionPeriod, 
-            CASE 
-                WHEN a.PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE a.PackagingMaterial
-            END, 
+            a.PackagingMaterial, 
             a.OrganisationId, 
             ld.LatestDate,
             a.SixDigitOrgId;
+
 
         -- Step 1: Identify duplicate materials based on #PeriodYearTable
         SELECT OrganisationId, PackagingMaterial
@@ -263,13 +249,12 @@ BEGIN
 
         -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data and round to the nearest whole number
         UPDATE #AggregatedMaterials
-        SET PackagingMaterialWeight = ROUND(
-            PackagingMaterialWeight * 
+        SET PackagingMaterialWeight =
             CASE 
-                WHEN SubmissionPeriod = @PartialPeriod THEN (CAST(@NumberOfDaysInWholePeriod AS FLOAT) / @NumberOfDaysInReportingPeriod)
-                WHEN SubmissionPeriod = @PartialPeriodP3 THEN (CAST(@NumberOfDaysInWholePeriod AS FLOAT) / @NumberOfDaysInReportingPeriodP3)
+                WHEN SubmissionPeriod = @PartialPeriod THEN ROUND(((PackagingMaterialWeight/@NumberOfDaysInReportingPeriod) * @NumberOfDaysInWholePeriod), 0)
+                WHEN SubmissionPeriod = @PartialPeriodP3 THEN ROUND(((PackagingMaterialWeight/@NumberOfDaysInReportingPeriodP3) * @NumberOfDaysInWholePeriod), 0)
                 ELSE 1 -- No adjustment for other periods
-            END, 0) -- Round to 0 decimal places
+            END
         WHERE SubmissionPeriod IN (@PartialPeriod, @PartialPeriodP3);
 
 
@@ -301,8 +286,8 @@ BEGIN
         DROP TABLE #ValidDuplicateMaterials;
         DROP TABLE #AggregatedMaterials;
         DROP TABLE #EnhancedFileNames;
-        DROP TABLE #IncludePackagingTypesTable;
         DROP TABLE #IncludePackagingMaterialsTable;
+        DROP TABLE #IncludePackagingTypesTable;
 
 
     END
