@@ -3,7 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_
 DROP PROCEDURE [rpd].[sp_GetApprovedSubmissions];
 GO
 
-CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@ExcludePackagingTypes [VARCHAR](MAX) AS
+CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX) AS
 BEGIN
 
     -- Check if there are any approved submissions after the specified date
@@ -31,14 +31,15 @@ BEGIN
             DROP TABLE #PeriodYearTable;	
 
         IF OBJECT_ID('tempdb..#DuplicateMaterials') IS NOT NULL
-        DROP TABLE #DuplicateMaterials;	    
+        DROP TABLE #DuplicateMaterials;	   
 
         -- Get start date for the current year
         DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
 
         -- Create temporary tables
         CREATE TABLE #PeriodYearTable (Period VARCHAR(10));
-        CREATE TABLE #ExcludePackagingTypesTable (PackagingType VARCHAR(10));
+        CREATE TABLE #IncludePackagingTypesTable (PackagingType VARCHAR(10));
+        CREATE TABLE #IncludePackagingMaterialsTable (PackagingMaterials VARCHAR(10));
 
         -- Generic procedure to split a delimited string and insert into a given table
         DECLARE @Delimiter CHAR(1) = ',';
@@ -49,11 +50,17 @@ BEGIN
         INSERT INTO #PeriodYearTable (Period)
         SELECT Period FROM CTE_Split;
 
-        WITH CTE_Split_Exclude AS (
-        SELECT value AS PackagingType FROM STRING_SPLIT(@ExcludePackagingTypes, @Delimiter)
+        WITH CTE_Split_IncludePT AS (
+        SELECT value AS PackagingType FROM STRING_SPLIT(@IncludePackagingTypes, @Delimiter)
         )
-        INSERT INTO #ExcludePackagingTypesTable (PackagingType)
-        SELECT PackagingType FROM CTE_Split_Exclude;
+        INSERT INTO #IncludePackagingTypesTable (PackagingType)
+        SELECT PackagingType FROM CTE_Split_IncludePT;
+
+        WITH CTE_Split_Include AS (
+        SELECT value AS PackagingMaterials FROM STRING_SPLIT(@IncludePackagingMaterials, @Delimiter)
+        )
+        INSERT INTO #IncludePackagingMaterialsTable (PackagingMaterials)
+        SELECT PackagingMaterials FROM CTE_Split_Include;
 
 
         DECLARE @PeriodYear VARCHAR(4);
@@ -117,19 +124,22 @@ BEGIN
         p.submission_period AS SubmissionPeriod,
         p.packaging_material AS PackagingMaterial,
             CASE
-                WHEN f.ComplianceSchemeId IS NULL THEN CAST(o.ExternalId AS uniqueidentifier)
-                ELSE CAST(f.ComplianceOrgId AS uniqueidentifier)
+                WHEN p.subsidiary_id IS NULL THEN CAST(o.ExternalId AS uniqueidentifier)
+                ELSE CAST(o2.ExternalId AS uniqueidentifier)
             END AS OrganisationId,
         f.Created AS Created,
         p.packaging_material_weight as weight,
         p.organisation_id AS SixDigitOrgId,
         p.packaging_type as PackType
         INTO #FilteredByApproveAfterYear
-        FROM #EnhancedFileNames f
+        FROM #FileNames f
         JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
         JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
+        left JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber
         WHERE LEFT(p.submission_period, 4) = @PeriodYear 
-        AND NOT p.packaging_type IN (SELECT * FROM #ExcludePackagingTypesTable);
+        AND p.packaging_material IN (SELECT * FROM #IncludePackagingMaterialsTable)
+        AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable); 
+
 
         -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
@@ -268,7 +278,7 @@ BEGIN
         SELECT 
         @PeriodYear AS SubmissionPeriod,  -- Hardcoded variable
         PackagingMaterial AS PackagingMaterial,
-        SUM(PackagingMaterialWeight) / 1000.0 AS PackagingMaterialWeight,
+        ROUND(SUM(PackagingMaterialWeight) / 1000.0, 0) AS PackagingMaterialWeight,
         OrganisationId
         FROM 
         #AggregatedMaterials
@@ -291,7 +301,8 @@ BEGIN
         DROP TABLE #ValidDuplicateMaterials;
         DROP TABLE #AggregatedMaterials;
         DROP TABLE #EnhancedFileNames;
-        DROP TABLE #ExcludePackagingTypesTable;
+        DROP TABLE #IncludePackagingTypesTable;
+        DROP TABLE #IncludePackagingMaterialsTable;
 
 
     END
