@@ -287,6 +287,7 @@ BEGIN
         DROP TABLE #AggregatedMaterials;
         DROP TABLE #EnhancedFileNames;
         DROP TABLE #IncludePackagingMaterialsTable;
+        DROP TABLE #IncludePackagingTypesTable;
 
 
     END
