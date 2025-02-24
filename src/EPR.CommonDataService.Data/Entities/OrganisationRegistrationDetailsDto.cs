@@ -23,6 +23,11 @@ namespace EPR.CommonDataService.Data.Entities
         public string SubmissionPeriod { get; set; }
         public int RelevantYear { get; set; }
 
+        public string RegistrationDate { get; set; }
+        public bool IsResubmission { get; set; }
+        public string ResubmissionStatus { get; set; }
+        public string ResubmissionDate { get; set; }
+
         public bool IsComplianceScheme { get; set; }
         public string OrganisationSize { get; set; }
         public string OrganisationType { get; set; }
@@ -73,6 +78,5 @@ namespace EPR.CommonDataService.Data.Entities
         public string BrandsFileName { get; set; }
         public string BrandsBlobName { get; set; }
         public string CSOJson { get; set; }
-        public bool IsResubmission { get; set; }
     }
 }
