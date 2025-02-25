@@ -25,7 +25,6 @@ namespace EPR.CommonDataService.Data.Entities
         public string ResubmissionStatus { get; set; }
         public string ResubmissionDate { get; set; }
         public string RegistrationDate { get; set; }
-        public string RegulatorDecisionDate { get; set; }
     }
 
     [ExcludeFromCodeCoverage]
