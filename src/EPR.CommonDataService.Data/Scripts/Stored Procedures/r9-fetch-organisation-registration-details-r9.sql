@@ -274,7 +274,9 @@ DECLARE @IsComplianceScheme bit;
 					 END as SubmissionStatus
 					,CASE WHEN resubmission.ResubmissionDate IS NOT NULL THEN
 							CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate > resubmission.ResubmissionDate 
-								THEN regulatorresubmissiondecision.ResubmissionStatus
+								THEN CASE WHEN regulatorresubmissiondecision.ResubmissionStatus = 'Granted' THEN 'Accepted'
+										  WHEN regulatorresubmissiondecision.ResubmissionStatus = 'Refused' THEN 'Rejected'
+									 END
 							ELSE 'Pending' END
 					      ELSE NULL
 					 END as ResubmissionStatus
