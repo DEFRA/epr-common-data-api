@@ -169,6 +169,7 @@ DECLARE @IsComplianceScheme bit;
 				  WHERE s.SubmissionEventId = resubmissions.ResubmissionEventId
 			  )
 		)
+--select * from ProducerReSubmissionCTE 
 		,RegistrationDecisionCTE as (
 			SELECT TOP 1 *
 			FROM (
@@ -225,6 +226,16 @@ DECLARE @IsComplianceScheme bit;
 			--WHERE RowNum = 1
 		)
 --select * from RegulatorDecisionsCTE
+		,MostRecentRegulatorDecisionCTE as (
+			select * from RegulatorDecisionsCTE
+			WHERE RowNum = 1
+			AND NOT EXISTS (
+				  SELECT 1 
+				  FROM RegistrationDecisionCTE r 
+				  WHERE r.RegistrationEventId = RegulatorDecisionsCTE.SubmissionEventId
+			)
+		)
+--select * from MostRecentRegulatorDecisionCTE
 		,UploadedViewCTE as (
 			select * FROM
 				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
@@ -268,9 +279,16 @@ DECLARE @IsComplianceScheme bit;
 					,registrationdecision.RegistrationDate
 					,registrationdecision.RegistrationEventId
             		,resubmission.ResubmissionDate
-					,CASE when registrationdecision.RegistrationDate IS NOT NULL THEN 'Granted'
-						  else CASE WHEN RegulatorDecisions.SubmissionStatus IS NULL Then 'Pending'
-							   ELSE RegulatorDecisions.SubmissionStatus END
+					,CASE WHEN regulatordecisions.RegulatorDecisionDate > registrationdecision.RegistrationDate 
+						  THEN CASE WHEN RegulatorDecisions.SubmissionStatus IS NULL Then 'Pending'
+									ELSE RegulatorDecisions.SubmissionStatus 
+								END
+						  ELSE
+							   CASE when registrationdecision.RegistrationDate IS NOT NULL THEN 'Granted'
+							   ELSE CASE WHEN RegulatorDecisions.SubmissionStatus IS NULL Then 'Pending'
+									ELSE RegulatorDecisions.SubmissionStatus 
+									END
+							   END
 					 END as SubmissionStatus
 					,CASE WHEN resubmission.ResubmissionDate IS NOT NULL THEN
 							CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate > resubmission.ResubmissionDate 
@@ -312,7 +330,8 @@ DECLARE @IsComplianceScheme bit;
 							WHEN 'WA' THEN 'GB-WLS'
 						END
 					 END AS NationCode
-					,ISNULL(regulatorresubmissiondecision.UserId,  ISNULL(registrationdecision.UserId, regulatordecisions.UserId)) as RegulatorUserId
+					,ISNULL(regulatorresubmissiondecision.UserId,  ISNULL(registrationdecision.UserId, regulatordecisions.UserId)) 
+						as RegulatorUserId
 					,resubmission.ResubmissionEventId as ResubmissionEventId
 					,GREATEST(RegistrationDate,GREATEST(ResubmissionDecisionDate, RegulatorDecisionDate))
 						as RegulatorDecisionDate
@@ -376,7 +395,7 @@ DECLARE @IsComplianceScheme bit;
 						INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
 						INNER JOIN UploadedViewCTE org on org.SubmissionId = s.SubmissionId
 						INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
-						LEFT JOIN RegulatorDecisionsCTE regulatordecisions on regulatordecisions.SubmissionId = s.SubmissionId
+						LEFT JOIN MostRecentRegulatorDecisionCTE regulatordecisions on regulatordecisions.SubmissionId = s.SubmissionId
 						LEFT JOIN RegistrationDecisionCTE as registrationdecision on registrationdecision.submissionid = s.SubmissionId
 						LEFT JOIN ProducerReSubmissionCTE resubmission on resubmission.SubmissionId = s.SubmissionId
 						LEFT JOIN ResubmissionRegulatorDecisionCTE regulatorresubmissiondecision on regulatorresubmissiondecision.SubmissionId = s.SubmissionId 
