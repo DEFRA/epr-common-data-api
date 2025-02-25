@@ -31,6 +31,7 @@ BEGIN
 					decisions.Comments AS Comment,
 					decisions.UserId,
 					decisions.Type,
+					decisions.FileId,
 					CASE
 						WHEN LTRIM(RTRIM(decisions.Decision)) = ''Accepted'' THEN ''Granted''
 						WHEN LTRIM(RTRIM(decisions.Decision)) = ''Rejected'' THEN ''Refused''
@@ -66,7 +67,7 @@ BEGIN
 				FROM rpd.SubmissionEvents AS decisions
 				WHERE decisions.Type IN (''RegistrationApplicationSubmitted'', ''RegulatorRegistrationDecision'')	
 			) as subevents
-			where RowNum = 1
+			--where RowNum = 1
 		) as orderedsubevents
 	');
 
@@ -83,6 +84,7 @@ BEGIN
 			,StatusPendingDate
 			,IsProducerComment
 			,UserId
+			,FileId
 			,RowNum
 			,OrderedRowNum
 		FROM
@@ -103,12 +105,13 @@ BEGIN
 			SELECT SubmissionId, SubmissionEventId, Comment, DecisionDate as SubmissionDate
 				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
 			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
-			WHERE IsProducerComment = 1
+			WHERE IsProducerComment = 1	and FileId IS NULL
 		) as submittedevents WHERE RowNum = 1
 	)
 	,ResubmissionRegulatorDecisionCTE as (
 		SELECT * FROM (
-			SELECT SubmissionId, SubmissionEventId, UserId, SubmissionStatus, StatusPendingDate, DecisionDate
+			SELECT SubmissionId, SubmissionEventId, UserId, SubmissionStatus as ResubmissionStatus, 
+					StatusPendingDate, DecisionDate as ResubmissionDecisionDate
 				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
 			FROM ProdCommentsRegulatorDecisionsCTE
 			where IsProducerComment = 0
@@ -117,12 +120,17 @@ BEGIN
 	)
 	,ProducerReSubmissionCTE as (
 		SELECT * from (
-			SELECT SubmissionId, SubmissionEventId, Comment, DecisionDate
+			SELECT SubmissionId, SubmissionEventId, Comment, DecisionDate as ResubmissionDate
 				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
 			FROM ProdCommentsRegulatorDecisionsCTE
-			where IsProducerComment = 1
+			where IsProducerComment = 1	AND FileId IS NOT NULL
 		) as resubmissions
 		where RowNum = 1
+		AND NOT EXISTS (
+				SELECT 1 
+				FROM SubmittedCTE s 
+				WHERE s.SubmissionEventId = resubmissions.SubmissionEventId
+			)
 	)
 	,LatestOrganisationRegistrationSubmissionsCTE
     AS
@@ -170,25 +178,21 @@ BEGIN
                 ,registrationdecision.RegistrationReferenceNumber
 				,registrationdecision.RegistrationDate
 				,SubmittedCTE.SubmissionDate as SubmittedDateTime
-                ,CASE WHEN resubmission.DecisionDate IS NOT NULL AND registrationdecision.RegistrationDate IS NOT NULL 
-						AND resubmission.DecisionDate > registrationdecision.RegistrationDate THEN
-						CASE WHEN regulatorresubmissiondecision.DecisionDate IS NULL THEN 1
-							 WHEN regulatorresubmissiondecision.DecisionDate > resubmission.DecisionDate AND regulatorresubmissiondecision.SubmissionStatus = 'Granted' 
-							 THEN 0
-							 ELSE 1 END
-					  ELSE 0
+                ,CASE WHEN resubmission.ResubmissionDate IS NOT NULL 
+						  THEN 1
+						  ELSE 0
 				 END as IsResubmission
 				,CASE when registrationdecision.RegistrationDate IS NOT NULL THEN 'Granted'
-					  else CASE WHEN regulatorresubmissiondecision.SubmissionStatus IS NULL Then 'Pending'
-						   ELSE regulatorresubmissiondecision.SubmissionStatus END
+					  else CASE WHEN regulatorresubmissiondecision.ResubmissionStatus IS NULL Then 'Pending'
+						   ELSE regulatorresubmissiondecision.ResubmissionStatus END
 				 END as SubmissionStatus
-				,CASE WHEN resubmission.DecisionDate IS NOT NULL AND registrationdecision.RegistrationDate IS NOT NULL 
-						AND resubmission.DecisionDate > registrationdecision.RegistrationDate THEN
-						CASE WHEN regulatorresubmissiondecision.DecisionDate > resubmission.DecisionDate THEN regulatorresubmissiondecision.SubmissionStatus
-							 ELSE 'Pending' END
-					  ELSE NULL
+				,CASE WHEN resubmission.ResubmissionDate IS NOT NULL THEN
+							CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate > resubmission.ResubmissionDate 
+								THEN regulatorresubmissiondecision.ResubmissionStatus
+							ELSE 'Pending' END
+					      ELSE NULL
 				 END as ResubmissionStatus
-				,regulatorresubmissiondecision.DecisionDate as RegulatorDecisionDate
+				,regulatorresubmissiondecision.ResubmissionDecisionDate
 				,regulatorresubmissiondecision.StatusPendingDate
 				,ISNULL(resubmission.Comment, SubmittedCTE.Comment) 
 				 as ProducerComment
@@ -212,9 +216,7 @@ BEGIN
 				,registrationdecision.SubmissionEventId as RegulatorGrantedEventId
 				,regulatorresubmissiondecision.SubmissionEventId as ResubmissionDecisionEventId
 				,resubmission.SubmissionEventId as ResubmissionEventId
-            	,CASE WHEN resubmission.DecisionDate IS NOT NULL AND registrationdecision.RegistrationDate IS NOT NULL 
-						AND resubmission.DecisionDate > registrationdecision.RegistrationDate THEN
-						resubmission.DecisionDate END as ResubmissionDate
+            	,resubmission.ResubmissionDate
 				,s.OrganisationId AS InternalOrgId
                 ,s.SubmissionType
                 ,s.UserId AS SubmittedUserId
@@ -279,9 +281,8 @@ BEGIN
             ,submissions.IsLateSubmission
             ,ISNULL(submissions.SubmissionStatus, 'Pending') as SubmissionStatus
             ,submissions.ResubmissionStatus
-			,RegulatorDecisionDate
+			,ResubmissionDecisionDate
 			,StatusPendingDate
-			--,ProducerComment
             ,submissions.NationId
             ,submissions.NationCode
         FROM
@@ -292,5 +293,5 @@ BEGIN
 		DISTINCT *
 	FROM
 		AllSubmissionsAndDecisionsAndCommentCTE submissions;
-	END;
+END;
 GO
