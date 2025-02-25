@@ -17,6 +17,7 @@ BEGIN
 	BEGIN
 		IF OBJECT_ID('tempdb..#TempTable') IS NOT NULL
 			DROP TABLE #TempTable;
+
 		CREATE TABLE #TempTable (
 			SubmissionId NVARCHAR(150) NULL,
 			OrganisationId NVARCHAR(150) NULL,
@@ -85,8 +86,8 @@ BEGIN
                         STRING_SPLIT(@AppRefNumbersCommaSeparated, ',') AS AppReference
                     WHERE ApplicationReferenceNumber = LTRIM(RTRIM(AppReference.value))
             )
-                    OR
-                    (
+            OR
+            (
                 (
                     (
                         (
@@ -279,4 +280,3 @@ BEGIN
         WHERE 1=0
     END;
 END;
-
