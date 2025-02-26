@@ -25,10 +25,8 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'pom/summary'", _logPrefix);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummaries: Get Pom Submissions for given Regulator {PomSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
         var result = await submissionsService.GetSubmissionPomSummaries(request);
 
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummaries: Pom Submissions returned {SubmissionPomSummaries}", _logPrefix, result);
         return Ok(result);
     }
 
@@ -40,10 +38,8 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetRegistrationsSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorRegistrationDecision> request)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'registrations/summary'", _logPrefix);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetRegistrationsSubmissionsSummaries: Get Registration Submissions for given Regulator {RegulatorSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
         var result = await submissionsService.GetSubmissionRegistrationSummaries(request);
 
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetRegistrationsSubmissionsSummaries: Registration Submissions returned {SubmissionRegistrationSummaries}", _logPrefix, result);
         return Ok(result);
     }
 
@@ -62,7 +58,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetApprovedSubmissionsWithAggregatedPomData(string approvedAfterDateString)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom/approved/{ApprovedAfterDateString}'", _logPrefix, approvedAfterDateString);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Get submissions approved after {ApprovedAfterDateString}", _logPrefix, approvedAfterDateString);
+
         if (!DateTime.TryParse(approvedAfterDateString, CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.AssumeUniversal, out var approvedAfter))
         {
             logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Invalid datetime provided; please make sure it's a valid UTC datetime", _logPrefix);
@@ -80,7 +76,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Approved Submissions returned {ApprovedSubmissions}", _logPrefix, approvedSubmissions);
             return Ok(approvedSubmissions);
         }
         catch (TimeoutException ex)
@@ -106,7 +101,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     {
         string filterAsJson = System.Text.Json.JsonSerializer.Serialize(filter);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registrations/{NationId}'", _logPrefix, NationId);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: Get org registration submissions for the nation {NationId} with filters {FilterModel}", _logPrefix, NationId, filterAsJson);
 
         try
         {
@@ -131,7 +125,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided returned {Howmany} submissions. {NationId}/{Querystring}", _logPrefix, organisationRegistrations.Items.Count, NationId, filterAsJson);
             return Ok(organisationRegistrations);
         }
         catch (TimeoutException ex)
@@ -157,8 +150,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     {
         var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Get org registration submissions details for the submission {SubmissionId}", _logPrefix, sanitisedSubmissionId);
-
+        
         try
         {
             if (!SubmissionId.HasValue)
@@ -176,7 +168,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: {SubmissionId} returned the following submission {Submission}", _logPrefix, sanitisedSubmissionId, submissiondetails);
             return Ok(submissiondetails);
         }
         catch (TimeoutException ex)
