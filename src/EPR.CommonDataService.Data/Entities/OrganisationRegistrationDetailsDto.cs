@@ -22,6 +22,7 @@ namespace EPR.CommonDataService.Data.Entities
         public bool IsLateSubmission { get; set; }
         public string SubmissionPeriod { get; set; }
         public int RelevantYear { get; set; }
+        public string ResubmissionFileId { get; set; }
 
         public string RegistrationDate { get; set; }
         public bool IsResubmission { get; set; }
