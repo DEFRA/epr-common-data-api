@@ -14,7 +14,7 @@ begin
 	IF EXISTS (
 		SELECT 1 
 		FROM INFORMATION_SCHEMA.COLUMNS 
-		WHERE TABLE_SCHEMA = 'rpd' AND TABLE_NAME = 'SubmissionEvents' 
+		WHERE TABLE_SCHEMA = 'apps' AND TABLE_NAME = 'SubmissionEvents' 
 		AND COLUMN_NAME = 'PackagingResubmissionReferenceNumber'
 	)
 	BEGIN
@@ -26,8 +26,6 @@ begin
 			FROM apps.SubmissionsSummaries where SubmissionId = @SubmissionId
 		) innsers
 		WHERE RowNum = 1;
-		-- To Deal with Sync issues:
-		set @IsResubmission = 1;
 
 		if ( @IsResubmission = 1 )
 		BEGIN
@@ -37,7 +35,7 @@ begin
 			select @Reference = innerse.PackagingResubmissionReferenceNumber
 			from (
 				select TOP 1 PackagingResubmissionReferenceNumber
-				FROM rpd.SubmissionEvents se
+				FROM apps.SubmissionEvents se
 				where se.[Type] = ''PackagingResubmissionReferenceNumberCreated'' and se.SubmissionId = @SubmissionId
 				ORDER BY Created desc
 			) innerse;
@@ -74,7 +72,7 @@ begin
 				ELSE CAST(NULL as INT)
 			END AS MemberCount,
 			CASE 
-				WHEN @ComplianceSchemeId IS NULL AND @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
+				WHEN @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
 				ELSE @Reference
 			END AS Reference,
 			@ResubmissionDate as ResubmissionDate,
