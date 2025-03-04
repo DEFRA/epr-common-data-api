@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UserSecretsId>d3dc9f87-f109-4828-be60-b7ed3da2c06f</UserSecretsId>
+    <UserSecretsId>edf09c66-eaad-4915-94e7-9f2344b0ebda</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
     <RootNamespace>EPR.CommonDataService.Api</RootNamespace>
