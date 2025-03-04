@@ -101,25 +101,13 @@ BEGIN
             ORDER BY se.Created DESC
         ) se;
         
-            --get filenames for fileid
+        --get filenames for fileid
         SELECT f.SubmissionId, fm.[FileName], f.Created, fm.ComplianceSchemeId
         INTO #FileNames
         FROM #FileIdss f
         JOIN [rpd].[cosmos_file_metadata] fm ON f.FileId = fm.FileId;
         
-        -- Get Organisation Id for Compliance Scheme and producer but keep original 6 digit orgId column -(SixDigitOrgId)
-        SELECT fn.SubmissionId, fn.FileName, fn.Created, fn.ComplianceSchemeId,
-            CASE 
-                WHEN fn.ComplianceSchemeId IS NULL THEN NULL
-                ELSE org.ExternalId
-            END AS ComplianceOrgId
-        INTO #EnhancedFileNames
-        FROM #FileNames fn
-        LEFT JOIN [rpd].[ComplianceSchemes] cs
-        ON fn.ComplianceSchemeId = cs.ExternalId
-        LEFT JOIN [rpd].[Organisations] org
-        ON cs.CompaniesHouseNumber = org.CompaniesHouseNumber;
-
+        --Get approved pom files by year
         SELECT 
         p.submission_period AS SubmissionPeriod,
         p.packaging_material AS PackagingMaterial,
@@ -141,7 +129,63 @@ BEGIN
         AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable); 
 
 
-         -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
+        --Filter organisation ID that have H1 and H2 
+        SELECT DISTINCT FA.OrganisationId
+        INTO #FilteredOrgIdsForH1H2
+        FROM #FilteredByApproveAfterYear FA
+        WHERE FA.OrganisationId IN (
+            SELECT OrganisationId
+            FROM #FilteredByApproveAfterYear
+            WHERE submissionPeriod IN (SELECT Period FROM #PeriodYearTable)
+            GROUP BY OrganisationId
+            HAVING COUNT(DISTINCT submissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable)
+
+            UNION
+
+            SELECT OrganisationId
+            FROM #FilteredByApproveAfterYear
+            WHERE submissionPeriod IN (SELECT Period FROM #PartialPeriodYearTableP2)
+            GROUP BY OrganisationId
+            HAVING COUNT(DISTINCT submissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP2)
+
+            UNION
+
+            SELECT OrganisationId
+            FROM #FilteredByApproveAfterYear
+            WHERE submissionPeriod IN (SELECT Period FROM #PartialPeriodYearTableP3)
+            GROUP BY OrganisationId
+            HAVING COUNT(DISTINCT submissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP3)
+        );
+
+
+        --Use H1H2 organisation ids to filter approved submission POM files
+        SELECT f.OrganisationId, f.Created, f.PackagingMaterial, f.PackType, f.SixDigitOrgId, f.SubmissionPeriod, f.weight
+        INTO #FilteredApprovedSubmissions
+        FROM #FilteredByApproveAfterYear f
+        JOIN #FilteredOrgIdsForH1H2 h1h2 ON f.OrganisationId = h1h2.OrganisationId
+
+
+        --Get all Periods including partial periods
+        SELECT DISTINCT Period
+        INTO #AllPeriods
+        FROM (
+            SELECT Period FROM #PeriodYearTable
+            UNION
+            SELECT Period FROM #PartialPeriodYearTableP2
+            UNION
+            SELECT Period FROM #PartialPeriodYearTableP3
+        ) AS Combined;
+
+        --remove all invalid periods
+        DELETE FROM #FilteredApprovedSubmissions
+        WHERE NOT EXISTS (
+            SELECT 1 
+            FROM #AllPeriods ap
+            WHERE ap.Period = #FilteredApprovedSubmissions.SubmissionPeriod
+        );
+
+
+        -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
             SubmissionPeriod,
             PackagingMaterial, 
@@ -150,11 +194,13 @@ BEGIN
         INTO 
             #LatestDates
         FROM 
-            #FilteredByApproveAfterYear
+            #FilteredApprovedSubmissions
         GROUP BY 
             SubmissionPeriod, 
             PackagingMaterial,
             OrganisationId;
+
+
 
         -- Step 2: Aggregate weight for each unique combination of OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
@@ -167,7 +213,7 @@ BEGIN
         INTO
             #AggregatedWeightsForDuplicates            
         FROM 
-            #FilteredByApproveAfterYear AS a
+            #FilteredApprovedSubmissions AS a
         JOIN 
             #LatestDates AS ld
         ON 
@@ -183,50 +229,6 @@ BEGIN
             a.SixDigitOrgId;
 
 
-        -- Step 1: Identify duplicate materials based on #PeriodYearTable
-        SELECT OrganisationId, PackagingMaterial
-        INTO #DuplicateMaterials
-        FROM #AggregatedWeightsForDuplicates
-        WHERE SubmissionPeriod IN (SELECT period FROM #PeriodYearTable)
-        GROUP BY OrganisationId, PackagingMaterial
-        HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable);
-
-        -- Step 2: Insert valid records into #ValidDuplicateMaterials based on #DuplicateMaterials
-        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight, mc.SixDigitOrgId
-        INTO #ValidDuplicateMaterials
-        FROM #AggregatedWeightsForDuplicates AS mc
-        JOIN #DuplicateMaterials AS dm
-        ON mc.OrganisationId = dm.OrganisationId
-        AND mc.PackagingMaterial = dm.PackagingMaterial
-        WHERE mc.SubmissionPeriod IN (SELECT period FROM #PeriodYearTable);
-
-        -- Step 1: Identify Partial duplicate materials based on #PartialPeriodYearTableP2 and #PartialPeriodYearTableP3 and combine them
-        SELECT OrganisationId, PackagingMaterial, TotalWeight AS Weight
-        INTO #PartialDuplicateMaterials
-        FROM (
-            SELECT OrganisationId, PackagingMaterial, SUM (Weight) AS TotalWeight
-            FROM #AggregatedWeightsForDuplicates
-            WHERE SubmissionPeriod IN (SELECT period FROM #PartialPeriodYearTableP2)
-            GROUP BY OrganisationId, PackagingMaterial
-            HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP2)
-
-            UNION
-
-            SELECT OrganisationId, PackagingMaterial, SUM (Weight) AS TotalWeight
-            FROM #AggregatedWeightsForDuplicates
-            WHERE SubmissionPeriod IN (SELECT period FROM #PartialPeriodYearTableP3)
-            GROUP BY OrganisationId, PackagingMaterial
-            HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP3)
-        ) CombinedData;
-
-        -- Step 3: Insert valid partial records into #ValidDuplicateMaterials based on #PartialDuplicateMaterials so now should contain full years data and partial data
-        INSERT INTO #ValidDuplicateMaterials (OrganisationId, PackagingMaterial, LatestDate, SubmissionPeriod, Weight, SixDigitOrgId)
-        SELECT mc.OrganisationId, mc.PackagingMaterial, mc.LatestDate, mc.SubmissionPeriod, mc.Weight, mc.SixDigitOrgId
-        FROM #AggregatedWeightsForDuplicates AS mc
-        JOIN #PartialDuplicateMaterials AS dm
-        ON mc.OrganisationId = dm.OrganisationId
-        AND mc.PackagingMaterial = dm.PackagingMaterial;
-
         -- Get Real organisation Id and also get the data that has data after approved date
         SELECT DISTINCT
             CAST(f.SubmissionId AS uniqueidentifier) AS SubmissionId,
@@ -238,7 +240,7 @@ BEGIN
         FROM #FileNames f
         JOIN [rpd].[Pom] p 
             ON p.[FileName] = f.[FileName]
-        JOIN #ValidDuplicateMaterials m 
+        JOIN #AggregatedWeightsForDuplicates m 
             ON p.submission_period = m.SubmissionPeriod
             AND p.packaging_material = m.PackagingMaterial
             AND p.organisation_id = m.SixDigitOrgId
@@ -258,7 +260,6 @@ BEGIN
         WHERE SubmissionPeriod IN (@PartialPeriod, @PartialPeriodP3);
 
 
-
         --aggregate duplicate materials weight for duplicate materials for org id
         SELECT 
         @PeriodYear AS SubmissionPeriod,  -- Hardcoded variable
@@ -270,6 +271,7 @@ BEGIN
         GROUP BY 
         OrganisationId, 
         PackagingMaterial;
+
 
 
         DROP TABLE #ApprovedSubmissions;
@@ -288,6 +290,9 @@ BEGIN
         DROP TABLE #EnhancedFileNames;
         DROP TABLE #IncludePackagingMaterialsTable;
         DROP TABLE #IncludePackagingTypesTable;
+        DROP TABLE #FilteredOrgIdsForH1H2
+        DROP TABLE #FilteredApprovedSubmissions
+        DROP TABLE #AllPeriods
 
 
     END
@@ -303,4 +308,3 @@ BEGIN
     END
 END
 GO
-
