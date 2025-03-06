@@ -2,14 +2,15 @@
 DROP PROCEDURE [dbo].[sp_PomResubmissionPaycalParameters];
 GO
 
-CREATE PROC [dbo].[sp_PomResubmissionPaycalParameters] @SubmissionId nvarchar(40), @ComplianceSchemeId nvarchar(40)
+CREATE proc [dbo].[sp_PomResubmissionPaycalParameters] @SubmissionId nvarchar(40), @ComplianceSchemeId nvarchar(40)
 as
 begin
 	declare @IsResubmission BIT = NULL,
 		    @ResubmissionDate nvarchar(50),
 			@Membercount INT = NULL,
 			@Reference nvarchar(50) = NULL,
-			@ReferenceAvailable BIT = 0;
+			@ReferenceAvailable BIT = 0,
+			@NationCode nvarchar(10);
 
 	IF EXISTS (
 		SELECT 1 
@@ -20,10 +21,30 @@ begin
 	BEGIN
 		SET @ReferenceAvailable = 1;
 
-		select @IsResubmission = IsResubmission, @ResubmissionDate = SubmittedDate FROM (
-			SELECT ROW_NUMBER() 
-					OVER (ORDER BY SubmittedDate DESC) as RowNum, *
-			FROM apps.SubmissionsSummaries where SubmissionId = @SubmissionId
+		select @IsResubmission = IsResubmission, 
+			   @ResubmissionDate = SubmittedDate,
+			   @NationCode = NationCode
+		FROM (
+			SELECT ROW_NUMBER() OVER (ORDER BY SubmittedDate DESC) as RowNum
+					, CASE WHEN cs.NationId IS NOT NULL THEN
+						CASE cs.NationId
+							WHEN 1 THEN 'GB-ENG'
+							WHEN 2 THEN 'GB-NIR'
+							WHEN 3 THEN 'GB-SCT'
+							WHEN 4 THEN 'GB-WLS'
+						END
+					  ELSE CASE UPPER(org.NationId)
+								WHEN '1' THEN 'GB-ENG'
+								WHEN '2' THEN 'GB-NIR'
+								WHEN '3' THEN 'GB-SCT'
+								WHEN '4' THEN 'GB-WLS'
+							END
+					  END as NationCode
+					, s.*
+			FROM apps.SubmissionsSummaries s 
+			left join rpd.ComplianceSchemes cs on cs.ExternalId = s.ComplianceSchemeId
+			inner join rpd.Organisations org on org.ExternalId = s.OrganisationId
+			WHERE s.SubmissionId = @SubmissionId
 		) innsers
 		WHERE RowNum = 1;
 
@@ -36,7 +57,7 @@ begin
 			from (
 				select TOP 1 PackagingResubmissionReferenceNumber
 				FROM apps.SubmissionEvents se
-				where se.[Type] = ''POMResubmission'' and se.SubmissionId = @SubmissionId
+				where se.[Type] = ''PackagingResubmissionReferenceNumberCreated'' and se.SubmissionId = @SubmissionId
 				ORDER BY Created desc
 			) innerse;
 			';
@@ -72,12 +93,13 @@ begin
 				ELSE CAST(NULL as INT)
 			END AS MemberCount,
 			CASE 
-				WHEN @ComplianceSchemeId IS NULL AND @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
+				WHEN @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
 				ELSE @Reference
 			END AS Reference,
 			@ResubmissionDate as ResubmissionDate,
 			@IsResubmission as IsResubmission,
-			@ReferenceAvailable AS ReferenceFieldAvailable
+			@ReferenceAvailable AS ReferenceFieldAvailable,
+			@NationCode as NationCode
 		END
 		ELSE
 		BEGIN
@@ -88,7 +110,8 @@ begin
 					CAST(NULL AS NVARCHAR(50)) as Reference,
 					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
 					CAST(0 AS BIT) as IsResubmission,
-					@ReferenceAvailable as ReferenceFieldAvailable
+					@ReferenceAvailable as ReferenceFieldAvailable,
+					@NationCode as NationCode
 			END
 
 			if (@IsResubmission IS NULL)
@@ -98,10 +121,21 @@ begin
 					CAST(NULL AS NVARCHAR(50)) as Reference,
 					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
 					CAST(NULL AS BIT) as IsResubmission,
-					CAST(NULL AS BIT) as ReferenceFieldAvailable
+					CAST(NULL AS BIT) as ReferenceFieldAvailable,
+					CAST(NULL AS NVARCHAR(20)) As NationCode
 				WHERE 1=0;
 			END
 		END
+	END
+	ELSE
+	BEGIN
+		SELECT 
+			CAST(NULL as INT) AS MemberCount,
+			CAST(NULL AS NVARCHAR(50)) as Reference,
+			CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
+			CAST(NULL AS BIT) as IsResubmission,
+			CAST(0 AS BIT) as ReferenceFieldAvailable,
+			CAST(NULL AS NVARCHAR(20)) As NationCode
 	END
 end;
 GO
