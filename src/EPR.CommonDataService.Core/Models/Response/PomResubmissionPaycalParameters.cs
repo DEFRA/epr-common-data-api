@@ -12,6 +12,7 @@ namespace EPR.CommonDataService.Core.Models.Response
         public DateTime? ResubmissionDate { get; set; }
         public int? MemberCount { get; set; }
         public string? Reference { get; set; }
+        public string? NationCode { get; set; }
         public bool ReferenceFieldAvailable { get; set; }
     }
 }
