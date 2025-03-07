@@ -1,16 +1,16 @@
 ﻿namespace EPR.CommonDataService.Core.Mapper;
 
 
-public static class ProducerSizeMapper
+public static class OrganisationSizeMapper
 {
-    public static string Map(string? producerSize)
+    public static string Map(string? organisationSize)
     {
-        if (string.IsNullOrWhiteSpace(producerSize))
+        if (string.IsNullOrWhiteSpace(organisationSize))
         {
             return "Unknown"; // Handle null, empty, or whitespace values
         }
 
-        return producerSize.ToLower() switch
+        return organisationSize.ToLower() switch
         {
             "s" => "Small",
             "l" => "Large",

@@ -3,7 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_
 DROP PROCEDURE [rpd].[sp_GetApprovedSubmissions];
 GO
 
-CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@ExcludePackagingTypes [VARCHAR](MAX) AS
+CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX) AS
 BEGIN
 
     -- Check if there are any approved submissions after the specified date
@@ -31,14 +31,15 @@ BEGIN
             DROP TABLE #PeriodYearTable;	
 
         IF OBJECT_ID('tempdb..#DuplicateMaterials') IS NOT NULL
-        DROP TABLE #DuplicateMaterials;	    
+        DROP TABLE #DuplicateMaterials;	   
 
         -- Get start date for the current year
         DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
 
         -- Create temporary tables
         CREATE TABLE #PeriodYearTable (Period VARCHAR(10));
-        CREATE TABLE #ExcludePackagingTypesTable (PackagingType VARCHAR(10));
+        CREATE TABLE #IncludePackagingTypesTable (PackagingType VARCHAR(10));
+        CREATE TABLE #IncludePackagingMaterialsTable (PackagingMaterials VARCHAR(10));
 
         -- Generic procedure to split a delimited string and insert into a given table
         DECLARE @Delimiter CHAR(1) = ',';
@@ -49,11 +50,17 @@ BEGIN
         INSERT INTO #PeriodYearTable (Period)
         SELECT Period FROM CTE_Split;
 
-        WITH CTE_Split_Exclude AS (
-        SELECT value AS PackagingType FROM STRING_SPLIT(@ExcludePackagingTypes, @Delimiter)
+        WITH CTE_Split_IncludePT AS (
+        SELECT value AS PackagingType FROM STRING_SPLIT(@IncludePackagingTypes, @Delimiter)
         )
-        INSERT INTO #ExcludePackagingTypesTable (PackagingType)
-        SELECT PackagingType FROM CTE_Split_Exclude;
+        INSERT INTO #IncludePackagingTypesTable (PackagingType)
+        SELECT PackagingType FROM CTE_Split_IncludePT;
+
+        WITH CTE_Split_Include AS (
+        SELECT value AS PackagingMaterials FROM STRING_SPLIT(@IncludePackagingMaterials, @Delimiter)
+        )
+        INSERT INTO #IncludePackagingMaterialsTable (PackagingMaterials)
+        SELECT PackagingMaterials FROM CTE_Split_Include;
 
 
         DECLARE @PeriodYear VARCHAR(4);
@@ -117,27 +124,27 @@ BEGIN
         p.submission_period AS SubmissionPeriod,
         p.packaging_material AS PackagingMaterial,
             CASE
-                WHEN f.ComplianceSchemeId IS NULL THEN CAST(o.ExternalId AS uniqueidentifier)
-                ELSE CAST(f.ComplianceOrgId AS uniqueidentifier)
+                WHEN p.subsidiary_id IS NULL THEN CAST(o.ExternalId AS uniqueidentifier)
+                ELSE CAST(o2.ExternalId AS uniqueidentifier)
             END AS OrganisationId,
         f.Created AS Created,
         p.packaging_material_weight as weight,
         p.organisation_id AS SixDigitOrgId,
         p.packaging_type as PackType
         INTO #FilteredByApproveAfterYear
-        FROM #EnhancedFileNames f
+        FROM #FileNames f
         JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
         JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
+        left JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber
         WHERE LEFT(p.submission_period, 4) = @PeriodYear 
-        AND NOT p.packaging_type IN (SELECT * FROM #ExcludePackagingTypesTable);
+        AND p.packaging_material IN (SELECT * FROM #IncludePackagingMaterialsTable)
+        AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable); 
 
-        -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
+
+         -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
             SubmissionPeriod,
-            CASE 
-                WHEN PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE PackagingMaterial
-            END AS PackagingMaterial, 
+            PackagingMaterial, 
             OrganisationId, 
             MAX(Created) AS LatestDate
         INTO 
@@ -146,46 +153,35 @@ BEGIN
             #FilteredByApproveAfterYear
         GROUP BY 
             SubmissionPeriod, 
-            CASE 
-                WHEN PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE PackagingMaterial
-            END,
+            PackagingMaterial,
             OrganisationId;
 
-        -- Step 2: Aggregate weight for each unique combination of OrganisationId, SubmissionPeriod, and PackagingMaterial (with "PC" and "FC" treated as "PC")
+        -- Step 2: Aggregate weight for each unique combination of OrganisationId, SubmissionPeriod, and PackagingMaterial
         SELECT 
             a.SubmissionPeriod, 
-            CASE 
-                WHEN a.PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE a.PackagingMaterial
-            END AS PackagingMaterial, 
+            a.PackagingMaterial, 
             a.OrganisationId,
             ld.LatestDate,
             SUM(a.Weight) AS Weight,
             a.SixDigitOrgId AS SixDigitOrgId
         INTO
-            #AggregatedWeightsForDuplicates
+            #AggregatedWeightsForDuplicates            
         FROM 
             #FilteredByApproveAfterYear AS a
         JOIN 
             #LatestDates AS ld
         ON 
-            CASE 
-                WHEN a.PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE a.PackagingMaterial
-            END = ld.PackagingMaterial
+            a.PackagingMaterial = ld.PackagingMaterial
             AND a.SubmissionPeriod = ld.SubmissionPeriod
             AND a.OrganisationId = ld.OrganisationId
             AND a.Created = ld.LatestDate
         GROUP BY 
             a.SubmissionPeriod, 
-            CASE 
-                WHEN a.PackagingMaterial IN ('PC', 'FC') THEN 'PC'
-                ELSE a.PackagingMaterial
-            END, 
+            a.PackagingMaterial, 
             a.OrganisationId, 
             ld.LatestDate,
             a.SixDigitOrgId;
+
 
         -- Step 1: Identify duplicate materials based on #PeriodYearTable
         SELECT OrganisationId, PackagingMaterial
@@ -253,13 +249,12 @@ BEGIN
 
         -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data and round to the nearest whole number
         UPDATE #AggregatedMaterials
-        SET PackagingMaterialWeight = ROUND(
-            PackagingMaterialWeight * 
+        SET PackagingMaterialWeight =
             CASE 
-                WHEN SubmissionPeriod = @PartialPeriod THEN (CAST(@NumberOfDaysInWholePeriod AS FLOAT) / @NumberOfDaysInReportingPeriod)
-                WHEN SubmissionPeriod = @PartialPeriodP3 THEN (CAST(@NumberOfDaysInWholePeriod AS FLOAT) / @NumberOfDaysInReportingPeriodP3)
+                WHEN SubmissionPeriod = @PartialPeriod THEN ROUND(((PackagingMaterialWeight/@NumberOfDaysInReportingPeriod) * @NumberOfDaysInWholePeriod), 0)
+                WHEN SubmissionPeriod = @PartialPeriodP3 THEN ROUND(((PackagingMaterialWeight/@NumberOfDaysInReportingPeriodP3) * @NumberOfDaysInWholePeriod), 0)
                 ELSE 1 -- No adjustment for other periods
-            END, 0) -- Round to 0 decimal places
+            END
         WHERE SubmissionPeriod IN (@PartialPeriod, @PartialPeriodP3);
 
 
@@ -268,7 +263,7 @@ BEGIN
         SELECT 
         @PeriodYear AS SubmissionPeriod,  -- Hardcoded variable
         PackagingMaterial AS PackagingMaterial,
-        SUM(PackagingMaterialWeight) / 1000.0 AS PackagingMaterialWeight,
+        ROUND(SUM(PackagingMaterialWeight) / 1000.0, 0) AS PackagingMaterialWeight,
         OrganisationId
         FROM 
         #AggregatedMaterials
@@ -291,7 +286,8 @@ BEGIN
         DROP TABLE #ValidDuplicateMaterials;
         DROP TABLE #AggregatedMaterials;
         DROP TABLE #EnhancedFileNames;
-        DROP TABLE #ExcludePackagingTypesTable;
+        DROP TABLE #IncludePackagingMaterialsTable;
+        DROP TABLE #IncludePackagingTypesTable;
 
 
     END
