@@ -21,37 +21,37 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: Get Pom Submissions for given request {PomSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: Get Pom Submissions for given request {PomSubmissions}", _logPrefix, Sanitize(JsonConvert.SerializeObject(request)));
 
         var sql = "EXECUTE apps.sp_FilterAndPaginateSubmissionsSummaries @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: executing query {Sql}", _logPrefix, sql);
 
         var sqlParameters = request.ToProcParams();
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: query parameters {Parameters}", _logPrefix, JsonConvert.SerializeObject(sqlParameters));
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: query parameters {Parameters}", _logPrefix, Sanitize(JsonConvert.SerializeObject(sqlParameters)));
 
         var response = await accountsDbContext.RunSqlAsync<PomSubmissionSummaryRow>(sql, sqlParameters);
         var itemsCount = response.FirstOrDefault()?.TotalItems ?? 0;
         var paginatedResponse = response.ToPaginatedResponse<PomSubmissionSummaryRow, T, PomSubmissionSummary>(request, itemsCount);
 
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: Sql query response {Sql}", _logPrefix, Sanitize(JsonConvert.SerializeObject(paginatedResponse)));
         return paginatedResponse;
     }
 
     public async Task<PaginatedResponse<PomSubmissionSummaryWithFileFields>> GetSubmissionPomSummariesWithFileInfo<T>(SubmissionsSummariesRequest<T> request)
     {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: Get Pom Submissions for given request {PomSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: Get Pom Submissions for given request {PomSubmissions}", _logPrefix, Sanitize(JsonConvert.SerializeObject(request)));
 
         var sql = "EXECUTE apps.sp_FilterAndPaginateSubmissionsSummaries @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: executing query {Sql}", _logPrefix, sql);
 
         var sqlParameters = request.ToProcParams();
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: query parameters {Parameters}", _logPrefix, JsonConvert.SerializeObject(sqlParameters));
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: query parameters {Parameters}", _logPrefix, Sanitize(JsonConvert.SerializeObject(sqlParameters)));
 
         var response = await accountsDbContext.RunSqlAsync<PomSubmissionSummaryRowWithFileFields>(sql, sqlParameters);
         var itemsCount = response.FirstOrDefault()?.TotalItems ?? 0;
         var paginatedResponse = response.ToPaginatedResponse<PomSubmissionSummaryRowWithFileFields, T, PomSubmissionSummaryWithFileFields>(request, itemsCount);
 
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummariesWithFileFields: Sql query response {Sql}", _logPrefix, Sanitize(JsonConvert.SerializeObject(paginatedResponse)));
         return paginatedResponse;
     }
 
@@ -158,6 +158,9 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             throw new DataException("An exception occurred when executing query.", ex);
         }
     }
+    private string? Sanitize(string input)
+    {
+        return input?.Replace(Environment.NewLine, "").Replace("\n", "").Replace("\r", "");
+    }
 
-    
 }
