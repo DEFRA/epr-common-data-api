@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Api.Extensions;
 using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
+using Microsoft.FeatureManagement;
 
 namespace EPR.CommonDataService.Api;
 
@@ -20,6 +21,7 @@ public static class Program
             .AddSwaggerGen()
             .AddHealthChecks()
             .AddDbContextCheck<SynapseContext>();
+        builder.Services.AddFeatureManagement();
 
         var app = builder.Build();
 
