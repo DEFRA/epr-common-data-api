@@ -3,6 +3,7 @@ using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.FeatureManagement;
 using Newtonsoft.Json;
 using System.Globalization;
 
@@ -10,7 +11,7 @@ namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> apiConfig, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(apiConfig)
+public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> apiConfig, ILogger<SubmissionsController> logger, IConfiguration config, IFeatureManager featureManager) : ApiControllerBase(apiConfig)
 {
     private readonly string? _logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
     private readonly ApiConfig apiConfig = apiConfig.Value;
@@ -24,8 +25,14 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'pom/summary'", _logPrefix);
         logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummaries: Get Pom Submissions for given Regulator {PomSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
-        var result = await submissionsService.GetSubmissionPomSummaries(request);
 
+        if (await featureManager.IsEnabledAsync(FeatureFlags.EnableCsvDownload))
+        {
+            var submissionsWithFileInfo = await submissionsService.GetSubmissionPomSummariesWithFileInfo(request);
+            logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummariesWithFileFields: Pom Submissions returned {SubmissionPomSummaries}", _logPrefix, submissionsWithFileInfo);
+            return Ok(submissionsWithFileInfo);
+        }
+        var result = await submissionsService.GetSubmissionPomSummaries(request);
         logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummaries: Pom Submissions returned {SubmissionPomSummaries}", _logPrefix, result);
         return Ok(result);
     }

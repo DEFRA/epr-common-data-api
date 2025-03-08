@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.FeatureManagement;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -22,6 +23,7 @@ public class SubmissionsControllerTests
     private SubmissionsController _submissionsController = null!;
     private readonly Mock<ISubmissionsService> _submissionsService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
+    private readonly Mock<IFeatureManager> _mockFeatureManager = new();
     private Fixture _fixture = null!;
 
     [TestInitialize]
@@ -39,8 +41,8 @@ public class SubmissionsControllerTests
 
         var configurationMock = new Mock<IConfiguration>();
         configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
-
-        _submissionsController = new SubmissionsController(_submissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
+        
+        _submissionsController = new SubmissionsController(_submissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object,_mockFeatureManager.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -57,6 +59,25 @@ public class SubmissionsControllerTests
         var serviceResponse = _fixture.Create<PaginatedResponse<PomSubmissionSummary>>();
 
         _submissionsService.Setup(service => service.GetSubmissionPomSummaries(request))
+            .ReturnsAsync(serviceResponse);
+
+        // Act
+        var result = await _submissionsController.GetPomSubmissionsSummaries(request) as ObjectResult;
+
+        // Assert
+        result.Should().NotBeNull();
+        result?.Value.Should().BeEquivalentTo(serviceResponse);
+    }
+
+    [TestMethod]
+    public async Task GetPomSubmissionsSummaries_WhenEnableCsvDownloadFeatureFlagIsTrue_ReturnsResponse()
+    {
+        // Arrange
+        var request = _fixture.Create<SubmissionsSummariesRequest<RegulatorPomDecision>>();
+        var serviceResponse = _fixture.Create<PaginatedResponse<PomSubmissionSummaryWithFileFields>>();
+
+        _mockFeatureManager.Setup(x => x.IsEnabledAsync(FeatureFlags.EnableCsvDownload)).ReturnsAsync(true);
+        _submissionsService.Setup(service => service.GetSubmissionPomSummariesWithFileInfo(request))
             .ReturnsAsync(serviceResponse);
 
         // Act
