@@ -68,7 +68,7 @@ public class ProducerDetailsService(
         {
             logger.LogError(ex, "Error occurred in GetUpdatedProducers method. From: {FromDate}, To: {ToDate}", from, to);
 
-            return new List<UpdatedProducersResponseModel>();
+            throw;
         }
     }
 }
