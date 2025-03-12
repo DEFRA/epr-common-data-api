@@ -15,23 +15,25 @@ BEGIN
     )
     BEGIN
         SET NOCOUNT ON;
-        IF OBJECT_ID('tempdb..#ApprovedSubmissions') IS NOT NULL
-            DROP TABLE #ApprovedSubmissions;
 
-        IF OBJECT_ID('tempdb..#FileIdss') IS NOT NULL
-            DROP TABLE #FileIdss;
+        -- Clean up any pre-existing temp tables
+        IF OBJECT_ID('tempdb..#ApprovedSubmissions') IS NOT NULL DROP TABLE #ApprovedSubmissions;
+        IF OBJECT_ID('tempdb..#FileIdss') IS NOT NULL DROP TABLE #FileIdss;
+        IF OBJECT_ID('tempdb..#FileNames') IS NOT NULL DROP TABLE #FileNames;
+        IF OBJECT_ID('tempdb..#MaxCreated') IS NOT NULL DROP TABLE #MaxCreated;
+        IF OBJECT_ID('tempdb..#PeriodYearTable') IS NOT NULL DROP TABLE #PeriodYearTable;
+        IF OBJECT_ID('tempdb..#IncludePackagingTypesTable') IS NOT NULL DROP TABLE #IncludePackagingTypesTable;
+        IF OBJECT_ID('tempdb..#IncludePackagingMaterialsTable') IS NOT NULL DROP TABLE #IncludePackagingMaterialsTable;
+        IF OBJECT_ID('tempdb..#PartialPeriodYearTableP2') IS NOT NULL DROP TABLE #PartialPeriodYearTableP2;
+        IF OBJECT_ID('tempdb..#PartialPeriodYearTableP3') IS NOT NULL DROP TABLE #PartialPeriodYearTableP3;
+        IF OBJECT_ID('tempdb..#FilteredByApproveAfterYear') IS NOT NULL DROP TABLE #FilteredByApproveAfterYear;
+        IF OBJECT_ID('tempdb..#FilteredOrgIdsForH1H2') IS NOT NULL DROP TABLE #FilteredOrgIdsForH1H2;
+        IF OBJECT_ID('tempdb..#FilteredApprovedSubmissions') IS NOT NULL DROP TABLE #FilteredApprovedSubmissions;
+        IF OBJECT_ID('tempdb..#AllPeriods') IS NOT NULL DROP TABLE #AllPeriods;
+        IF OBJECT_ID('tempdb..#LatestDates') IS NOT NULL DROP TABLE #LatestDates;
+        IF OBJECT_ID('tempdb..#AggregatedWeightsForDuplicates') IS NOT NULL DROP TABLE #AggregatedWeightsForDuplicates;
+        IF OBJECT_ID('tempdb..#AggregatedMaterials') IS NOT NULL DROP TABLE #AggregatedMaterials;
 
-        IF OBJECT_ID('tempdb..#FileNames') IS NOT NULL
-            DROP TABLE #FileNames;
-
-        IF OBJECT_ID('tempdb..#MaxCreated') IS NOT NULL
-            DROP TABLE #MaxCreated;
-            
-        IF OBJECT_ID('tempdb..#PeriodYearTable') IS NOT NULL
-            DROP TABLE #PeriodYearTable;	
-
-        IF OBJECT_ID('tempdb..#DuplicateMaterials') IS NOT NULL
-        DROP TABLE #DuplicateMaterials;	   
 
         -- Get start date for the current year
         DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
@@ -117,6 +119,7 @@ BEGIN
             END AS OrganisationId,
         f.Created AS Created,
         p.packaging_material_weight as weight,
+        p.transitional_packaging_units as TransitionalPackaging,
         p.organisation_id AS SixDigitOrgId,
         p.packaging_type as PackType
         INTO #FilteredByApproveAfterYear
@@ -159,7 +162,7 @@ BEGIN
 
 
         --Use H1H2 organisation ids to filter approved submission POM files
-        SELECT f.OrganisationId, f.Created, f.PackagingMaterial, f.PackType, f.SixDigitOrgId, f.SubmissionPeriod, f.weight
+        SELECT f.OrganisationId, f.Created, f.PackagingMaterial, f.PackType, f.SixDigitOrgId, f.SubmissionPeriod, f.weight, f.TransitionalPackaging
         INTO #FilteredApprovedSubmissions
         FROM #FilteredByApproveAfterYear f
         JOIN #FilteredOrgIdsForH1H2 h1h2 ON f.OrganisationId = h1h2.OrganisationId
@@ -209,6 +212,7 @@ BEGIN
             a.OrganisationId,
             ld.LatestDate,
             SUM(a.Weight) AS Weight,
+            SUM(a.TransitionalPackaging) AS TransitionalPackaging,
             a.SixDigitOrgId AS SixDigitOrgId
         INTO
             #AggregatedWeightsForDuplicates            
@@ -235,6 +239,7 @@ BEGIN
             p.submission_period AS SubmissionPeriod,
             p.packaging_material AS PackagingMaterial,
             m.Weight AS PackagingMaterialWeight,
+            m.TransitionalPackaging AS TransitionalPackaging,
             m.OrganisationId AS OrganisationId
         INTO #AggregatedMaterials
         FROM #FileNames f
@@ -249,6 +254,7 @@ BEGIN
             ON p.organisation_id = o.ReferenceNumber
         WHERE TRY_CAST([Created] AS datetime2) > @ApprovedAfter
 
+
         -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data and round to the nearest whole number
         UPDATE #AggregatedMaterials
         SET PackagingMaterialWeight =
@@ -260,40 +266,26 @@ BEGIN
         WHERE SubmissionPeriod IN (@PartialPeriod, @PartialPeriodP3);
 
 
-        --aggregate duplicate materials weight for duplicate materials for org id
+        --Need  to minus transitional packaging
+
+
+        -- Aggregate duplicate materials weight for duplicate materials for org id
         SELECT 
-        @PeriodYear AS SubmissionPeriod,  -- Hardcoded variable
-        PackagingMaterial AS PackagingMaterial,
-        ROUND(SUM(PackagingMaterialWeight) / 1000.0, 0) AS PackagingMaterialWeight,
-        OrganisationId
+            @PeriodYear AS SubmissionPeriod,
+            PackagingMaterial,
+            CAST(
+                CASE 
+                    WHEN SUM(TransitionalPackaging) IS NULL 
+                    THEN ROUND(SUM(PackagingMaterialWeight) / 1000, 0)
+                    ELSE ROUND((SUM(PackagingMaterialWeight) - COALESCE(SUM(TransitionalPackaging), 0)) / 1000, 0)
+                END AS INT
+            ) AS PackagingMaterialWeight, 
+            OrganisationId
         FROM 
-        #AggregatedMaterials
+            #AggregatedMaterials
         GROUP BY 
-        OrganisationId, 
-        PackagingMaterial;
-
-
-
-        DROP TABLE #ApprovedSubmissions;
-        DROP TABLE #FileNames;
-        DROP TABLE #FileIdss;
-        DROP TABLE #PeriodYearTable;
-        DROP TABLE #PartialPeriodYearTableP2;
-        DROP TABLE #PartialPeriodYearTableP3;
-        DROP TABLE #LatestDates;
-        DROP TABLE #AggregatedWeightsForDuplicates;
-        DROP TABLE #FilteredByApproveAfterYear;
-        DROP TABLE #DuplicateMaterials;
-        DROP TABLE #PartialDuplicateMaterials;
-        DROP TABLE #ValidDuplicateMaterials;
-        DROP TABLE #AggregatedMaterials;
-        DROP TABLE #EnhancedFileNames;
-        DROP TABLE #IncludePackagingMaterialsTable;
-        DROP TABLE #IncludePackagingTypesTable;
-        DROP TABLE #FilteredOrgIdsForH1H2
-        DROP TABLE #FilteredApprovedSubmissions
-        DROP TABLE #AllPeriods
-
+            OrganisationId, 
+            PackagingMaterial;
 
     END
     ELSE
