@@ -127,10 +127,11 @@ public class SubmissionsServiceTests
 
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
         var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -142,7 +143,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
 
         // Assert
         result.Should().NotBeNull();
@@ -151,9 +152,10 @@ public class SubmissionsServiceTests
         {
             new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
             new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods },
-			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
-			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }
-		});
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials },
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize }
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
@@ -163,10 +165,11 @@ public class SubmissionsServiceTests
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
-		var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -178,7 +181,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
 
         // Assert
         result.Should().NotBeNull();
@@ -187,9 +190,11 @@ public class SubmissionsServiceTests
         {
             new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
             new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods },
-			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
-			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }
-		});
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials },
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize }
+
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
@@ -199,11 +204,12 @@ public class SubmissionsServiceTests
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
-		var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
 
-		// Set up the mock to throw a generic exception when RunSqlAsync is called
-		_mockSynapseContext
+        // Set up the mock to throw a generic exception when RunSqlAsync is called
+        _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .ThrowsAsync(new Exception("Simulated exception"));
 
@@ -212,7 +218,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        Func<Task> act = async () => await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials);
+        Func<Task> act = async () => await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
 
         await act.Should().ThrowAsync<DataException>();
 
@@ -221,16 +227,17 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenPeriodsIsNull_ExecutesWithNullParameter()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreNull_ExecutesWithNullParameter()
     {
         // Arrange
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
         var approvedAfter = DateTime.UtcNow;
         string? periods = null;
-		string? includePackagingTypes = null;
-		string? includePackagingMaterials = null;
+        string? includePackagingTypes = null;
+        string? includePackagingMaterials = null;
+        string? includeOrganisationSize = null;
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -242,7 +249,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods!, includePackagingTypes!, includePackagingMaterials!);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods!, includePackagingTypes!, includePackagingMaterials!, includeOrganisationSize!);
 
         // Assert
         result.Should().NotBeNull();
@@ -252,22 +259,24 @@ public class SubmissionsServiceTests
             new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
             new SqlParameter("@Periods", SqlDbType.VarChar) { Value = DBNull.Value }, // Check for DBNull when periods is null
 			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = DBNull.Value }, // Check for DBNull when includePackagingTypes is null
-			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = DBNull.Value } // Check for DBNull when includePackagingMaterials is null
-		});
+			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = DBNull.Value }, // Check for DBNull when includePackagingMaterials is null
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = DBNull.Value }  // Check for DBNull when includeOrganisationSize is null
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenPeriodsIsEmpty_ExecutesWithEmptyParameter()
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreEmpty_ExecutesWithEmptyParameter()
     {
         // Arrange
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
         var approvedAfter = DateTime.UtcNow;
         var periods = ""; // Empty periods
-		var includePackagingTypes = ""; // Empty includePackagingTypes
-		var includePackagingMaterials = "";  // Empty includePackagingMaterials
+        var includePackagingTypes = ""; // Empty includePackagingTypes
+        var includePackagingMaterials = "";  // Empty includePackagingMaterials
+        var includeOrganisationSize = ""; // Empty includeOrganisationSize
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -279,7 +288,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act 
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
 
         // Assert
         result.Should().NotBeNull();
@@ -290,6 +299,7 @@ public class SubmissionsServiceTests
             new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }, // Check for empty string when periods is empty
 			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes }, // Check for empty string when includePackagingTypes is empty
 			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }, // Check for empty string when includePackagingMaterials is empty
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize }  // Check for empty string when includeOrganisationSize is empty
 		});
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
@@ -300,10 +310,11 @@ public class SubmissionsServiceTests
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
-		var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -311,7 +322,7 @@ public class SubmissionsServiceTests
             .ThrowsAsync(BuildSqlException(-2));
 
         // Act and Assert
-        var result = Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials));
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize));
     }
 
     [TestMethod]
@@ -371,7 +382,7 @@ public class SubmissionsServiceTests
             .Throws(BuildSqlException(-2));
 
         //Act and Assert
-        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1 ,request));
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1, request));
     }
 
     [TestMethod]
@@ -513,12 +524,13 @@ public class SubmissionsServiceTests
         );
 
         object? sqlError = errorConstructor?.Invoke([number,
-                                                (byte)0,
-                                                (byte)0,
-                                                "server",
-                                                "Custom SQL Error Message",
-                                                "procedure",
-                                                0, new Exception("A generic exception")]);
+            (byte)0,
+            (byte)0,
+            "server",
+            "Custom SQL Error Message",
+            "procedure",
+            0,
+            new Exception("A generic exception")]);
 
         SqlErrorCollection? errorCollection = Activator.CreateInstance(typeof(SqlErrorCollection), true) as SqlErrorCollection;
         typeof(SqlErrorCollection).GetMethod("Add", BindingFlags.NonPublic | BindingFlags.Instance)?
