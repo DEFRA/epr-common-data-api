@@ -4,7 +4,7 @@ DROP VIEW [apps].[v_SubmissionsSummaries];
 GO
 
 CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH 
-	cf_meta_first_record as
+    cf_meta_first_record as
         (
                 select Fileid, blobname, OriginalFileName
                 from
@@ -14,7 +14,7 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
                 ) a
                 where rn = 1
     ),
-    File_id_code_description as 
+	File_id_code_description as 
 	(
 		select distinct meta.fileid, p.filename, p.submission_period as SubmissionCode, Text as ActualSubmissionPeriod
 		from rpd.pom p
@@ -209,63 +209,72 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
         e.LastUpdatedOn,
         ROW_NUMBER() OVER(PARTITION BY e.ConnectionId ORDER BY e.LastUpdatedOn DESC) as rn
         FROM [rpd].[Enrolments] e
-        )
+        ),
 
 -- Query the CTE to return latest row per org with isResubmission status
-SELECT
-    r.SubmissionId,
-    r.OrganisationId,
-    r.ComplianceSchemeId,
-    o.Name As OrganisationName,
-    o.ReferenceNumber as OrganisationReference,
-    CASE
-        WHEN r.ComplianceSchemeId IS NOT NULL THEN 'Compliance Scheme'
-        ELSE 'Direct Producer'
-        END AS  OrganisationType,
-    pt.Name as ProducerType,
-    r.SubmittedUserId as UserId,
-    p.FirstName,
-    p.LastName,
-    p.Email,
-    p.Telephone,
-    sr.Name as ServiceRole,
-    r.FileId,
-	'20'+reverse(substring(reverse(trim(r.SubmissionPeriod)),1,2)) as 'SubmissionYear',
-	SubmissionCode,
-	ActualSubmissionPeriod,
-	Combined_SubmissionCode,
-	Combined_ActualSubmissionPeriod,
-    r.SubmissionPeriod,
-    SubmittedDate,
-    CASE
-        WHEN Decision IS NULL THEN 'Pending'
-        ELSE Decision
-        END AS Decision,
-    CASE
-        WHEN PreviousDecisions > 0 THEN ISNULL(PreviousRejectionIsResubmissionRequired,0)
-        ELSE ISNULL(IsResubmissionRequired,0) END AS IsResubmissionRequired,
-    Comments,
-    CASE
-        WHEN PreviousDecisions > 0 THEN 1
-        ELSE 0
-        END AS IsResubmission,
-    PreviousRejectionComments,
-    CASE
-        WHEN r.ComplianceSchemeId IS NOT NULL THEN cs.NationId
-        ELSE o.NationId
-        END AS NationId,
-	meta.[OriginalFileName] AS PomFileName,
-    meta.[BlobName] AS PomBlobName
-FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
-         INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
-    LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
-    INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
-    INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
-    INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
-    INNER JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
-    INNER JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
-    LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
-	LEFT JOIN File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
-    LEFT JOIN cf_meta_first_record meta on meta.FileId = r.FileId
-WHERE o.IsDeleted=0 and poc.IsDeleted=0;
+LatestUserSubmissions AS(
+	SELECT
+		r.SubmissionId,
+		r.OrganisationId,
+		r.ComplianceSchemeId,
+		o.Name As OrganisationName,
+		o.ReferenceNumber as OrganisationReference,
+		CASE
+			WHEN r.ComplianceSchemeId IS NOT NULL THEN 'Compliance Scheme'
+			ELSE 'Direct Producer'
+			END AS  OrganisationType,
+		pt.Name as ProducerType,
+		r.SubmittedUserId as UserId,
+		p.FirstName,
+		p.LastName,
+		p.Email,
+		p.Telephone,
+		ISNULL(sr.Name, 'Deleted User') AS ServiceRole,
+		r.FileId,
+		'20'+reverse(substring(reverse(trim(r.SubmissionPeriod)),1,2)) as 'SubmissionYear',
+		SubmissionCode,
+		ActualSubmissionPeriod,
+		Combined_SubmissionCode,
+		Combined_ActualSubmissionPeriod,
+		r.SubmissionPeriod,
+		SubmittedDate,
+		CASE
+			WHEN Decision IS NULL THEN 'Pending'
+			ELSE Decision
+			END AS Decision,
+		CASE
+			WHEN PreviousDecisions > 0 THEN ISNULL(PreviousRejectionIsResubmissionRequired,0)
+			ELSE ISNULL(IsResubmissionRequired,0) END AS IsResubmissionRequired,
+		Comments,
+		CASE
+			WHEN PreviousDecisions > 0 THEN 1
+			ELSE 0
+			END AS IsResubmission,
+		PreviousRejectionComments,
+		CASE
+			WHEN r.ComplianceSchemeId IS NOT NULL THEN cs.NationId
+			ELSE o.NationId
+			END AS NationId,
+            meta.[OriginalFileName] AS PomFileName,
+            meta.[BlobName] AS PomBlobName,
+			 ROW_NUMBER() OVER (
+				PARTITION BY r.SubmittedUserId, r.SubmissionPeriod, r.FileId
+				ORDER BY p.IsDeleted ASC, CONVERT(DATETIME,SUBSTRING(p.LastUpdatedOn,1,23)) DESC
+			) AS UserRowNumber
+	FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
+			 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
+		LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
+		INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
+		INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
+		INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
+		LEFT JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
+		LEFT JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
+		LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
+	    LEFT JOIN File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
+        LEFT JOIN cf_meta_first_record meta on meta.FileId = r.FileId 
+        WHERE o.IsDeleted=0
+)
+
+SELECT * FROM LatestUserSubmissions WHERE
+UserRowNumber=1;
 GO
