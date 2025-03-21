@@ -137,7 +137,7 @@ public class ProducerDetailsServiceTests
     }
 
     [TestMethod]
-    public async Task GetUpdatedProducers_ExceptionThrown_ReturnsEmptyList()
+    public async Task GetUpdatedProducers_ExceptionThrown_OnError()
     {
         // Arrange
         var fromDate = new DateTime(2025, 1, 1);
@@ -147,12 +147,11 @@ public class ProducerDetailsServiceTests
             .Setup(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ThrowsAsync(new Exception("Database error"));
 
-        // Act
-        var result = await _service.GetUpdatedProducers(fromDate, toDate);
+        // Act & Assert
+        var exception = await Assert.ThrowsExceptionAsync<Exception>(() => _service.GetUpdatedProducers(fromDate, toDate));
 
         // Assert
-        result.Should().NotBeNull();
-        result.Count.Should().Be(0);
+        exception.Message.Should().Be("Database error");
     }
 
     [TestMethod]
