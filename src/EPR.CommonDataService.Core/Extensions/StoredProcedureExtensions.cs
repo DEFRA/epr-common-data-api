@@ -42,6 +42,10 @@ public static class StoredProcedureExtensions
             {
                 Value = request.SubmissionStatusCommaSeparated ?? (object)DBNull.Value
             },
+            new ("@ResubmissionStatusesCommaSeparated", SqlDbType.NVarChar, 255)
+            {
+                Value = request.ResubmissionStatusCommaSeparated ?? (object)DBNull.Value
+            },
             new ("@OrganisationTypeCommaSeparated", SqlDbType.NVarChar, 255)
             {
                 Value = request.OrganisationTypesCommaSeparated ?? (object)DBNull.Value

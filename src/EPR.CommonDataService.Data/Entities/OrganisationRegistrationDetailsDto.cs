@@ -22,6 +22,12 @@ namespace EPR.CommonDataService.Data.Entities
         public bool IsLateSubmission { get; set; }
         public string SubmissionPeriod { get; set; }
         public int RelevantYear { get; set; }
+        public string ResubmissionFileId { get; set; }
+
+        public string RegistrationDate { get; set; }
+        public bool IsResubmission { get; set; }
+        public string ResubmissionStatus { get; set; }
+        public string ResubmissionDate { get; set; }
 
         public bool IsComplianceScheme { get; set; }
         public string OrganisationSize { get; set; }
@@ -32,7 +38,6 @@ namespace EPR.CommonDataService.Data.Entities
         public string RegulatorComment { get; set; }
         public string ProducerComment { get; set; }
         public string RegulatorDecisionDate { get; set; }
-        public string ProducerCommentDate { get; set; }
         public Guid? RegulatorUserId { get; set; }
 
         // organisation details
