@@ -92,7 +92,7 @@ public class SubmissionsControllerTests
         var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
 
         _submissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
@@ -108,7 +108,7 @@ public class SubmissionsControllerTests
     {
         // Arrange
         _submissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new List<ApprovedSubmissionEntity>());
 
         // Act
@@ -139,7 +139,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "The operation has timed out.";
 
-        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
+        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -158,7 +158,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "An unexpected error occurred.";
 
-        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
+        _submissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -221,7 +221,7 @@ public class SubmissionsControllerTests
                     .Create();
 
         _submissionsController.ModelState.AddModelError("PageSize", "PageSize is required");
-        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1,It.IsAny<OrganisationRegistrationFilterRequest>())).Verifiable();
+        _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, It.IsAny<OrganisationRegistrationFilterRequest>())).Verifiable();
 
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
 
@@ -296,11 +296,17 @@ public class SubmissionsControllerTests
                     .With(x => x.PageNumber, 1)
                     .Create();
 
-        PaginatedResponse<OrganisationRegistrationSummaryDto>? innerResult = new PaginatedResponse<OrganisationRegistrationSummaryDto> { Items = [
-            new() {
+        PaginatedResponse<OrganisationRegistrationSummaryDto>? innerResult = new PaginatedResponse<OrganisationRegistrationSummaryDto>
+        {
+            Items = [
+            new()
+            {
                 SubmissionId = Guid.NewGuid()
-            }], 
-            CurrentPage = 1, PageSize = 1, TotalItems = 1 };
+            }],
+            CurrentPage = 1,
+            PageSize = 1,
+            TotalItems = 1
+        };
 
         _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionSummaries(1, request)).ReturnsAsync(innerResult);
         var result = await _submissionsController.GetOrganisationRegistrationSubmissions(1, request);
@@ -328,9 +334,9 @@ public class SubmissionsControllerTests
     public async Task GetOrganisationRegistrationSubmissionDetails_WillCall_ServiceServiceLayer()
     {
         var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
-        
+
         _submissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Verifiable();
-        
+
         await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
         _submissionsService.Verify(
