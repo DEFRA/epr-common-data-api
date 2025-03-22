@@ -8,7 +8,11 @@ GO
 
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails] @SubmissionId [nvarchar](36) AS
 BEGIN
+
 SET NOCOUNT ON;
+
+--declare @submissionId nvarchar(50);
+--set @SubmissionId = 'c8c4f2db-9279-4742-9920-60cdd1f80df3';
 
 DECLARE @OrganisationIDForSubmission INT;
 DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
@@ -30,6 +34,15 @@ DECLARE @IsComplianceScheme bit;
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
+
+	--select 
+ --       @OrganisationIDForSubmission 
+	--	,@OrganisationUUIDForSubmission 
+	--	,@CSOReferenceNumber 
+	--	,@IsComplianceScheme 
+	--	,@ComplianceSchemeId 
+	--	,@SubmissionPeriod
+	--    ,@ApplicationReferenceNumber 
 
     DECLARE @ProdCommentsSQL NVARCHAR(MAX);
 
@@ -92,6 +105,9 @@ DECLARE @IsComplianceScheme bit;
             AND decisions.SubmissionId = @SubId;
 	');
 
+	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
+		DROP TABLE #ProdCommentsRegulatorDecisions;
+
 	EXEC sp_executesql @ProdCommentsSQL, N'@SubId nvarchar(50)', @SubId = @SubmissionId;
 
     WITH
@@ -118,10 +134,16 @@ DECLARE @IsComplianceScheme bit;
 					AND SubmissionStatus = 'Granted'
 			ORDER BY DecisionDate DESC
 		)
+		,ProducerSubmissionCTE as (
+			SELECT TOP 1 *
+			from ProdCommentsRegulatorDecisionsCTE producersubmission
+			WHERE IsProducerComment = 1
+		)
 		,UploadedDataCTE as (
 			select *
 			from dbo.fn_GetUploadedOrganisationDetails(@OrganisationUUIDForSubmission, @SubmissionPeriod)
 		)
+--select * from UploadedDataCTE
 		,ProducerPaycalParametersCTE
 			AS
 			(
@@ -196,7 +218,7 @@ DECLARE @IsComplianceScheme bit;
 											s.SubmissionPeriod,
 											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
 											4
-										)),4,1) THEN 1
+										)),3,1) THEN 1
 							ELSE 0
 						END AS BIT
 					) AS IsLateSubmission
@@ -222,6 +244,7 @@ DECLARE @IsComplianceScheme bit;
 					,org.PartnerUploadFileName AS PartnershipFileName
 					,org.PartnerFileId AS PartnershipFileId
 					,org.PartnerBlobName AS PartnershipBlobName
+					,CASE WHEN se.DecisionDate > granteddecision.DecisionDate THEN 1 ELSE 0 END AS IsResubmission
 					,ROW_NUMBER() OVER (
 						PARTITION BY s.OrganisationId
 								     ,s.SubmissionPeriod
@@ -230,8 +253,10 @@ DECLARE @IsComplianceScheme bit;
 					) AS RowNum
 				FROM
 					[rpd].[Submissions] AS s
-					INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
-					INNER JOIN UploadedDataCTE org ON org.SubmittingExternalId = s.OrganisationId
+					INNER JOIN ProducerSubmissionCTE se on se.SubmissionId = s.SubmissionId
+					INNER JOIN UploadedDataCTE org 
+						ON org.SubmittingExternalId = s.OrganisationId
+						--and org.submissionid = @SubmissionId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 					LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 					LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
@@ -306,11 +331,12 @@ DECLARE @IsComplianceScheme bit;
 			,PartnershipFileName
 			,PartnershipFileId
 			,PartnershipBlobName
+			,IsResubmission
 			FROM
                 SubmissionDetails submission
                 LEFT JOIN LatestRelatedRegulatorDecisionsCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
-        ) 
+        )
 		,CompliancePaycalCTE
         AS
         (
@@ -328,7 +354,9 @@ DECLARE @IsComplianceScheme bit;
             ,@SubmissionPeriod AS WantedPeriod
             FROM
                 dbo.v_ComplianceSchemeMembers csm
-                INNER JOIN dbo.v_ProducerPayCalParameters ppp ON ppp.OrganisationReference = csm.ReferenceNumber
+                INNER JOIN dbo.v_ProducerPayCalParameters ppp 
+					  ON ppp.OrganisationReference = csm.ReferenceNumber
+					  AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
@@ -418,6 +446,7 @@ DECLARE @IsComplianceScheme bit;
         ,r.BrandsFileId
         ,r.BrandsFileName
         ,r.BrandsBlobName
+		,IsResubmission
         ,acpp.FinalJson AS CSOJson
     FROM
         SubmissionOrganisationCommentsDetailsCTE r

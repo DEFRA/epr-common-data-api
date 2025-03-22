@@ -9,6 +9,12 @@ GO
 CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
 AS
 RETURN (	   
+--declare @OrganisationUUID nvarchar(40);
+--declare @SubmissionPeriod nvarchar(40);
+
+--set @OrganisationUUID = 'A5FFCDCC-4708-4188-9425-2074956FA1EC';
+--set @SubmissionPeriod = null;
+
 WITH
     LatestUploadedData
     AS
@@ -27,7 +33,7 @@ WITH
 			,FileId
 			,FileName
 			,STRING_AGG(FileType, ',') AS FileTypes
-			,row_number() OVER (partition BY organisationid, submissionid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
+			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'

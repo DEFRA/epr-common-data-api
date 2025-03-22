@@ -1,28 +1,18 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
-DROP PROCEDURE [rpd].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
-GO
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries]'))
 DROP PROCEDURE [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries];
 GO
-create proc [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries] 
-    @OrganisationNameCommaSeparated[nvarchar](255),
-    @OrganisationReferenceCommaSeparated [nvarchar](255),
-    @SubmissionYearsCommaSeparated [nvarchar](255),
-    @StatusesCommaSeparated [nvarchar](100),
-    @OrganisationTypeCommaSeparated [nvarchar](255),
-    @NationId int,
-	@AppRefNumbersCommaSeparated [nvarchar](2000),
-    @PageSize [INT],
-    @PageNumber [INT]
-AS
-begin
-	SET NOCOUNT ON;
+CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
+BEGIN
+    SET NOCOUNT ON;
     IF EXISTS (
 		SELECT 1
 		FROM sys.columns
 		WHERE [name] = 'AppReferenceNumber' AND [object_id] = OBJECT_ID('rpd.Submissions')
 	)
 	BEGIN
+		IF OBJECT_ID('tempdb..#TempTable') IS NOT NULL
+			DROP TABLE #TempTable;
+
 		CREATE TABLE #TempTable (
 			SubmissionId NVARCHAR(150) NULL,
 			OrganisationId NVARCHAR(150) NULL,
@@ -48,7 +38,8 @@ begin
 			ProducerSubmissionEventId NVARCHAR(150) NULL,
 			RegulatorSubmissionEventId NVARCHAR(150) NULL,
 			NationId INT NULL,
-			NationCode NVARCHAR(10) NULL
+			NationCode NVARCHAR(10) NULL,
+			IsResubmission BIT NOT NULL
 		);
 		
 		exec dbo.sp_OrganisationRegistrationSummaries ;
@@ -74,7 +65,8 @@ begin
 					ProducerCommentDate,
 					RegulatorUserId,
 					NationId,
-					NationCode
+					NationCode,
+                    IsResubmission
 			FROM #TempTable i
             WHERE (
 				    NationId = @NationId
@@ -230,6 +222,7 @@ begin
 				,RegulatorUserId
 				,NationId
 				,NationCode
+                ,IsResubmission
 				,( SELECT COUNT(*) FROM SortedCTE ) AS TotalItems
 			FROM
 				PagedResultsCTE
@@ -281,9 +274,8 @@ begin
             ,CAST(NULL AS UNIQUEIDENTIFIER) AS RegulatorUserId
             ,CAST(NULL AS INT) AS NationId
             ,CAST(NULL AS NVARCHAR(10)) AS NationCode
+            ,CAST(0 AS BIT) AS IsResubmission
             ,0 AS TotalItems
         WHERE 1=0
     END;
 END;
-
-GO
