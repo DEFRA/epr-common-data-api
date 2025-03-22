@@ -2,8 +2,7 @@
 DROP PROCEDURE [dbo].[sp_OrganisationRegistrationSummaries];
 GO
 
-CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries]
-AS
+CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries] AS
 BEGIN
 	SET NOCOUNT ON;
 
@@ -54,6 +53,10 @@ BEGIN
         FROM rpd.SubmissionEvents AS decisions
         WHERE decisions.Type IN (''RegistrationApplicationSubmitted'', ''RegulatorRegistrationDecision'');	');
 
+
+	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
+		DROP TABLE #ProdCommentsRegulatorDecisions;
+
 	EXEC sp_executesql @ProdCommentsSQL;
 
 	WITH ProdCommentsRegulatorDecisionsCTE as (
@@ -72,13 +75,25 @@ BEGIN
 				#ProdCommentsRegulatorDecisions as decisions
 			WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')
 		)
+--select * from ProdCommentsRegulatorDecisionsCTE  where submissionid = 'c8c4f2db-9279-4742-9920-60cdd1f80df3'
 		,GrantedDecisionsCTE as (
 			SELECT *
 			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
 			WHERE IsProducerComment = 0
 					AND SubmissionStatus = 'Granted'
 		)
-		,LatestOrganisationRegistrationSubmissionsCTE
+        ,LatestGrantedDecisionsCTE as (
+			SELECT *
+			FROM GrantedDecisionsCTE granteddecision
+            WHERE RowNum = 1
+		)
+		,LatestProducerSubmissionCTE as (
+			SELECT *
+			FROM ProdCommentsRegulatorDecisionsCTE
+            WHERE IsProducerComment = 1 --AND RowNum = 1
+		)
+--select * from LatestProducerSubmissionCTE where submissionid = 'c8c4f2db-9279-4742-9920-60cdd1f80df3'
+ 		,LatestOrganisationRegistrationSubmissionsCTE
 		AS
 		(
 			SELECT
@@ -92,18 +107,21 @@ BEGIN
 					,o.Id as OrganisationInternalId
 					,o.ExternalId as OrganisationId
 					,s.AppReferenceNumber AS ApplicationReferenceNumber
-					,granteddecision.RegistrationReferenceNumber
-					,granteddecision.SubmissionStatus
-					,granteddecision.DecisionDate as RegulatorDecisionDate
-					,granteddecision.UserId as RegulatorUserId
-            		,se.DecisionDate as ProducerCommentDate
-					,se.Comment as ProducerComment
-					,se.SubmissionEventId as ProducerSubmissionEventId
-					,granteddecision.SubmissionEventId as RegulatorSubmissionEventId
+					,granted.RegistrationReferenceNumber
+					,CASE WHEN producersubmission.DecisionDate > granted.DecisionDate
+								THEN 'Granted' 
+								ELSE granted.SubmissionStatus
+					 END as SubmissionStatus
+					,granted.DecisionDate as RegulatorDecisionDate
+					,granted.UserId as RegulatorUserId
+            		,producersubmission.DecisionDate as ProducerCommentDate
+					,producersubmission.Comment as ProducerComment
+					,producersubmission.SubmissionEventId as ProducerSubmissionEventId
+					,granted.SubmissionEventId as RegulatorSubmissionEventId
 					,s.SubmissionPeriod
 					,s.SubmissionId
 					,s.OrganisationId AS InternalOrgId
-					,se.DecisionDate AS SubmittedDateTime
+					,producersubmission.DecisionDate AS SubmittedDateTime
 					,CASE 
 						WHEN cs.NationId IS NOT NULL THEN cs.NationId
 						ELSE
@@ -143,7 +161,7 @@ BEGIN
 					) AS RelevantYear
 					,CAST(
 						CASE
-							WHEN se.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+							WHEN producersubmission.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
 											s.SubmissionPeriod,
 											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
 											4
@@ -156,6 +174,7 @@ BEGIN
 						WHEN 'L' THEN 'Large'
 					END as ProducerSize
 					,CASE WHEN s.ComplianceSchemeId is not null THEN 1 ELSE 0 END as IsComplianceScheme
+                    ,CASE WHEN producersubmission.DecisionDate > granted.DecisionDate THEN 1 ELSE 0 END as IsResubmission
 					,ROW_NUMBER() OVER (
 						PARTITION BY s.OrganisationId,
 						s.SubmissionPeriod, s.ComplianceSchemeId
@@ -166,18 +185,20 @@ BEGIN
 					INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
 						ON org.SubmittingExternalId = s.OrganisationId 
 						and org.SubmissionPeriod = s.SubmissionPeriod
-						and org.SubmissionId = s.SubmissionId
+						--and org.SubmissionId = s.SubmissionId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 					LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
-					LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
-					INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId 
-						and se.IsProducerComment = 1
+					LEFT JOIN GrantedDecisionsCTE granted on granted.SubmissionId = s.SubmissionId
+					LEFT JOIN LatestGrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
+					INNER JOIN LatestProducerSubmissionCTE producersubmission on producersubmission.SubmissionId = s.SubmissionId 
+						and producersubmission.IsProducerComment = 1
 				WHERE s.AppReferenceNumber IS NOT NULL
 					AND s.SubmissionType = 'Registration'
 					ANd s.IsSubmitted = 1
 			) AS a
 			WHERE a.RowNum = 1
 		)
+--select * from LatestOrganisationRegistrationSubmissionsCTE where submissionid = 'c8c4f2db-9279-4742-9920-60cdd1f80df3'		
 		,LatestRelatedRegulatorDecisionsCTE AS
 		(
 			select b.SubmissionId
@@ -236,7 +257,9 @@ BEGIN
 				,submissions.RelevantYear
 				,submissions.SubmissionPeriod
 				,submissions.IsLateSubmission
-				,ISNULL(decisions.SubmissionStatus, 'Pending') as SubmissionStatus
+				,CASE WHEN submissions.RegistrationReferenceNumber is not null then 'Granted'
+					  else ISNULL(decisions.SubmissionStatus, 'Pending')
+			     END as SubmissionStatus
 				,decisions.StatusPendingDate
 				,decisions.RegulatorDecisionDate
 				,decisions.UserId as RegulatorUserId
@@ -245,6 +268,7 @@ BEGIN
 				,ISNULL(submissions.RegulatorSubmissionEventId, decisions.SubmissionEventId) AS RegulatorSubmissionEventId
 				,submissions.NationId
 				,submissions.NationCode
+                ,submissions.IsResubmission
 			FROM
 				LatestOrganisationRegistrationSubmissionsCTE submissions
 				LEFT JOIN LatestRelatedRegulatorDecisionsCTE decisions
@@ -258,5 +282,4 @@ BEGIN
 	FROM
 		AllSubmissionsAndDecisionsAndCommentCTE submissions;
 END;
-
 GO
