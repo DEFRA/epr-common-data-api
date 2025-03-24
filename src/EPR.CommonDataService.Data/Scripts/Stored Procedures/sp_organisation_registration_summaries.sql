@@ -2,8 +2,8 @@
 DROP PROCEDURE [dbo].[sp_OrganisationRegistrationSummaries];
 GO
 
-CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries] AS
-BEGIN
+CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries] 
+AS BEGIN
 	SET NOCOUNT ON;
 
     -- Variable to hold the dynamically constructed SQL query
@@ -75,7 +75,6 @@ BEGIN
 				#ProdCommentsRegulatorDecisions as decisions
 			WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')
 		)
---select * from ProdCommentsRegulatorDecisionsCTE  where submissionid = 'c8c4f2db-9279-4742-9920-60cdd1f80df3'
 		,GrantedDecisionsCTE as (
 			SELECT *
 			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
@@ -92,7 +91,6 @@ BEGIN
 			FROM ProdCommentsRegulatorDecisionsCTE
             WHERE IsProducerComment = 1 --AND RowNum = 1
 		)
---select * from LatestProducerSubmissionCTE where submissionid = 'c8c4f2db-9279-4742-9920-60cdd1f80df3'
  		,LatestOrganisationRegistrationSubmissionsCTE
 		AS
 		(
@@ -185,7 +183,6 @@ BEGIN
 					INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
 						ON org.SubmittingExternalId = s.OrganisationId 
 						and org.SubmissionPeriod = s.SubmissionPeriod
-						--and org.SubmissionId = s.SubmissionId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 					LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 					LEFT JOIN GrantedDecisionsCTE granted on granted.SubmissionId = s.SubmissionId
