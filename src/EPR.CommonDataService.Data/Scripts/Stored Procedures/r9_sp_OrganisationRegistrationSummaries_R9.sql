@@ -2,15 +2,10 @@
 DROP PROCEDURE [dbo].[sp_OrganisationRegistrationSummaries_R9];
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries_R9] AS
 BEGIN
 	SET NOCOUNT ON;
 
-    -- Variable to hold the dynamically constructed SQL query
     DECLARE @ProdCommentsSQL NVARCHAR(MAX);
 
 	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
@@ -90,38 +85,19 @@ BEGIN
 		FROM
 			#ProdCommentsRegulatorDecisions as decisions
 	)
-	,RegistrationDecisionCTE as (
-		SELECT *
-		FROM (
-			SELECT SubmissionId, SubmissionEventId, Userid, RegistrationReferenceNumber, DecisionDate as RegistrationDate
-				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
-			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
-			WHERE IsProducerComment = 0 AND SubmissionStatus = 'Granted' AND RegistrationReferenceNumber IS NOT NULL
-		) as grantedevents WHERE RowNum = 1
-	)
 	,SubmittedCTE as (
 		SELECT *
 		FROM (
 			SELECT SubmissionId, SubmissionEventId, Comment, DecisionDate as SubmissionDate
-				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
+				   ,FileId ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
 			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
 			WHERE IsProducerComment = 1	and FileId IS NULL
 		) as submittedevents WHERE RowNum = 1
 	)
-	,ResubmissionRegulatorDecisionCTE as (
-		SELECT * FROM (
-			SELECT SubmissionId, SubmissionEventId, UserId, SubmissionStatus as ResubmissionStatus, 
-					StatusPendingDate, DecisionDate as ResubmissionDecisionDate
-				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
-			FROM ProdCommentsRegulatorDecisionsCTE
-			where IsProducerComment = 0
-		) as resubmissions
-		WHERE RowNum = 1
-	)
 	,ProducerReSubmissionCTE as (
 		SELECT * from (
 			SELECT SubmissionId, SubmissionEventId, Comment, DecisionDate as ResubmissionDate
-				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
+				   ,FileId, ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
 			FROM ProdCommentsRegulatorDecisionsCTE
 			where IsProducerComment = 1	AND FileId IS NOT NULL
 		) as resubmissions
@@ -131,6 +107,36 @@ BEGIN
 				FROM SubmittedCTE s 
 				WHERE s.SubmissionEventId = resubmissions.SubmissionEventId
 			)
+	)
+	,RegistrationDecisionCTE as (
+		SELECT *
+		FROM (
+			SELECT SubmissionId, SubmissionEventId, Userid, RegistrationReferenceNumber, 
+					DecisionDate as RegistrationDate, FileId
+				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
+			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
+			WHERE IsProducerComment = 0 AND SubmissionStatus = 'Granted' AND RegistrationReferenceNumber IS NOT NULL
+		) as grantedevents WHERE RowNum = 1
+	)
+	,RegulatorResubmissionDecisionCTE AS (
+		SELECT *
+		FROM (
+			SELECT SubmissionId, SubmissionEventId, Userid, RegistrationReferenceNumber, 
+					DecisionDate as ResubmissionDecisionDate, FileId, SubmissionStatus as ResubmissionStatus
+				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
+			FROM ProdCommentsRegulatorDecisionsCTE granteddecision
+			WHERE IsProducerComment = 0 
+		) as grantedevents WHERE RowNum = 1
+	)
+	,RegulatorDecisionsCTE as (
+		SELECT * FROM (
+			SELECT SubmissionId, SubmissionEventId, UserId, SubmissionStatus, 
+					StatusPendingDate, DecisionDate, FileId
+				   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
+			FROM ProdCommentsRegulatorDecisionsCTE
+			where IsProducerComment = 0 AND FileId IS NULL
+		) as resubmissions
+		WHERE RowNum = 1
 	)
 	,LatestOrganisationRegistrationSubmissionsCTE
     AS
@@ -182,18 +188,27 @@ BEGIN
 						  THEN 1
 						  ELSE 0
 				 END as IsResubmission
-				,CASE when registrationdecision.RegistrationDate IS NOT NULL THEN 'Granted'
-					  else CASE WHEN regulatorresubmissiondecision.ResubmissionStatus IS NULL Then 'Pending'
-						   ELSE regulatorresubmissiondecision.ResubmissionStatus END
-				 END as SubmissionStatus
-				,CASE WHEN resubmission.ResubmissionDate IS NOT NULL THEN
-							CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate > resubmission.ResubmissionDate 
-								THEN regulatorresubmissiondecision.ResubmissionStatus
-							ELSE 'Pending' END
-					      ELSE NULL
+				,CASE WHEN resubmission.ResubmissionDate IS NOT NULL 
+					  THEN
+					  	CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate IS NOT NULL 
+							 		AND regulatorresubmissiondecision.FileId = resubmission.FileId
+							 THEN
+								  CASE regulatorresubmissiondecision.ResubmissionStatus 
+								  	   WHEN 'Granted' 
+								  			THEN 'Accepted'
+									   WHEN 'Refused'
+									   		THEN 'Rejected'
+								  END 
+						     ELSE 'Pending'
+						END
+					  ELSE NULL
 				 END as ResubmissionStatus
+				,CASE WHEN regulatordecisions.DecisionDate IS NOT NULL
+						      THEN regulatordecisions.SubmissionStatus
+							  ELSE 'Pending'
+						 END as SubmissionStatus
 				,regulatorresubmissiondecision.ResubmissionDecisionDate
-				,regulatorresubmissiondecision.StatusPendingDate
+				,regulatordecisions.StatusPendingDate
 				,ISNULL(resubmission.Comment, SubmittedCTE.Comment) 
 				 as ProducerComment
 				,s.SubmissionPeriod
@@ -240,16 +255,16 @@ BEGIN
                 INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
 					ON org.SubmittingExternalId = s.OrganisationId 
 					and org.SubmissionPeriod = s.SubmissionPeriod
-					and org.SubmissionId = s.SubmissionId
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
 				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 				LEFT JOIN RegistrationDecisionCTE as registrationdecision on registrationdecision.submissionid = s.SubmissionId
 				LEFT JOIN ProducerReSubmissionCTE resubmission on resubmission.SubmissionId = s.SubmissionId
-				LEFT JOIN ResubmissionRegulatorDecisionCTE regulatorresubmissiondecision on regulatorresubmissiondecision.SubmissionId = s.SubmissionId 
+				LEFT JOIN RegulatorResubmissionDecisionCTE regulatorresubmissiondecision on regulatorresubmissiondecision.SubmissionId = s.SubmissionId 
+				LEFT JOIN RegulatorDecisionsCTE regulatordecisions on regulatordecisions.SubmissionId = s.SubmissionId 
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
-				ANd s.IsSubmitted = 1
+				AND s.IsSubmitted = 1
         ) AS a
         WHERE a.RowNum = 1
     )
@@ -293,5 +308,5 @@ BEGIN
 		DISTINCT *
 	FROM
 		AllSubmissionsAndDecisionsAndCommentCTE submissions;
-END;
+	END;
 GO
