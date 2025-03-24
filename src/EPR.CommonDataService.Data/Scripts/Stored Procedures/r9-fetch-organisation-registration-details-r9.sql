@@ -2,16 +2,9 @@
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9];
 GO
 
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9] @SubmissionId [nvarchar](36) AS
 BEGIN
 SET NOCOUNT ON;
---DECLARE @SubmissionId nvarchar(50);
-
---set @SubmissionId = '8942bebb-34f2-494b-8f94-03a0f36e0a92';
 
 DECLARE @OrganisationIDForSubmission INT;
 DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
@@ -25,7 +18,7 @@ DECLARE @IsComplianceScheme bit;
         @OrganisationIDForSubmission = O.Id 
 		,@OrganisationUUIDForSubmission = O.ExternalId 
 		,@CSOReferenceNumber = O.ReferenceNumber 
-		,@IsComplianceScheme = O.IsComplianceScheme
+		,@IsComplianceScheme = CASE WHEN S.ComplianceSchemeId IS NOT NULL THEN 1 ELSE 0 END
 		,@ComplianceSchemeId = S.ComplianceSchemeId
 		,@SubmissionPeriod = S.SubmissionPeriod
 	    ,@ApplicationReferenceNumber = S.AppReferenceNumber
@@ -110,10 +103,9 @@ DECLARE @IsComplianceScheme bit;
 	');
 
 	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
-	DROP TABLE #ProdCommentsRegulatorDecisions;
---print @ProdCommentsSQL
+		DROP TABLE #ProdCommentsRegulatorDecisions;
+
 	EXEC sp_executesql @ProdCommentsSQL, N'@SubId nvarchar(50)', @SubId = @SubmissionId;
-	--select * from #ProdCommentsRegulatorDecisions
 
     WITH
 		ProdCommentsRegulatorDecisionsCTE as (
@@ -135,7 +127,6 @@ DECLARE @IsComplianceScheme bit;
 				#ProdCommentsRegulatorDecisions as decisions
 			WHERE decisions.SubmissionId = @SubmissionId
 		)
---select * from ProdCommentsRegulatorDecisionsCTE
 		,SubmittedCTE as (
 			SELECT *
 			FROM (
@@ -143,20 +134,20 @@ DECLARE @IsComplianceScheme bit;
 					   SubmissionEventId as SubmissionEventId, 
 					   Comment as SubmissionComment, 
 					   NULL as FileId, 
-					   UserId as SubmittedUserId, 
+					   UserId as SubmittedUserId,
 					   DecisionDate as SubmissionDate
 					   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
 				FROM ProdCommentsRegulatorDecisionsCTE granteddecision
 				WHERE IsProducerComment = 1 and FileId IS NULL
 			) as submittedevents WHERE RowNum = 1
 		)
---select * from SubmittedCTE
 		,ProducerReSubmissionCTE as (
 			SELECT * from (
 				SELECT SubmissionId, 
 					   SubmissionEventId ResubmissionEventId, 
+					   Comment ResubmissionComment,
 					   FileId, 
-					   Comment as ResubmissionComment, 
+					   UserId as SubmittedUserId,
 					   DecisionDate as ResubmissionDate
 					   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
 				FROM ProdCommentsRegulatorDecisionsCTE
@@ -169,7 +160,6 @@ DECLARE @IsComplianceScheme bit;
 				  WHERE s.SubmissionEventId = resubmissions.ResubmissionEventId
 			  )
 		)
---select * from ProducerReSubmissionCTE 
 		,RegistrationDecisionCTE as (
 			SELECT TOP 1 *
 			FROM (
@@ -179,24 +169,29 @@ DECLARE @IsComplianceScheme bit;
 					   RegistrationReferenceNumber,
 					   SubmissionStatus,
 					   Comment as RegistrationComment, 
-					   DecisionDate as RegistrationDate
+					   DecisionDate as RegistrationDate,
+					   StatusPendingDate
 					   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate ASC) as RowNum
 				FROM ProdCommentsRegulatorDecisionsCTE granteddecision
-				WHERE IsProducerComment = 0 AND SubmissionStatus = 'Granted' AND RegistrationReferenceNumber IS NOT NULL
+				WHERE IsProducerComment = 0 
+					  AND SubmissionStatus = 'Granted' 
+					  AND RegistrationReferenceNumber IS NOT NULL 
+					  AND FileId IS NULL
 			) as grantedevents WHERE RowNum = 1
 		)
---select * from  RegistrationDecisionCTE 
 		,ResubmissionRegulatorDecisionCTE as (
 			SELECT * FROM (
 				SELECT SubmissionId, 
 					   SubmissionEventId as ResubmissionEventId, 
 					   UserId, 
+					   RegistrationReferenceNumber,
 					   SubmissionStatus as ResubmissionStatus, 
 					   Comment as ResubmissionComment, 
-					   DecisionDate as ResubmissionDecisionDate
+					   DecisionDate as ResubmissionDecisionDate,
+					   FileId
 					   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC ) as RowNum
 				FROM ProdCommentsRegulatorDecisionsCTE
-				where IsProducerComment = 0
+				where IsProducerComment = 0 AND FileId IS NOT NULL
 			) as resubmissions
 			WHERE RowNum = 1
 			AND NOT EXISTS (
@@ -204,51 +199,35 @@ DECLARE @IsComplianceScheme bit;
 				  FROM RegistrationDecisionCTE r 
 				  WHERE r.RegistrationEventId = resubmissions.ResubmissionEventId
 			)
-			AND EXISTS (
-				SELECT 1
-				FROM ProducerReSubmissionCTE prs
-			)
 		)
---select * from ResubmissionRegulatorDecisionCTE
 		,RegulatorDecisionsCTE as (
 			SELECT *
 			FROM (
-				SELECT SubmissionId, SubmissionEventId, Userid, 
+				SELECT  SubmissionId, 
+						SubmissionEventId, 
+						Userid, 
 						RegistrationReferenceNumber,
 						SubmissionStatus,
 						Comment as RegulatorComment, 
 						DecisionDate as RegulatorDecisionDate,
 						StatusPendingDate
+ 					    FileId
 					   ,ROW_NUMBER() OVER ( PARTITION BY SubmissionId ORDER BY DecisionDate DESC) as RowNum
 				FROM ProdCommentsRegulatorDecisionsCTE granteddecision
-				WHERE IsProducerComment = 0 AND SubmissionStatus <> 'Granted'
+				WHERE IsProducerComment = 0 AND FileId IS NULL
 			) as regulatorevents 
-			--WHERE RowNum = 1
-		)
---select * from RegulatorDecisionsCTE
-		,MostRecentRegulatorDecisionCTE as (
-			select * from RegulatorDecisionsCTE
 			WHERE RowNum = 1
-			AND NOT EXISTS (
-				  SELECT 1 
-				  FROM RegistrationDecisionCTE r 
-				  WHERE r.RegistrationEventId = RegulatorDecisionsCTE.SubmissionEventId
-			)
 		)
---select * from MostRecentRegulatorDecisionCTE
 		,UploadedViewCTE as (
 			select * FROM
 				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
 			WHERE org.SubmittingExternalId = @OrganisationUUIDForSubmission
 				and org.SubmissionPeriod = @SubmissionPeriod
-				and org.SubmissionId = @SubmissionId )
---select * from UploadedViewCTE
+		)
 		,UploadedDataCTE as (
 			select *
 			from dbo.fn_GetUploadedOrganisationDetails(@OrganisationUUIDForSubmission, @SubmissionPeriod)
-			--where SubmissionId = @SubmissionId
 		)
---select * from UploadedDataCTE
 		,ProducerPaycalParametersCTE
 			AS
 			(
@@ -264,7 +243,6 @@ DECLARE @IsComplianceScheme bit;
 				inner join UploadedDataCTE udc on udc.CompanyFileName = ppp.FileName
 			WHERE ppp.ExternalId = @OrganisationUUIDForSubmission
 		)
---select * from ProducerPaycalParametersCTE
 		,SubmissionDetails AS (
 		    select a.* FROM (
 				SELECT
@@ -279,29 +257,40 @@ DECLARE @IsComplianceScheme bit;
 					,registrationdecision.RegistrationDate
 					,registrationdecision.RegistrationEventId
             		,resubmission.ResubmissionDate
-					,CASE WHEN regulatordecisions.RegulatorDecisionDate > registrationdecision.RegistrationDate 
-						  THEN CASE WHEN RegulatorDecisions.SubmissionStatus IS NULL Then 'Pending'
-									ELSE RegulatorDecisions.SubmissionStatus 
-								END
-						  ELSE
-							   CASE when registrationdecision.RegistrationDate IS NOT NULL THEN 'Granted'
-							   ELSE CASE WHEN RegulatorDecisions.SubmissionStatus IS NULL Then 'Pending'
-									ELSE RegulatorDecisions.SubmissionStatus 
-									END
+					,CASE WHEN registrationdecision.RegistrationDate IS NOT NULL
+					      THEN registrationdecision.SubmissionStatus
+						  ELSE CASE WHEN regulatordecisions.RegulatorDecisionDate IS NOT NULL
+									THEN regulatordecisions.SubmissionStatus
+									ELSE 'Pending'
 							   END
 					 END as SubmissionStatus
-					,CASE WHEN resubmission.ResubmissionDate IS NOT NULL THEN
-							CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate > resubmission.ResubmissionDate 
-								THEN CASE WHEN regulatorresubmissiondecision.ResubmissionStatus = 'Granted' THEN 'Accepted'
-										  WHEN regulatorresubmissiondecision.ResubmissionStatus = 'Refused' THEN 'Rejected'
-									 END
-							ELSE 'Pending' END
-					      ELSE NULL
+					,CASE WHEN resubmission.ResubmissionDate IS NOT NULL 
+						  THEN
+						  	CASE WHEN regulatorresubmissiondecision.ResubmissionDecisionDate IS NOT NULL 
+								 		AND regulatorresubmissiondecision.FileId = resubmission.FileId
+								 THEN
+									  CASE regulatorresubmissiondecision.ResubmissionStatus 
+									  	   WHEN 'Granted' 
+									  			THEN 'Accepted'
+										   WHEN 'Refused'
+										   		THEN 'Rejected'
+									  END 
+							     ELSE 'Pending'
+							END
+						  ELSE NULL
 					 END as ResubmissionStatus
 					,CASE WHEN resubmission.ResubmissionDate IS NOT NULL 
 						  THEN 1
 						  ELSE 0
 					 END as IsResubmission
+					,resubmission.FileId as ResubmissionFileId
+					,ISNULL(regulatorresubmissiondecision.ResubmissionComment,
+							ISNULL(regulatordecisions.RegulatorComment, 
+								registrationdecision.RegistrationComment))
+						as RegulatorComment
+					,ISNULL(resubmission.ResubmissionComment, 
+							SubmittedCTE.SubmissionComment) 
+						as ProducerComment
 					,CASE 
 						WHEN cs.NationId IS NOT NULL THEN cs.NationId
 						ELSE
@@ -335,14 +324,10 @@ DECLARE @IsComplianceScheme bit;
 					,resubmission.ResubmissionEventId as ResubmissionEventId
 					,GREATEST(RegistrationDate,GREATEST(ResubmissionDecisionDate, RegulatorDecisionDate))
 						as RegulatorDecisionDate
-					,CASE WHEN regulatordecisions.SubmissionStatus = 'Cancelled' 
-						  THEN regulatordecisions.StatusPendingDate
+					,CASE WHEN registrationdecision.SubmissionStatus = 'Cancelled' 
+						  THEN registrationdecision.StatusPendingDate
 						  ELSE null
 					 END as StatusPendingDate
-					,ISNULL(registrationdecision.RegistrationComment, ISNULL(regulatorresubmissiondecision.ResubmissionComment, regulatordecisions.RegulatorComment)) 
-						as RegulatorComment
-					,ISNULL(resubmission.ResubmissionComment, SubmittedCTE.SubmissionComment) 
-						as ProducerComment
 					,s.SubmissionPeriod
 					,CAST(
 						SUBSTRING(
@@ -365,9 +350,9 @@ DECLARE @IsComplianceScheme bit;
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'
 					 END as ProducerSize
-					,o.IsComplianceScheme
+					,org.IsComplianceScheme
 					,CASE 
-						WHEN o.IsComplianceScheme = 1 THEN 'Compliance'
+						WHEN org.IsComplianceScheme = 1 THEN 'Compliance'
 						WHEN UPPER(TRIM(org.organisationsize)) = 'S' THEN 'Small'
 						WHEN UPPER(TRIM(org.organisationsize)) = 'L' THEN 'Large'
 					 END AS OrganisationType
@@ -384,6 +369,8 @@ DECLARE @IsComplianceScheme bit;
 					,org.PartnerFileId AS PartnershipFileId
 					,org.PartnerBlobName AS PartnershipBlobName
 					,SubmittedCTE.SubmittedUserId
+					,s.ComplianceSchemeId
+					,@ComplianceSchemeId as CSId
 					,ROW_NUMBER() OVER (
 						PARTITION BY s.OrganisationId
 								     ,s.SubmissionPeriod
@@ -393,9 +380,9 @@ DECLARE @IsComplianceScheme bit;
 				FROM
 					[rpd].[Submissions] AS s
 						INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
-						INNER JOIN UploadedViewCTE org on org.SubmissionId = s.SubmissionId
+						INNER JOIN UploadedViewCTE org on org.SubmittingExternalId = s.OrganisationId
 						INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
-						LEFT JOIN MostRecentRegulatorDecisionCTE regulatordecisions on regulatordecisions.SubmissionId = s.SubmissionId
+						LEFT JOIN RegulatorDecisionsCTE regulatordecisions on regulatordecisions.SubmissionId = s.SubmissionId
 						LEFT JOIN RegistrationDecisionCTE as registrationdecision on registrationdecision.submissionid = s.SubmissionId
 						LEFT JOIN ProducerReSubmissionCTE resubmission on resubmission.SubmissionId = s.SubmissionId
 						LEFT JOIN ResubmissionRegulatorDecisionCTE regulatorresubmissiondecision on regulatorresubmissiondecision.SubmissionId = s.SubmissionId 
@@ -408,7 +395,8 @@ DECLARE @IsComplianceScheme bit;
 		,ComplianceSchemeMembersCTE as (
 			select *
 			from dbo.v_ComplianceSchemeMembers csm
-			where csm.CSOReference = @CSOReferenceNumber
+			where @IsComplianceScheme = 1
+				  and csm.CSOReference = @CSOReferenceNumber
 				  and csm.SubmissionPeriod = @SubmissionPeriod
 				  and csm.ComplianceSchemeId = @ComplianceSchemeId
 		)
@@ -480,6 +468,7 @@ DECLARE @IsComplianceScheme bit;
         ,r.ResubmissionStatus
 		,r.RegistrationDate
 		,r.ResubmissionDate
+		,r.ResubmissionFileId
 		,r.SubmissionPeriod
         ,r.RelevantYear
         ,r.IsComplianceScheme
@@ -521,6 +510,8 @@ DECLARE @IsComplianceScheme bit;
         ,r.BrandsFileId
         ,r.BrandsFileName
         ,r.BrandsBlobName
+		,r.ComplianceSchemeId
+		,r.CSId
         ,acpp.FinalJson AS CSOJson
     FROM
         SubmissionDetails r
@@ -533,3 +524,4 @@ DECLARE @IsComplianceScheme bit;
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
 END;
 GO
+
