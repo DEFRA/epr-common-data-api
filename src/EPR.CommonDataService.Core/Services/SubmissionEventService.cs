@@ -14,15 +14,6 @@ public class SubmissionEventService(
     SynapseContext accountsDbContext, ILogger<SubmissionsService> logger) 
     : ISubmissionEventService
 {
-    public async Task<SubmissionEventsLastSync> GetLastSyncTimeAsyncOld()
-    {
-        var lastSyncTime =  await accountsDbContext.SubmissionEvents.MaxAsync(se => se.LastSyncTime);
-        return new SubmissionEventsLastSync
-        {
-            LastSyncTime = lastSyncTime
-        };
-    }
-
     public async Task<SubmissionEventsLastSync> GetLastSyncTimeAsync()
     {
         var sql = "dbo.GetLastSyncTime";
