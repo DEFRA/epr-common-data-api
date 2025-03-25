@@ -1,6 +1,7 @@
 using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace EPR.CommonDataService.Core.Services;
 
@@ -10,15 +11,19 @@ public interface ISubmissionEventService
 }
 
 public class SubmissionEventService(
-    SynapseContext accountsDbContext) 
+    SynapseContext accountsDbContext, ILogger<SubmissionsService> logger) 
     : ISubmissionEventService
 {
     public async Task<SubmissionEventsLastSync> GetLastSyncTimeAsync()
     {
-        var lastSyncTime =  await accountsDbContext.SubmissionEvents.MaxAsync(se => se.LastSyncTime);
-        return new SubmissionEventsLastSync
+        var sql = "dbo.GetLastSyncTime";
+
+        var response = await accountsDbContext.RunSpCommandAsync<SubmissionEventsLastSync>(sql, logger, "GetLastSyncTime", []);
+        if ( response.Count == 0 )
         {
-            LastSyncTime = lastSyncTime
-        };
+            Exception exception = new("No data found from GetLastSyncTime");
+            throw exception;
+        }
+        return response[0];
     }
 }
