@@ -1,5 +1,7 @@
 ﻿using AutoFixture;
+using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.Models.Requests;
+using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -127,10 +129,10 @@ public class SubmissionsServiceTests
 
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
         var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -151,9 +153,9 @@ public class SubmissionsServiceTests
         {
             new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
             new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods },
-			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
-			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }
-		});
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
@@ -163,10 +165,10 @@ public class SubmissionsServiceTests
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
-		var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -187,9 +189,9 @@ public class SubmissionsServiceTests
         {
             new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
             new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods },
-			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
-			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }
-		});
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }
+        });
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
@@ -199,11 +201,11 @@ public class SubmissionsServiceTests
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
-		var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
 
-		// Set up the mock to throw a generic exception when RunSqlAsync is called
-		_mockSynapseContext
+        // Set up the mock to throw a generic exception when RunSqlAsync is called
+        _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
             .ThrowsAsync(new Exception("Simulated exception"));
 
@@ -227,10 +229,10 @@ public class SubmissionsServiceTests
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
         var approvedAfter = DateTime.UtcNow;
         string? periods = null;
-		string? includePackagingTypes = null;
-		string? includePackagingMaterials = null;
+        string? includePackagingTypes = null;
+        string? includePackagingMaterials = null;
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -264,10 +266,10 @@ public class SubmissionsServiceTests
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
         var approvedAfter = DateTime.UtcNow;
         var periods = ""; // Empty periods
-		var includePackagingTypes = ""; // Empty includePackagingTypes
-		var includePackagingMaterials = "";  // Empty includePackagingMaterials
+        var includePackagingTypes = ""; // Empty includePackagingTypes
+        var includePackagingMaterials = "";  // Empty includePackagingMaterials
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -300,10 +302,10 @@ public class SubmissionsServiceTests
         // Arrange
         var approvedAfter = DateTime.UtcNow;
         var periods = "2024-P1,2024-P2";
-		var includePackagingTypes = "HH,NH,PB,HDC,NHC";
-		var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
 
-		var sqlParameters = Array.Empty<object>();
+        var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
@@ -371,7 +373,7 @@ public class SubmissionsServiceTests
             .Throws(BuildSqlException(-2));
 
         //Act and Assert
-        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1 ,request));
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionSummaries(1, request));
     }
 
     [TestMethod]
@@ -678,5 +680,171 @@ public class SubmissionsServiceTests
             Console.WriteLine(ex);
             throw;
         }
+    }
+
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ReturnsValidData()
+    {
+        // Arrange
+        var mockData = new List<PomResubmissionPaycalParametersDto>
+        {
+            new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = true }
+        };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result.ReferenceFieldAvailable);
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ReturnsNull_WhenNoData()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(new List<PomResubmissionPaycalParametersDto>());
+
+        // Act
+        var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
+
+        // Assert
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsTimeoutException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsDataException_When_SQLException_Occurs()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-1));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Return_False_When_DbSet_Is_Empty()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(new List<CosmosSyncInfo>());
+
+        // Act
+        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Return_True_When_IsSynced_Is_True()
+    {
+        // Arrange
+        var mockData = new List<CosmosSyncInfo>
+                        {
+                            new CosmosSyncInfo { IsSynced = true }
+                        };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Return_False_When_IsSynced_Is_False()
+    {
+        // Arrange
+        var mockData = new List<CosmosSyncInfo>
+    {
+        new CosmosSyncInfo { IsSynced = false }
+    };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Throw_TimeoutException_When_SqlException_With_Timeout_Occurs()
+    {
+        // Arrange
+        var timeoutException = BuildSqlException(-2);
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(timeoutException);
+
+        // Act
+        Func<Task> act = async () => await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        await act.Should().ThrowAsync<TimeoutException>()
+            .WithMessage("The request timed out while accessing the database.");
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Throw_DataException_When_SqlException_Occurs()
+    {
+        // Arrange
+        var sqlException = BuildSqlException(-1);
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(sqlException);
+
+        // Act
+        Func<Task> act = async () => await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        await act.Should().ThrowAsync<DataException>()
+            .WithMessage("An exception occurred when executing query.");
     }
 }
