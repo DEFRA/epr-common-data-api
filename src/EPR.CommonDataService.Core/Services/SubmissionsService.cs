@@ -46,11 +46,13 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         return paginatedResponse;
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods, string includePackagingTypes, string includePackagingMaterials)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods, string includePackagingTypes, string includePackagingMaterials, string includeOrganisationSize)
     {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods} and ecluding packaging types {IncludePackagingTypes}", _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods, includePackagingTypes);
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods}, " +
+            "including packaging types {IncludePackagingTypes}, including packaging materials {IncludePackagingMaterials} and including organisation size {IncludeOrganisationSize}",
+            _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
 
-        var sql = "EXECUTE rpd.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @IncludePackagingTypes, @IncludePackagingMaterials";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @IncludePackagingTypes, @IncludePackagingMaterials, @IncludeOrganisationSize";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
 
         try
@@ -60,7 +62,8 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
                 new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
-                new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value });
+                new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value },
+                new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize ?? (object)DBNull.Value });
 
             logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
             return paginatedResponse;

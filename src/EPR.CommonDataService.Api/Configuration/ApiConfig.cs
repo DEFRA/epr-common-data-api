@@ -6,7 +6,9 @@ public class ApiConfig
 
     public string PomDataSubmissionPeriods { get; set; } = string.Empty;
 
-	public string IncludePackagingTypes { get; set; } = string.Empty;
+    public string IncludePackagingTypes { get; set; } = string.Empty;
 
     public string IncludePackagingMaterials { get; set; } = string.Empty;
+
+    public string IncludeOrganisationSize { get; set; } = string.Empty;
 }

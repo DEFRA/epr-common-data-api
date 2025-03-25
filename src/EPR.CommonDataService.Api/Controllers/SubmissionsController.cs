@@ -68,7 +68,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, apiConfig.PomDataSubmissionPeriods, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, apiConfig.PomDataSubmissionPeriods, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials, apiConfig.IncludeOrganisationSize);
 
             if (!approvedSubmissions.Any())
             {
