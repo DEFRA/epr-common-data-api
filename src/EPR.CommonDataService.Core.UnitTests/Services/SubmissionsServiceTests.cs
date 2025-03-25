@@ -1,5 +1,7 @@
 ﻿using AutoFixture;
+using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.Models.Requests;
+using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -690,5 +692,171 @@ public class SubmissionsServiceTests
             Console.WriteLine(ex);
             throw;
         }
+    }
+
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ReturnsValidData()
+    {
+        // Arrange
+        var mockData = new List<PomResubmissionPaycalParametersDto>
+        {
+            new PomResubmissionPaycalParametersDto { ReferenceFieldAvailable = true }
+        };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
+
+        // Assert
+        Assert.IsNotNull(result);
+        Assert.IsTrue(result.ReferenceFieldAvailable);
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ReturnsNull_WhenNoData()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(new List<PomResubmissionPaycalParametersDto>());
+
+        // Act
+        var result = await _sut.GetResubmissionPaycalParameters("1234", "5678");
+
+        // Assert
+        Assert.IsNull(result);
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsTimeoutException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
+    }
+
+    [TestMethod]
+    public async Task GetResubmissionPaycalParameters_ThrowsDataException_When_SQLException_Occurs()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-1));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetResubmissionPaycalParameters("1234", "5678"));
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Return_False_When_DbSet_Is_Empty()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(new List<CosmosSyncInfo>());
+
+        // Act
+        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Return_True_When_IsSynced_Is_True()
+    {
+        // Arrange
+        var mockData = new List<CosmosSyncInfo>
+                        {
+                            new CosmosSyncInfo { IsSynced = true }
+                        };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Return_False_When_IsSynced_Is_False()
+    {
+        // Arrange
+        var mockData = new List<CosmosSyncInfo>
+    {
+        new CosmosSyncInfo { IsSynced = false }
+    };
+
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(mockData);
+
+        // Act
+        var result = await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        result.Should().BeFalse();
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Throw_TimeoutException_When_SqlException_With_Timeout_Occurs()
+    {
+        // Arrange
+        var timeoutException = BuildSqlException(-2);
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(timeoutException);
+
+        // Act
+        Func<Task> act = async () => await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        await act.Should().ThrowAsync<TimeoutException>()
+            .WithMessage("The request timed out while accessing the database.");
+    }
+
+    [TestMethod]
+    public async Task IsCosmosDataAvailable_Should_Throw_DataException_When_SqlException_Occurs()
+    {
+        // Arrange
+        var sqlException = BuildSqlException(-1);
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(sqlException);
+
+        // Act
+        Func<Task> act = async () => await _sut.IsCosmosDataAvailable("submissionId", "fileId");
+
+        // Assert
+        await act.Should().ThrowAsync<DataException>()
+            .WithMessage("An exception occurred when executing query.");
     }
 }
