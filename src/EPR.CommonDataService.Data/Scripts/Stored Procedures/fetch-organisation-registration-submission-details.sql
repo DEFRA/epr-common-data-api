@@ -92,6 +92,9 @@ DECLARE @IsComplianceScheme bit;
             AND decisions.SubmissionId = @SubId;
 	');
 
+	IF OBJECT_ID('tempdb..#ProdCommentsRegulatorDecisions') IS NOT NULL
+		DROP TABLE #ProdCommentsRegulatorDecisions;
+
 	EXEC sp_executesql @ProdCommentsSQL, N'@SubId nvarchar(50)', @SubId = @SubmissionId;
 
     WITH
@@ -117,6 +120,11 @@ DECLARE @IsComplianceScheme bit;
 			WHERE IsProducerComment = 0
 					AND SubmissionStatus = 'Granted'
 			ORDER BY DecisionDate DESC
+		)
+		,ProducerSubmissionCTE as (
+			SELECT TOP 1 *
+			from ProdCommentsRegulatorDecisionsCTE producersubmission
+			WHERE IsProducerComment = 1
 		)
 		,UploadedDataCTE as (
 			select *
@@ -182,7 +190,7 @@ DECLARE @IsComplianceScheme bit;
 						END
 					 END AS NationCode
 					,s.SubmissionType
-					,s.UserId AS SubmittedUserId
+					,se.UserId AS SubmittedUserId
 					,CAST(
 						SUBSTRING(
 							s.SubmissionPeriod,
@@ -230,7 +238,7 @@ DECLARE @IsComplianceScheme bit;
 					) AS RowNum
 				FROM
 					[rpd].[Submissions] AS s
-					INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId and se.IsProducerComment = 1
+					INNER JOIN ProducerSubmissionCTE se on se.SubmissionId = s.SubmissionId
 					INNER JOIN UploadedDataCTE org ON org.SubmittingExternalId = s.OrganisationId
 					INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 					LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
@@ -310,7 +318,7 @@ DECLARE @IsComplianceScheme bit;
                 SubmissionDetails submission
                 LEFT JOIN LatestRelatedRegulatorDecisionsCTE decision ON decision.SubmissionId = submission.SubmissionId
                 LEFT JOIN LatestProducerCommentEventsCTE producer ON producer.SubmissionId = submission.SubmissionId
-        ) 
+        )
 		,CompliancePaycalCTE
         AS
         (
@@ -328,7 +336,9 @@ DECLARE @IsComplianceScheme bit;
             ,@SubmissionPeriod AS WantedPeriod
             FROM
                 dbo.v_ComplianceSchemeMembers csm
-                INNER JOIN dbo.v_ProducerPayCalParameters ppp ON ppp.OrganisationReference = csm.ReferenceNumber
+                INNER JOIN dbo.v_ProducerPayCalParameters ppp 
+					  ON ppp.OrganisationReference = csm.ReferenceNumber
+					  AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
