@@ -9,6 +9,7 @@ GO
 CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
 AS
 RETURN (	   
+
 WITH
     LatestUploadedData
     AS
@@ -27,7 +28,7 @@ WITH
 			,FileId
 			,FileName
 			,STRING_AGG(FileType, ',') AS FileTypes
-			,row_number() OVER (partition BY organisationid, submissionid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
+			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'
@@ -37,7 +38,6 @@ WITH
 		) AS z
         WHERE z.RowNum = 1
     )
---select * from LatestUploadedData
 ,CompanyDetails
     AS
     (
@@ -71,7 +71,6 @@ WITH
                 AND (ISNULL(@SubmissionPeriod,'') = '' OR lud.SubmissionPeriod = @SubmissionPeriod)
         WHERE ISNULL(cd.subsidiary_id,'') = ''
     )
---select * from CompanyDetails
 ,PartnerFileDetails
     AS
     (
@@ -89,7 +88,6 @@ WITH
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'PARTNERSHIPS'
                 AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
     )
---select * from partnerfiledetails 
 ,BrandFileDetails
     AS
     (
@@ -107,7 +105,6 @@ WITH
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'BRANDS'
                 AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
     )
---select * from brandfiledetails order by externalid
 ,CompanyAndFileDetails
     AS
     (
