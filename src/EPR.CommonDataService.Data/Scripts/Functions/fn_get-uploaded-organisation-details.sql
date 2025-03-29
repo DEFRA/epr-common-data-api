@@ -20,14 +20,12 @@ WITH
 				,ComplianceSchemeId
 				,RegistrationSetId
 				,Created
-				,STRING_AGG(CONVERT(nvarchar(max), FileType), ',') AS FileTypes
 				,row_number() OVER (partition BY organisationid, ComplianceSchemeId, SubmissionPeriod ORDER BY created DESC) AS RowNum
 			FROM
 				rpd.cosmos_file_metadata cfm
 			WHERE SubmissionType = 'Registration'
 				AND (ISNULL(@SubmissionPeriod,'') = '' OR SubmissionPeriod = @SubmissionPeriod)
 				AND (ISNULL(@OrganisationUUID,'') = '' OR organisationid = @OrganisationUUID)
-			GROUP BY organisationid, complianceschemeid, submissionperiod, registrationsetid, created
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -40,7 +38,6 @@ WITH
 			,lud.complianceschemeid
 			,CASE WHEN lud.complianceschemeid IS NOT NULL THEN 1 ELSE 0 END AS IsComplianceScheme
 			,lud.RegistrationSetId
-			,lud.FileTypes
 			,cd.organisation_id AS UploadedReferenceNumber
 			,ISNULL(cd.subsidiary_id,'') AS CompanySubRef
 			,cd.organisation_name AS UploadOrgName
@@ -98,7 +95,6 @@ WITH
 			,cd.SubmissionPeriod
 			,cd.isComplianceScheme
 			,cd.RegistrationSetId
-            ,cd.FileTypes
 			,cd.UploadedReferenceNumber
 			,cd.NationCode
             ,Packaging_activity_om
