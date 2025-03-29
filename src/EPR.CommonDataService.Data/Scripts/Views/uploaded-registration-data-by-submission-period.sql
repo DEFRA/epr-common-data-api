@@ -6,9 +6,7 @@
 
 GO
 
-CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] 
-AS 
-WITH
+CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] AS WITH
     LatestUploadedData
     AS
     (
@@ -17,20 +15,20 @@ WITH
         FROM
             (
 		SELECT
-             organisationid AS ExternalId
-			,SubmissionId
+			SubmissionId
+            ,organisationid AS ExternalId
 			,submissionperiod
 			,RegistrationSetId
 			,ComplianceSchemeId
 			,CONVERT( BIT, CASE WHEN ComplianceSchemeId IS NULL THEN 0 ELSE 1 END) as IsComplianceUpload
 			,Created
-			,STRING_AGG(FileType, ',') AS FileTypes
+			,STRING_AGG(CONVERT(NVARCHAR(MAX),FileType), ',') AS FileTypes
 			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created DESC) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'
 			AND SubmissionPeriod like 'January to D%'
-            GROUP BY organisationid, submissionperiod, registrationsetid, submissionid, complianceschemeid, created
+            GROUP BY organisationid, submissionperiod, registrationsetid, complianceschemeid, submissionid, created
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -133,5 +131,4 @@ SELECT
     *
 FROM
     companyandfiledetails;
-    
 GO
