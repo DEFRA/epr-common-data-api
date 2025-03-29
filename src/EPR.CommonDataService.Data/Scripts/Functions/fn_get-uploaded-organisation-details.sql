@@ -1,14 +1,11 @@
-﻿IF EXISTS (SELECT
-    1
-FROM
-    sys.sql_modules
-WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails]'))
-DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails];
+﻿IF EXISTS (SELECT 1 FROM sys.sql_modules WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails]'))
+    DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails];
 GO
 
 CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
 AS
 RETURN (	   
+
 WITH
     LatestUploadedData
     AS
@@ -24,20 +21,15 @@ WITH
 			,RegistrationSetId
 			,ComplianceSchemeId
 			,Created
-			,FileId
-			,FileName
-			,STRING_AGG(FileType, ',') AS FileTypes
-			,row_number() OVER (partition BY organisationid, submissionid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
+			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'
                 AND (ISNULL(@SubmissionPeriod,'') = '' OR SubmissionPeriod = @SubmissionPeriod)
                 AND (ISNULL(@OrganisationUUID,'') = '' OR organisationid = @OrganisationUUID)
-            GROUP BY submissionid, organisationid, submissionperiod, complianceschemeid, registrationsetid, fileId, filename, created, load_ts
 		) AS z
         WHERE z.RowNum = 1
     )
---select * from LatestUploadedData
 ,CompanyDetails
     AS
     (
@@ -56,8 +48,6 @@ WITH
 		,cfm.complianceschemeid
 		,CASE WHEN cfm.complianceschemeid IS NOT NULL THEN 1 ELSE 0 END AS IsComplianceScheme
 		,cd.FileName AS CompanyFileName
-		,lud.FileName as LUDFileName
-		,lud.FileId as LUDFileId
 		,cfm.RegistrationSetId AS CompanySetId
 		,cfm.FileId AS CompanyFileId
 		,cfm.Blobname AS CompanyBlobname
@@ -66,12 +56,9 @@ WITH
             LatestUploadedData lud
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid
 			AND UPPER(cfm.FileType) = 'COMPANYDETAILS'
-            INNER JOIN rpd.companydetails cd ON lud.filename = cd.filename
-                AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
-                AND (ISNULL(@SubmissionPeriod,'') = '' OR lud.SubmissionPeriod = @SubmissionPeriod)
+            INNER JOIN rpd.companydetails cd ON cfm.filename = cd.filename
         WHERE ISNULL(cd.subsidiary_id,'') = ''
     )
---select * from CompanyDetails
 ,PartnerFileDetails
     AS
     (
@@ -89,7 +76,6 @@ WITH
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'PARTNERSHIPS'
                 AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
     )
---select * from partnerfiledetails 
 ,BrandFileDetails
     AS
     (
@@ -107,7 +93,6 @@ WITH
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'BRANDS'
                 AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
     )
---select * from brandfiledetails order by externalid
 ,CompanyAndFileDetails
     AS
     (
