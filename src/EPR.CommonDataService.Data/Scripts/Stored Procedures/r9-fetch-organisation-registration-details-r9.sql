@@ -160,6 +160,10 @@ DECLARE @IsComplianceScheme bit;
 				  WHERE s.SubmissionEventId = resubmissions.ResubmissionEventId
 			  )
 		)
+		,AppropriateSubmissionDateCTE as (
+			SELECT S.SubmissionDate, P.ResubmissionDate FROM SubmittedCTE S LEFT JOIN ProducerReSubmissionCTE P
+			ON P.SubmissionId = S.SubmissionId
+		)
 		,RegistrationDecisionCTE as (
 			SELECT TOP 1 *
 			FROM (
@@ -220,9 +224,10 @@ DECLARE @IsComplianceScheme bit;
 		)
 		,UploadedViewCTE as (
 			select * FROM
-				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
+				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9] org 
 			WHERE org.SubmittingExternalId = @OrganisationUUIDForSubmission
 				and org.SubmissionPeriod = @SubmissionPeriod
+				and org.Created < (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
 		)
 		,UploadedDataCTE as (
 			select *
