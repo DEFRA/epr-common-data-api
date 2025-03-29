@@ -15,8 +15,7 @@ WITH
         FROM
             (
 			SELECT
-				o.Name as UploadingOrganisationName
-				,organisationid AS SubmittingExternalId
+				organisationid AS SubmittingExternalId
 				,submissionperiod
 				,ComplianceSchemeId
 				,RegistrationSetId
@@ -25,11 +24,10 @@ WITH
 				,row_number() OVER (partition BY organisationid, ComplianceSchemeId, SubmissionPeriod ORDER BY created DESC) AS RowNum
 			FROM
 				rpd.cosmos_file_metadata cfm
-				inner join rpd.Organisations o on o.externalid = cfm.organisationid
 			WHERE SubmissionType = 'Registration'
 				AND (ISNULL(@SubmissionPeriod,'') = '' OR SubmissionPeriod = @SubmissionPeriod)
 				AND (ISNULL(@OrganisationUUID,'') = '' OR organisationid = @OrganisationUUID)
-			GROUP BY o.Name, organisationid, complianceschemeid, submissionperiod, registrationsetid, created
+			GROUP BY organisationid, complianceschemeid, submissionperiod, registrationsetid, created
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -37,8 +35,7 @@ WITH
     AS
     (
         SELECT
-			lud.UploadingOrganisationName
-			,lud.SubmittingExternalId
+			lud.SubmittingExternalId
 			,lud.SubmissionPeriod
 			,lud.complianceschemeid
 			,CASE WHEN lud.complianceschemeid IS NOT NULL THEN 1 ELSE 0 END AS IsComplianceScheme
@@ -96,8 +93,7 @@ WITH
     AS
     (
         SELECT
-            cd.UploadingOrganisationName
-			,cd.SubmittingExternalId
+			cd.SubmittingExternalId
 			,cd.complianceschemeid
 			,cd.SubmissionPeriod
 			,cd.isComplianceScheme
