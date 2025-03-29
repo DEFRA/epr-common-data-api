@@ -227,7 +227,7 @@ DECLARE @IsComplianceScheme bit;
 				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9] org 
 			WHERE org.SubmittingExternalId = @OrganisationUUIDForSubmission
 				and org.SubmissionPeriod = @SubmissionPeriod
-				and org.Created < (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
+				and org.UploadDate < (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
 		)
 		,UploadedDataCTE as (
 			select *
