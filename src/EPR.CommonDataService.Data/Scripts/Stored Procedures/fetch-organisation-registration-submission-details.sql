@@ -328,7 +328,9 @@ DECLARE @IsComplianceScheme bit;
             ,@SubmissionPeriod AS WantedPeriod
             FROM
                 dbo.v_ComplianceSchemeMembers csm
-                INNER JOIN dbo.v_ProducerPayCalParameters ppp ON ppp.OrganisationReference = csm.ReferenceNumber
+                INNER JOIN dbo.v_ProducerPayCalParameters ppp 
+					ON ppp.OrganisationReference = csm.ReferenceNumber
+					AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber
                 AND csm.SubmissionPeriod = @SubmissionPeriod
