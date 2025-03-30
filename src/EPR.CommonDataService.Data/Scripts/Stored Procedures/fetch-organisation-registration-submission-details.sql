@@ -357,7 +357,7 @@ DECLARE @IsComplianceScheme bit;
         (
             SELECT
                 CSOReference
-            ,'[' + STRING_AGG(OrganisationDetailsJsonString, ', ') + ']' AS FinalJson
+            ,'[' + STRING_AGG(CONVERT(nvarchar(MAX),OrganisationDetailsJsonString), ', ') + ']' AS FinalJson
             FROM
                 JsonifiedCompliancePaycalCTE
             WHERE CSOReference = @CSOReferenceNumber
