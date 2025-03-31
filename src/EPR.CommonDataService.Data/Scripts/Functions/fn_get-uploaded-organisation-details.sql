@@ -6,6 +6,13 @@ WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails]'))
 DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails];
 GO
 
+/****** Object:  UserDefinedFunction [dbo].[fn_GetUploadedOrganisationDetails]    Script Date: 31/03/2025 11:20:16 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
 CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
 AS
 RETURN (	   
@@ -25,14 +32,12 @@ WITH
 			,RegistrationSetId
 			,ComplianceSchemeId
 			,Created
-			,STRING_AGG(FileType, ',') AS FileTypes
-			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
+			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'
                 AND (ISNULL(@SubmissionPeriod,'') = '' OR SubmissionPeriod = @SubmissionPeriod)
                 AND (ISNULL(@OrganisationUUID,'') = '' OR organisationid = @OrganisationUUID)
-            GROUP BY organisationid, submissionperiod, complianceschemeid, registrationsetid, fileId, filename, created, submissionid, load_ts
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -137,4 +142,5 @@ SELECT
     *
 FROM
     companyandfiledetails
-
+)
+GO
