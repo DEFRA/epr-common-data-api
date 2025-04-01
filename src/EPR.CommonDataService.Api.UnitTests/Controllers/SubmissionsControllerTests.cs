@@ -92,7 +92,7 @@ public class SubmissionsControllerTests
         var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
 
         _mockSubmissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
@@ -108,7 +108,7 @@ public class SubmissionsControllerTests
     {
         // Arrange
         _mockSubmissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new List<ApprovedSubmissionEntity>());
 
         // Act
@@ -139,7 +139,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "The operation has timed out.";
 
-        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
+        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -158,7 +158,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "An unexpected error occurred.";
 
-        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
+        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -299,7 +299,8 @@ public class SubmissionsControllerTests
         PaginatedResponse<OrganisationRegistrationSummaryDto>? innerResult = new PaginatedResponse<OrganisationRegistrationSummaryDto>
         {
             Items = [
-            new() {
+            new()
+            {
                 SubmissionId = Guid.NewGuid()
             }],
             CurrentPage = 1,
