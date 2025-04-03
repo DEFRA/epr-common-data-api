@@ -1,6 +1,8 @@
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
+using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
@@ -23,10 +25,8 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetPomSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorPomDecision> request)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'pom/summary'", _logPrefix);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummaries: Get Pom Submissions for given Regulator {PomSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
         var result = await submissionsService.GetSubmissionPomSummaries(request);
 
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetPomSubmissionsSummaries: Pom Submissions returned {SubmissionPomSummaries}", _logPrefix, result);
         return Ok(result);
     }
 
@@ -38,10 +38,8 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetRegistrationsSubmissionsSummaries(SubmissionsSummariesRequest<RegulatorRegistrationDecision> request)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'registrations/summary'", _logPrefix);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetRegistrationsSubmissionsSummaries: Get Registration Submissions for given Regulator {RegulatorSubmissions}", _logPrefix, JsonConvert.SerializeObject(request));
         var result = await submissionsService.GetSubmissionRegistrationSummaries(request);
 
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetRegistrationsSubmissionsSummaries: Registration Submissions returned {SubmissionRegistrationSummaries}", _logPrefix, result);
         return Ok(result);
     }
 
@@ -60,7 +58,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     public async Task<IActionResult> GetApprovedSubmissionsWithAggregatedPomData(string approvedAfterDateString)
     {
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom/approved/{ApprovedAfterDateString}'", _logPrefix, approvedAfterDateString);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Get submissions approved after {ApprovedAfterDateString}", _logPrefix, approvedAfterDateString);
+
         if (!DateTime.TryParse(approvedAfterDateString, CultureInfo.InvariantCulture.DateTimeFormat, DateTimeStyles.AssumeUniversal, out var approvedAfter))
         {
             logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Invalid datetime provided; please make sure it's a valid UTC datetime", _logPrefix);
@@ -70,7 +68,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, apiConfig.PomDataSubmissionPeriods, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, apiConfig.PomDataSubmissionPeriods, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials, apiConfig.IncludeOrganisationSize);
 
             if (!approvedSubmissions.Any())
             {
@@ -78,7 +76,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: Approved Submissions returned {ApprovedSubmissions}", _logPrefix, approvedSubmissions);
             return Ok(approvedSubmissions);
         }
         catch (TimeoutException ex)
@@ -104,7 +101,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     {
         string filterAsJson = System.Text.Json.JsonSerializer.Serialize(filter);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registrations/{NationId}'", _logPrefix, NationId);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: Get org registration submissions for the nation {NationId} with filters {FilterModel}", _logPrefix, NationId, filterAsJson);
 
         try
         {
@@ -129,7 +125,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissions: The filters provided returned {Howmany} submissions. {NationId}/{Querystring}", _logPrefix, organisationRegistrations.Items.Count, NationId, filterAsJson);
             return Ok(organisationRegistrations);
         }
         catch (TimeoutException ex)
@@ -155,7 +150,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     {
         var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
-        logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Get org registration submissions details for the submission {SubmissionId}", _logPrefix, sanitisedSubmissionId);
         
         try
         {
@@ -174,7 +168,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return NoContent();
             }
 
-            logger.LogInformation("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: {SubmissionId} returned the following submission {Submission}", _logPrefix, sanitisedSubmissionId, submissiondetails);
             return Ok(submissiondetails);
         }
         catch (TimeoutException ex)
@@ -185,6 +178,142 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         catch (Exception ex)
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("pom-resubmission-paycal-parameters/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PomResubmissionPaycalParametersDto>> POMResubmission_PaycalParameters([FromRoute] Guid SubmissionId, [FromQuery] Guid? ComplianceSchemeId)
+    {
+        var sanitisedSubmissionId = SubmissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedComplianceSchemeId = ComplianceSchemeId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+        if (!string.IsNullOrWhiteSpace(sanitisedComplianceSchemeId))
+        {
+            logger.LogInformation("{LogPrefix}: SubmissionsController - Api Route 'v1/pom-resubmission-paycal-parameters/{SubmissionId}?{ComplianceSchemeId}: Get resubmissions paycal parameters for Submission and ComplianceScheme", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
+        }
+        else
+        {
+            logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom-resubmission-paycal-parameters/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
+        }
+
+        try
+        {
+            PomResubmissionPaycalParametersDto? dbResult = await submissionsService.GetResubmissionPaycalParameters(sanitisedSubmissionId, sanitisedComplianceSchemeId);
+
+            if (dbResult is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NoContent();
+            }
+
+            if (!dbResult.ReferenceFieldAvailable)
+            {
+                logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
+                return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
+            }
+            
+            if (string.IsNullOrWhiteSpace(dbResult.Reference))
+            {
+                logger.LogError("The data for POM Resubmissions {SubmissionId} doesn't have a required reference number.", sanitisedSubmissionId);
+                return StatusCode(StatusCodes.Status428PreconditionRequired, "No Reference number found for this submission.  Is Data Syncronised?");
+            }
+
+            return Ok(dbResult);
+        }
+        catch (Exception ex)
+        {
+            var statusCode = StatusCodes.Status500InternalServerError;
+            if (ex is TimeoutException)
+            {
+                statusCode = StatusCodes.Status504GatewayTimeout;
+            }
+
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - POMResubmission_PaycalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(statusCode, ex.Message);
+        }
+    }
+
+    [HttpGet("is_file_synced_with_cosmos/{FileId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<bool>> IsCosmosFileSynchronised([FromRoute] Guid FileId)
+    {
+        var sanitisedFileId = FileId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/is_file_synced_with_cosmos/{FileId}'", _logPrefix, sanitisedFileId);
+
+        try
+        {
+            bool? dbRet = await submissionsService.IsCosmosDataAvailable(null, sanitisedFileId);
+
+            if (!dbRet.HasValue)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedFileId);
+                return Ok(false);
+            }
+
+            return Ok(dbRet);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("is_submission_synced_with_cosmos/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<bool>> IsSubmissionSynchronised([FromRoute] Guid SubmissionId)
+    {
+        var sanitisedSubmissionId = SubmissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/is_submission_synced_with_cosmos/{FileId}'", _logPrefix, sanitisedSubmissionId);
+
+        try
+        {
+            bool? dbRet = await submissionsService.IsCosmosDataAvailable(sanitisedSubmissionId, null);
+
+            if (!dbRet.HasValue)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return Ok(false);
+            }
+
+            return Ok(dbRet);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }

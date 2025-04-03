@@ -1,14 +1,12 @@
 ﻿IF EXISTS (
     SELECT 1
     FROM sys.views
-    WHERE object_id = OBJECT_ID(N'[dbo].[v_UploadedRegistrationDataBySubmissionPeriod]')
-) DROP VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod];
+    WHERE object_id = OBJECT_ID(N'[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9]')
+) DROP VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9];
 
 GO
 
-CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] 
-AS 
-WITH
+CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9] AS WITH
     LatestUploadedData
     AS
     (
@@ -17,20 +15,20 @@ WITH
         FROM
             (
 		SELECT
-             organisationid AS ExternalId
+			Created as UploadDate
 			,SubmissionId
+            ,organisationid AS ExternalId
 			,submissionperiod
-			,RegistrationSetId
 			,ComplianceSchemeId
 			,CONVERT( BIT, CASE WHEN ComplianceSchemeId IS NULL THEN 0 ELSE 1 END) as IsComplianceUpload
-			,Created
-			,STRING_AGG(FileType, ',') AS FileTypes
+			,RegistrationSetId
+			,STRING_AGG(CONVERT(NVARCHAR(MAX),FileType), ',') AS FileTypes
 			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created DESC) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'
 			AND SubmissionPeriod like 'January to D%'
-            GROUP BY organisationid, submissionperiod, registrationsetid, submissionid, complianceschemeid, created
+            GROUP BY organisationid, submissionperiod, registrationsetid, complianceschemeid, submissionid, created
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -38,20 +36,21 @@ WITH
     AS
     (
         SELECT
-         cfm.organisationid AS SubmittingExternalId
+		lud.UploadDate
+        ,lud.SubmissionId
+		,lud.complianceschemeid as csi
+		,lud.IsComplianceUpload as icd
+		,lud.SubmissionPeriod
+        ,lud.ExternalId AS SubmittingExternalId
 		,cd.organisation_id AS SubmittedReferenceNumber
 		,ISNULL(cd.subsidiary_id,'') AS CompanySubRef
 		,cd.organisation_name AS UploadOrgName
-		,lud.SubmissionId
-		,lud.SubmissionPeriod
 		,TRIM(cd.home_nation_code) as NationCode
 		,cd.companies_house_number
 		,cd.packaging_activity_om
 		,cd.registration_type_code
 		,UPPER(cd.organisation_size) AS OrganisationSize
 		,cfm.complianceschemeid
-		,lud.complianceschemeid as csi
-		,lud.IsComplianceUpload as icd
 		,CASE WHEN cfm.complianceschemeid IS NOT NULL THEN 1 ELSE 0 END AS IsComplianceScheme
 		,cd.FileName AS CompanyFileName
 		,cfm.RegistrationSetId AS CompanySetId
@@ -100,7 +99,8 @@ WITH
     AS
     (
         SELECT
-            cd.SubmittingExternalId
+            cd.UploadDate
+            ,cd.SubmittingExternalId
             ,SubmittedReferenceNumber
             ,UploadOrgName
 			,cd.SubmissionId
@@ -133,5 +133,4 @@ SELECT
     *
 FROM
     companyandfiledetails;
-    
 GO

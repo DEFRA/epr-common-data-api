@@ -1,3 +1,4 @@
+using EPR.CommonDataService.Data.Converters;
 using EPR.CommonDataService.Data.Entities;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -96,9 +97,6 @@ public class SynapseContext : DbContext
             .HasConversion(stringToGuidConverter);
         modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>()
             .Property(e => e.OrganisationId)
-            .HasConversion(stringToGuidConverter);
-        modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>()
-            .Property(e => e.RegulatorUserId)
             .HasConversion(stringToGuidConverter);
 
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()

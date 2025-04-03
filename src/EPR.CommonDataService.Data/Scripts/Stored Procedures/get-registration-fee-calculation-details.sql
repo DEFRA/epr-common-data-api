@@ -13,7 +13,7 @@ SET NOCOUNT ON;
         @fileName = [FileName]
     FROM 
         [rpd].[cosmos_file_metadata] metadata
-    Where 
+    WHERE 
         FileId = @fileId;
 
     ;WITH SubsidiaryDetails AS (
@@ -26,6 +26,7 @@ SET NOCOUNT ON;
         WHERE
             TRIM(cd.FileName) = @fileName
             AND cd.Subsidiary_Id IS NOT NULL
+            AND cd.leaver_date IS NULL
         GROUP BY 
             cd.Organisation_Id
     )

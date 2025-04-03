@@ -1,13 +1,11 @@
-﻿IF EXISTS (
-    SELECT 1
-    FROM sys.views
-    WHERE object_id = OBJECT_ID(N'[dbo].[v_UploadedRegistrationDataBySubmissionPeriod]')
-) DROP VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod];
-
+﻿IF EXISTS (SELECT 1 FROM sys.sql_modules WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails]'))
+    DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails];
 GO
 
-CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] 
-AS 
+CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
+AS
+RETURN (	   
+
 WITH
     LatestUploadedData
     AS
@@ -17,20 +15,20 @@ WITH
         FROM
             (
 		SELECT
-             organisationid AS ExternalId
-			,SubmissionId
+			submissionid
+            ,organisationid AS SubmittingExternalId
 			,submissionperiod
 			,RegistrationSetId
 			,ComplianceSchemeId
-			,CONVERT( BIT, CASE WHEN ComplianceSchemeId IS NULL THEN 0 ELSE 1 END) as IsComplianceUpload
 			,Created
 			,STRING_AGG(FileType, ',') AS FileTypes
-			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created DESC) AS RowNum
+			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
             FROM
                 rpd.cosmos_file_metadata
             WHERE SubmissionType = 'Registration'
-			AND SubmissionPeriod like 'January to D%'
-            GROUP BY organisationid, submissionperiod, registrationsetid, submissionid, complianceschemeid, created
+                AND (ISNULL(@SubmissionPeriod,'') = '' OR SubmissionPeriod = @SubmissionPeriod)
+                AND (ISNULL(@OrganisationUUID,'') = '' OR organisationid = @OrganisationUUID)
+            GROUP BY organisationid, submissionperiod, complianceschemeid, registrationsetid, fileId, filename, created, submissionid, load_ts
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -38,20 +36,18 @@ WITH
     AS
     (
         SELECT
-         cfm.organisationid AS SubmittingExternalId
-		,cd.organisation_id AS SubmittedReferenceNumber
+		lud.submissionid
+        ,lud.SubmittingExternalId
+		,cd.organisation_id AS ReferenceNumber
 		,ISNULL(cd.subsidiary_id,'') AS CompanySubRef
 		,cd.organisation_name AS UploadOrgName
-		,lud.SubmissionId
 		,lud.SubmissionPeriod
-		,TRIM(cd.home_nation_code) as NationCode
+		,TRIM(cd.home_nation_code) AS NationCode
 		,cd.companies_house_number
 		,cd.packaging_activity_om
 		,cd.registration_type_code
 		,UPPER(cd.organisation_size) AS OrganisationSize
 		,cfm.complianceschemeid
-		,lud.complianceschemeid as csi
-		,lud.IsComplianceUpload as icd
 		,CASE WHEN cfm.complianceschemeid IS NOT NULL THEN 1 ELSE 0 END AS IsComplianceScheme
 		,cd.FileName AS CompanyFileName
 		,cfm.RegistrationSetId AS CompanySetId
@@ -60,7 +56,8 @@ WITH
 		,cfm.OriginalFileName AS CompanyUploadFileName
         FROM
             LatestUploadedData lud
-            INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'COMPANYDETAILS'
+            INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid
+			AND UPPER(cfm.FileType) = 'COMPANYDETAILS'
             INNER JOIN rpd.companydetails cd ON cfm.filename = cd.filename
         WHERE ISNULL(cd.subsidiary_id,'') = ''
     )
@@ -70,7 +67,7 @@ WITH
         SELECT
             DISTINCT
             lud.RegistrationSetId AS PartnerSetId
-			,lud.ExternalId
+			,lud.SubmittingExternalId
 			,lud.SubmissionPeriod
 			,cfm.FileId AS PartnerFileId
 			,cfm.FileName AS PartnerFileName
@@ -79,6 +76,7 @@ WITH
         FROM
             LatestUploadedData lud
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'PARTNERSHIPS'
+                AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
     )
 ,BrandFileDetails
     AS
@@ -86,7 +84,7 @@ WITH
         SELECT
             DISTINCT
             lud.RegistrationSetId AS BrandSetId
-			,lud.ExternalId AS BrandExternalId
+			,lud.SubmittingExternalId AS BrandExternalId
 			,lud.SubmissionPeriod AS BrandSubmissionPeriod
 			,cfm.FileId AS BrandFileId
 			,cfm.FileName AS BrandFileName
@@ -95,20 +93,22 @@ WITH
         FROM
             LatestUploadedData lud
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid AND UPPER(cfm.FileType) = 'BRANDS'
+                AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
     )
 ,CompanyAndFileDetails
     AS
     (
         SELECT
-            cd.SubmittingExternalId
-            ,SubmittedReferenceNumber
-            ,UploadOrgName
-			,cd.SubmissionId
+			cd.submissionid
+            ,cd.SubmittingExternalId
+            ,ReferenceNumber
 			,cd.SubmissionPeriod
 			,cd.NationCode
+            ,UploadOrgName
             ,Packaging_activity_om
-            ,OrganisationSize
-            ,IsComplianceScheme
+            ,organisationsize
+			,complianceschemeid
+            ,isComplianceScheme
 			,CompanySetId
             ,CompanyFileName
             ,CompanyFileId
@@ -132,6 +132,4 @@ WITH
 SELECT
     *
 FROM
-    companyandfiledetails;
-    
-GO
+    companyandfiledetails
