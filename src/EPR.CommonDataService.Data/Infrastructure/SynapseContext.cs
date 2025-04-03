@@ -18,6 +18,7 @@ public class SynapseContext : DbContext
 {
     public DbSet<SubmissionEvent> SubmissionEvents { get; set; } = null!;
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
+    public DbSet<PomSubmissionSummaryRowWithFileFields> SubmissionSummariesWithFileFields { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
@@ -60,6 +61,26 @@ public class SynapseContext : DbContext
             .HasConversion(stringToGuidConverter);
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
+            .Property(e => e.ComplianceSchemeId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>()
+            .Property(e => e.SubmissionId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>()
+            .Property(e => e.OrganisationId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>()
+            .Property(e => e.FileId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>()
+            .Property(e => e.UserId)
+            .HasConversion(stringToGuidConverter);
+
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>()
             .Property(e => e.ComplianceSchemeId)
             .HasConversion(stringToGuidConverter);
 
@@ -148,6 +169,9 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
             .HasConversion(stringToGuidConverter);
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>()
+            .Property(e => e.SubmissionId)
+            .HasConversion(stringToGuidConverter);
     }
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)
@@ -174,6 +198,18 @@ public class SynapseContext : DbContext
 
 
         modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
+        {
+            if (Database.ProviderName == InMemoryProvider)
+            {
+                entity.HasKey(e => e.FileId);
+            }
+            else
+            {
+                entity.HasNoKey();
+            }
+        });
+
+        modelBuilder.Entity<PomSubmissionSummaryRowWithFileFields>(entity =>
         {
             if (Database.ProviderName == InMemoryProvider)
             {
@@ -236,8 +272,8 @@ public class SynapseContext : DbContext
 
     public virtual async Task<IList<TEntity>> RunSqlAsync<TEntity>(string sql, params object[] parameters) where TEntity : class
     {
-        return await Set<TEntity>().FromSqlRaw(sql, parameters).AsAsyncEnumerable().ToListAsync();
-    }
+            return await Set<TEntity>().FromSqlRaw(sql, parameters).AsAsyncEnumerable().ToListAsync();
+        }
 
     public virtual async Task<IList<TEntity>> RunSpCommandAsync<TEntity>(string storedProcName, ILogger logger, string logPrefix, params SqlParameter[] parameters) where TEntity : new()
     {

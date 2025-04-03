@@ -67,6 +67,35 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
+    public async Task GetSubmissionPomSummariesWithFileFields_Calls_Stored_Procedure()
+    {
+        //arrange
+        var request = _fixture
+            .Build<SubmissionsSummariesRequest<RegulatorPomDecision>>()
+            .With(x => x.PageSize, 10)
+            .With(x => x.PageNumber, 2)
+            .Create();
+
+        var submissionSummaries = _fixture
+            .Build<PomSubmissionSummaryRowWithFileFields>()
+            .With(x => x.TotalItems, 100)
+            .CreateMany(10).ToList();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<PomSubmissionSummaryRowWithFileFields>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .ReturnsAsync(submissionSummaries);
+
+        //Act
+        var result = await _sut.GetSubmissionPomSummariesWithFileInfo(request);
+
+        //Assert
+        result.Should().NotBeNull();
+        result.PageSize.Should().Be(10);
+        result.TotalItems.Should().Be(100);
+        result.CurrentPage.Should().Be(2);
+    }
+
+    [TestMethod]
     public async Task GetSubmissionPomSummaries_returns_itemsCount_Of_Zero_when_Response_IsEmpty()
     {
         //arrange
