@@ -2,7 +2,12 @@
 DROP PROCEDURE [dbo].[sp_CSO_Pom_Resubmitted_ByCSID];
 GO
 
-CREATE PROC [dbo].[sp_CSO_Pom_Resubmitted_ByCSID] @CSOrganisation_ID [INT],@ComplianceSchemeId [nvarchar](40),@SubmissionPeriod [Varchar](100),@MemberCount [INT] OUT AS
+CREATE PROC [dbo].[sp_CSO_Pom_Resubmitted_ByCSID]
+	@CSOrganisation_ID [INT]
+	,@ComplianceSchemeId [nvarchar](40)
+	,@SubmissionPeriod [Varchar](100)
+	,@MemberCount [INT] OUT 
+AS
 BEGIN
 	DECLARE @latest_accepted_file NVARCHAR(4000);
 	DECLARE @latest_resubmitted_file NVARCHAR(4000);

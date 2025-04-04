@@ -3,7 +3,16 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_
 DROP PROCEDURE [rpd].[sp_GetApprovedSubmissions];
 GO
 
-CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX) AS
+-- Drop unused stored procedures
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3];
+GO
+
+CREATE PROC [rpd].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
     -- Check if there are any approved submissions after the specified date
@@ -33,6 +42,7 @@ BEGIN
         IF OBJECT_ID('tempdb..#LatestDates') IS NOT NULL DROP TABLE #LatestDates;
         IF OBJECT_ID('tempdb..#AggregatedWeightsForDuplicates') IS NOT NULL DROP TABLE #AggregatedWeightsForDuplicates;
         IF OBJECT_ID('tempdb..#AggregatedMaterials') IS NOT NULL DROP TABLE #AggregatedMaterials;
+        IF OBJECT_ID('tempdb..#IncludeOrganisationSizeTable') IS NOT NULL DROP TABLE #IncludeOrganisationSizeTable;
 
 
         -- Get start date for the current year
@@ -42,6 +52,7 @@ BEGIN
         CREATE TABLE #PeriodYearTable (Period VARCHAR(10));
         CREATE TABLE #IncludePackagingTypesTable (PackagingType VARCHAR(10));
         CREATE TABLE #IncludePackagingMaterialsTable (PackagingMaterials VARCHAR(10));
+        CREATE TABLE #IncludeOrganisationSizeTable (OrganisationSize VARCHAR(10));
 
         -- Generic procedure to split a delimited string and insert into a given table
         DECLARE @Delimiter CHAR(1) = ',';
@@ -64,6 +75,11 @@ BEGIN
         INSERT INTO #IncludePackagingMaterialsTable (PackagingMaterials)
         SELECT PackagingMaterials FROM CTE_Split_Include;
 
+        WITH CTE_Split_IncludeOrganisation AS (
+        SELECT value AS OrganisationSize FROM STRING_SPLIT(@IncludeOrganisationSize, @Delimiter)
+        )
+        INSERT INTO #IncludeOrganisationSizeTable (OrganisationSize)
+        SELECT OrganisationSize FROM CTE_Split_IncludeOrganisation;
 
         DECLARE @PeriodYear VARCHAR(4);
         -- Get the year from the first period
@@ -129,7 +145,8 @@ BEGIN
         left JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber
         WHERE LEFT(p.submission_period, 4) = @PeriodYear 
         AND p.packaging_material IN (SELECT * FROM #IncludePackagingMaterialsTable)
-        AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable); 
+        AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable)
+        AND p.organisation_size IN (SELECT * FROM #IncludeOrganisationSizeTable); 
 
 
         --Filter organisation ID that have H1 and H2 
@@ -300,3 +317,4 @@ BEGIN
     END
 END
 GO
+

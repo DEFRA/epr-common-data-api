@@ -106,6 +106,7 @@ WITH InitialFilter AS (
 		from InitialFilter initial
 		inner join apps.SubmissionEvents se on se.submissionid = initial.submissionid 
 				   and se.[Type] = 'PackagingResubmissionApplicationSubmitted'
+                   and se.FileId = initial.FileId
 		WHERE initial.IsResubmission = 1		
 	)
 --select * from RemovedEarlyResubmissionIndicators  

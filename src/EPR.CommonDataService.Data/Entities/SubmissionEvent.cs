@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
-[Table("SubmissionEvents",Schema = "apps")]
+[Table("SubmissionEvents", Schema = "apps")]
 [Keyless]
 public class SubmissionEvent
 {
@@ -38,4 +38,5 @@ public class SubmissionEvent
     public string BlobContainerName { get; set; }
     [Column("load_ts")]
     public DateTime LastSyncTime { get; set; }
+    public string PackagingResubmissionReferenceNumber { get; set; }
 }
