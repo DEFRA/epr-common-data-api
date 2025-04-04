@@ -5,7 +5,8 @@ WHERE object_id = OBJECT_ID(N'[dbo].[v_ComplianceSchemeMembers]')
 ) DROP VIEW [dbo].[v_ComplianceSchemeMembers];
 GO
 
-CREATE VIEW [dbo].[v_ComplianceSchemeMembers] AS WITH
+CREATE VIEW [dbo].[v_ComplianceSchemeMembers]
+AS WITH
 		AllComplianceOrgFilesCTE
 		as
 		(

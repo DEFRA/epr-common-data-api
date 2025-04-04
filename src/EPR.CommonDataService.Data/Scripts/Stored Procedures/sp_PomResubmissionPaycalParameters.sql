@@ -2,8 +2,7 @@
 DROP PROCEDURE [dbo].[sp_PomResubmissionPaycalParameters];
 GO
 
-CREATE PROC [dbo].[sp_PomResubmissionPaycalParameters] @SubmissionId [nvarchar](40),@ComplianceSchemeId [nvarchar](40) 
-AS
+CREATE PROC [dbo].[sp_PomResubmissionPaycalParameters] @SubmissionId [nvarchar](40),@ComplianceSchemeId [nvarchar](40) AS
 begin
 	declare @IsResubmission BIT = NULL,
 		    @ResubmissionDate nvarchar(50),
