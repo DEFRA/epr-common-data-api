@@ -198,16 +198,7 @@ DECLARE @IsComplianceScheme bit;
 							4
 						) AS INT
 					) AS RelevantYear
-					,CAST(
-						CASE
-							WHEN se.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
-											s.SubmissionPeriod,
-											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
-											4
-										)),4,1) THEN 1	-- 1st April cut-off
-							ELSE 0
-						END AS BIT
-					) AS IsLateSubmission
+					,CAST( 0 AS BIT ) AS IsLateSubmission
 					,CASE UPPER(TRIM(org.organisationsize))
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'

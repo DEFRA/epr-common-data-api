@@ -90,10 +90,7 @@ AS WITH
 				,submissionperiod
 				,RelevantYear
 				,SubmittedDate
-				,CASE 
-					WHEN SubmittedDate > DATEFROMPARTS(RelevantYear, 4, 1) THEN 1
-					ELSE 0
-				 END IsLateFeeApplicable
+				,0 AS IsLateFeeApplicable
 				,lcof.FileName
 			from [rpd].[CompanyDetails] cd
 				inner join Latest_CSO_Org_Files lcof on lcof.FileName = cd.FileName --inner join rpd.Organisations o on o.ReferenceNumber = cd.organisation_id
