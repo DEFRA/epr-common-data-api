@@ -15,27 +15,22 @@ BEGIN
 	DECLARE @original_file_resubmitted NVARCHAR(4000);
 
 --IDENTIFY FILES TO COMPARE--
-WITH 
-	latestSubmittedFiles 
-	AS
-	(
+WITH latestSubmittedFiles AS (
     -- Identify the latest submitted file for each organization and submission period
     SELECT
-        DISTINCT
-		lsf.*
+        DISTINCT lsf.*
     FROM
         (
             SELECT
-                DISTINCT
-				a.filename
-                ,a.fileid
-                ,a.created
-                ,a.submissionperiod
-                ,a.complianceSchemeId
-                ,a.OrganisationId
-                ,b.ReferenceNumber
-				,a.OriginalFileName
-                ,ROW_NUMBER() OVER (PARTITION BY a.OrganisationId, a.submissionperiod, a.complianceschemeid ORDER BY CONVERT(DATETIME, Substring(a.[created], 1, 23)) DESC) AS RowNumber
+                DISTINCT a.filename,
+                a.fileid,
+                a.created,
+                a.submissionperiod,
+                a.complianceSchemeId,
+                a.OrganisationId,
+                b.ReferenceNumber,
+				a.OriginalFileName,
+                ROW_NUMBER() OVER (PARTITION BY a.OrganisationId, a.submissionperiod, a.complianceschemeid ORDER BY CONVERT(DATETIME, Substring(a.[created], 1, 23)) DESC) AS RowNumber
             FROM
                 rpd.cosmos_file_metadata a
             INNER JOIN rpd.Organisations b ON b.externalid = a.OrganisationId
@@ -212,6 +207,7 @@ SELECT
 FROM
 rpd.pom where filename = @latest_accepted_file
 )
+
 --Find REMOVED members so we can exclude them from the count--
 ,find_removed_members AS
 (
@@ -244,4 +240,3 @@ SELECT @MemberCount = COUNT(DISTINCT organisation_id) FROM(
 
 END;
 GO
-

@@ -8,14 +8,14 @@ BEGIN
 	-- get regulator user nation id
     DECLARE @NationId INT;
 
-SELECT @NationId = o.NationId
-FROM rpd.Users u
-         INNER JOIN rpd.Persons p ON p.UserId = u.Id
-         INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
-         INNER JOIN rpd.Organisations o ON o.Id = poc.OrganisationId
-         INNER JOIN rpd.Enrolments e ON e.ConnectionId = poc.Id
-         INNER JOIN rpd.ServiceRoles sr ON sr.Id = e.ServiceRoleId
-WHERE
+    SELECT @NationId = o.NationId
+    FROM rpd.Users u
+        INNER JOIN rpd.Persons p ON p.UserId = u.Id
+        INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
+        INNER JOIN rpd.Organisations o ON o.Id = poc.OrganisationId
+        INNER JOIN rpd.Enrolments e ON e.ConnectionId = poc.Id
+        INNER JOIN rpd.ServiceRoles sr ON sr.Id = e.ServiceRoleId
+    WHERE
         sr.ServiceId=2 AND -- only regulator service users
         u.UserId=@RegulatorUserId  -- with provided ID
 
@@ -44,6 +44,7 @@ WHERE
 	  AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
 	  AND (ISNULL(@ActualSubmissionPeriodsCommaSeperated, '') = '' OR ActualSubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@ActualSubmissionPeriodsCommaSeperated, ',')))
 )
+--select * from InitialFilter
 ,RemovedEarlyResubmissionIndicators as (
 		select SubmissionId,
 			   OrganisationId,
@@ -104,8 +105,10 @@ WHERE
 		from InitialFilter initial
 		INNER join apps.SubmissionEvents se on se.submissionid = initial.submissionid 
 				   and se.[Type] = 'PackagingResubmissionApplicationSubmitted'
+				   and se.FileId = initial.FileId
 		WHERE initial.IsResubmission = 1		
 	)
+--select * from RemovedEarlyResubmissionIndicators  
 	,RankedJsonParsedUpdates AS (
         SELECT
             JSON_VALUE([value], '$.FileId') AS FileId,
@@ -192,4 +195,3 @@ WHERE
 
 END;
 GO
-
