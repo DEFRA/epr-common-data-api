@@ -19,4 +19,5 @@ public class UpdatedProducersResponseModel
     public string pEPRID { get; set; }
     public string Status { get; set; }
     public string BusinessCountry { get; set; }
+    public DateTime? UpdatedDateTime { get; set; }
 }
