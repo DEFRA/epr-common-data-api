@@ -243,7 +243,7 @@ SET NOCOUNT ON;
 				select *, Row_Number() over (order by UpSeq asc) as RowNum
 				FROM
 					UploadedDataForOrganisationCTE org 
-				WHERE org.UploadDate < (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
+				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
 			) uploadeddata where RowNum = 1
 		)
 		,ProducerPaycalParametersCTE
