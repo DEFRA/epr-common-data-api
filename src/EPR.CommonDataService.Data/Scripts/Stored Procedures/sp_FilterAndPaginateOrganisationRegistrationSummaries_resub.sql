@@ -1,8 +1,8 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_R9]'))
-DROP PROCEDURE [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_R9];
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub]'))
+DROP PROCEDURE [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub];
 GO
 
-CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_R9] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100),@ResubmissionStatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
+CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100),@ResubmissionStatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
 BEGIN
     SET NOCOUNT ON;
     IF EXISTS (
@@ -44,7 +44,7 @@ BEGIN
 			NationCode NVARCHAR(10) NULL
 		);
 		
-		exec dbo.sp_OrganisationRegistrationSummaries_R9;
+		exec dbo.sp_OrganisationRegistrationSummaries_resub;
 
 		WITH
             NormalFilterCTE

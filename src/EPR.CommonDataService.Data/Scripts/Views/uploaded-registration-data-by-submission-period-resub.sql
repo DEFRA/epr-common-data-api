@@ -1,12 +1,12 @@
 ﻿IF EXISTS (
     SELECT 1
     FROM sys.views
-    WHERE object_id = OBJECT_ID(N'[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_r9]')
-) DROP VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_r9];
+    WHERE object_id = OBJECT_ID(N'[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub]')
+) DROP VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub];
 
 GO
 
-CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9] AS WITH
+CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] AS WITH
     LatestUploadedData
     AS
     (

@@ -1,5 +1,5 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9]'))
-DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9];
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
+DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
 SET ANSI_NULLS ON
@@ -8,7 +8,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9] @SubmissionId [nvarchar](36) AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
 
 BEGIN
 SET NOCOUNT ON;
@@ -233,7 +233,7 @@ SET NOCOUNT ON;
 		,UploadedDataForOrganisationCTE as (
 			select *, Row_Number() over (partition by UploadingOrgExternalId, SubmissionPeriod, ComplianceSchemeId order by UploadDate desc) as UpSeq
 			FROM
-				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_R9] org 
+				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org 
 			WHERE org.UploadingOrgExternalId = @OrganisationUUIDForSubmission
 				and org.SubmissionPeriod = @SubmissionPeriod
 				and @ComplianceSchemeId IS NULL OR org.ComplianceSchemeId = @ComplianceSchemeId
@@ -260,7 +260,7 @@ SET NOCOUNT ON;
 				,NumberOfSubsidiaries
 				,OnlineMarketPlaceSubsidiaries
 				FROM
-					[dbo].[v_ProducerPaycalParameters_r9] AS ppp
+					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
 				inner join UploadedViewCTE udc on udc.CompanyFileName = ppp.FileName
 			WHERE ppp.OrganisationExternalId = @OrganisationUUIDForSubmission
 		)
@@ -411,7 +411,7 @@ SET NOCOUNT ON;
 				,@SubmissionPeriod AS WantedPeriod
             FROM
                 dbo.v_ComplianceSchemeMembers csm
-                INNER JOIN dbo.v_ProducerPayCalParameters_r9 ppp ON ppp.OrganisationId = csm.ReferenceNumber
+                INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
                 AND csm.CSOReference = @CSOReferenceNumber

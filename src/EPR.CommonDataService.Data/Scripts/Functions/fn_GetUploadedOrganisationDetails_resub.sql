@@ -1,8 +1,8 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails_r9]'))
-    DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails_r9];
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails_resub]'))
+    DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails_resub];
 GO
 
-CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails_r9] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
+CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails_resub] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
 AS
 RETURN (	   
 

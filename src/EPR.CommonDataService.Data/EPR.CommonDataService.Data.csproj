@@ -36,7 +36,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Scripts\Views\uploaded-registration-data-by-submission-period-r9.sql" />
+    <Content Include="Scripts\Views\uploaded-registration-data-by-submission-period-resub.sql" />
     <Content Include="Scripts\Views\uploaded-registration-data-by-submission-period.sql" />
   </ItemGroup>
 
