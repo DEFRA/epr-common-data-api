@@ -1,5 +1,5 @@
 ﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateSubmissionsSummaries_resub]'))
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FilterAndPaginateSubmissionsSummaries_resub]'))
 DROP PROCEDURE [dbo].[sp_FilterAndPaginateSubmissionsSummaries_resub];
 GO
 
