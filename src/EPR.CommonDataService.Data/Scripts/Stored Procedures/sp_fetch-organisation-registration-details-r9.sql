@@ -2,7 +2,6 @@
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9];
 GO
 
-/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_R9]    Script Date: 04/04/2025 15:54:46 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -116,30 +115,33 @@ SET NOCOUNT ON;
 			) x
 		)
 		,ReconciledSubmissionEvents as (		-- applies fileId to corresponding events
-			select
-				SubmissionId
-				,SubmissionEventId
-				,DecisionDate
-				,Comment
-				,UserId
-				,[Type]
-				,(SELECT TOP 1 FileId 
-				  from LatestFirstUploadedSubmissionEventCTE upload
-				  where upload.UploadDate < decision.DecisionDate
-				  order by upload.RowNum asc
-				 ) as FileId
-				,RegistrationReferenceNumber
-				,SubmissionStatus
-				,ResubmissionStatus
-				,StatusPendingDate
-				,IsRegulatorDecision
-				,IsRegulatorResubmissionDecision
-				,IsProducerSubmission
-				,IsProducerResubmission
-				,UploadEvent
-				,Row_number() over ( order by DecisionDate desc) as RowNum
-			from ProdSubmissionsRegulatorDecisionsCTE decision
-			where IsProducerSubmission = 1 or IsProducerResubmission = 1 or IsRegulatorDecision = 1	or IsRegulatorResubmissionDecision = 1
+			select uploaddata.*, uploadedsubmission.UploadDate as UploadedOn 
+			from (
+				select
+					SubmissionId
+					,SubmissionEventId
+					,DecisionDate
+					,Comment
+					,UserId
+					,[Type]
+					,(SELECT TOP 1 FileId 
+					  from LatestFirstUploadedSubmissionEventCTE upload
+					  where upload.UploadDate < decision.DecisionDate
+					  order by upload.RowNum asc
+					 ) as FileId
+					,RegistrationReferenceNumber
+					,SubmissionStatus
+					,ResubmissionStatus
+					,StatusPendingDate
+					,IsRegulatorDecision
+					,IsRegulatorResubmissionDecision
+					,IsProducerSubmission
+					,IsProducerResubmission
+					,UploadEvent
+					,Row_number() over ( order by DecisionDate desc) as RowNum
+				from ProdSubmissionsRegulatorDecisionsCTE decision
+				where IsProducerSubmission = 1 or IsProducerResubmission = 1 or IsRegulatorDecision = 1	or IsRegulatorResubmissionDecision = 1
+			) as uploaddata inner join LatestFirstUploadedSubmissionEventCTE as uploadedsubmission on uploadedsubmission.FileId = uploaddata.FileId 
 		)
 		,InitialSubmissionCTE AS (
 			SELECT TOP 1 *
@@ -171,7 +173,7 @@ SET NOCOUNT ON;
 				,COALESCE(id.SubmissionStatus, 'Pending') AS SubmissionStatus
 				,s.SubmissionEventId
 				,s.Comment as SubmissionComment
-				,s.DecisionDate as SubmissionDate
+				,s.UploadedOn as SubmissionDate
 				,s.FileId as SubmittedFileId
 				-- Join on matching FileId for resubmission decision
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
@@ -270,7 +272,7 @@ SET NOCOUNT ON;
 					,org.UploadOrgName as UploadedOrganisationName
 					,o.ReferenceNumber as OrganisationReferenceNumber
 					,org.UploadingOrgExternalId as OrganisationId
-					,SubmittedCTE.SubmissionDate as SubmittedDateTime
+					,InitialSubmissionCTE.UploadedOn as SubmittedDateTime
 					,s.AppReferenceNumber AS ApplicationReferenceNumber
 					,ss.RegistrationReferenceNumber
 					,ss.RegistrationDecisionDate as RegistrationDate
@@ -333,7 +335,7 @@ SET NOCOUNT ON;
 					) AS RelevantYear
 					,CAST(
 						CASE
-							WHEN SubmittedCTE.SubmissionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+							WHEN InitialSubmissionCTE.UploadedOn > DATEFROMPARTS(CONVERT( int, SUBSTRING(
 											s.SubmissionPeriod,
 											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
 											4
@@ -363,7 +365,7 @@ SET NOCOUNT ON;
 					,org.PartnerUploadFileName AS PartnershipFileName
 					,org.PartnerFileId AS PartnershipFileId
 					,org.PartnerBlobName AS PartnershipBlobName
-					,SubmittedCTE.SubmittedUserId
+					,ss.LatestProducerUserId as SubmittedUserId
 					,s.ComplianceSchemeId
 					,@ComplianceSchemeId as CSId
 					,ROW_NUMBER() OVER (
@@ -374,7 +376,7 @@ SET NOCOUNT ON;
 					) AS RowNum
 				FROM
 					[rpd].[Submissions] AS s
-						INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
+						INNER JOIN InitialSubmissionCTE on InitialSubmissionCTE.SubmissionId = s.SubmissionId 
 						INNER JOIN UploadedViewCTE org on org.UploadingOrgExternalId = s.OrganisationId
 						INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 						INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
@@ -439,7 +441,7 @@ SET NOCOUNT ON;
         (
             SELECT
                 CSOReference
-            ,'[' + STRING_AGG(OrganisationDetailsJsonString, ', ') + ']' AS FinalJson
+            ,'[' + STRING_AGG(CONVERT(nvarchar(max),OrganisationDetailsJsonString), ', ') + ']' AS FinalJson
             FROM
                 JsonifiedCompliancePaycalCTE
             WHERE CSOReference = @CSOReferenceNumber
