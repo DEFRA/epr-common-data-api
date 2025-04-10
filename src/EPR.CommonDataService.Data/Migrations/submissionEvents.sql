@@ -33,3 +33,15 @@ BEGIN
 ALTER TABLE rpd.SubmissionEvents
     ADD [Comments] [nvarchar](4000) NULL
 END
+
+-- PackagingResubmissionReferenceNumber
+IF NOT EXISTS (
+    SELECT *
+    FROM sys.columns 
+    WHERE Name = N'PackagingResubmissionReferenceNumber' 
+    AND Object_ID = Object_ID(N'rpd.SubmissionEvents')
+)
+BEGIN
+ALTER TABLE rpd.SubmissionEvents
+    ADD [PackagingResubmissionReferenceNumber] [nvarchar](4000) NULL
+END

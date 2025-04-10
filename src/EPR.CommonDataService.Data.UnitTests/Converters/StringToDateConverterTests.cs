@@ -65,7 +65,7 @@ public class StringToDateConverterTests
     public void Given_ValidStringValue_When_ConvertedToDateTime_Should_ReturnCorrectDateTime()
     {
         // Arrange
-        var DateTimeValue = DateTime.Now;
+        var DateTimeValue = DateTime.UtcNow;
         var stringValue = DateTimeValue.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture);
 
         var converter = StringToDateConverter.Get();

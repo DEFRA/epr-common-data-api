@@ -36,7 +36,8 @@ BEGIN
         [RegulatorUserId] [nvarchar](4000) NULL,
         [Type] [nvarchar](4000) NULL,
         [BlobContainerName] [nvarchar](4000) NULL,
-        [load_ts] [datetime2](7) NULL
+        [load_ts] [datetime2](7) NULL,
+        [PackagingResubmissionReferenceNumber] [nvarchar](4000) NULL
         )
         WITH
             (
