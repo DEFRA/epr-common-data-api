@@ -36,11 +36,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Scripts\Views\uploaded-registration-data-by-submission-period-R9.sql" />
-    <Content Include="Scripts\Views\uploaded-registration-data-by-submission-period.sql" />
-  </ItemGroup>
-
-  <ItemGroup>
     <SonarQubeSetting Include="sonar.exclusions">
       <Value>**/*.sql</Value>
     </SonarQubeSetting>

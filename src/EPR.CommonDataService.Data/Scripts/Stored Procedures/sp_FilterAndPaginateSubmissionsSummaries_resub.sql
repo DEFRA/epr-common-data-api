@@ -1,9 +1,8 @@
-﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateSubmissionsSummaries_r9]'))
-DROP PROCEDURE [rpd].[sp_FilterAndPaginateSubmissionsSummaries_r9];
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_FilterAndPaginateSubmissionsSummaries_resub]'))
+DROP PROCEDURE [dbo].[sp_FilterAndPaginateSubmissionsSummaries_resub];
 GO
 
-CREATE PROC [rpd].[sp_FilterAndPaginateSubmissionsSummaries_r9] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
+CREATE PROC [dbo].[sp_FilterAndPaginateSubmissionsSummaries_resub] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
 BEGIN
 	
 	-- get regulator user nation id
@@ -11,17 +10,17 @@ BEGIN
 
     SELECT @NationId = o.NationId
     FROM rpd.Users u
-             INNER JOIN rpd.Persons p ON p.UserId = u.Id
-             INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
-             INNER JOIN rpd.Organisations o ON o.Id = poc.OrganisationId
-             INNER JOIN rpd.Enrolments e ON e.ConnectionId = poc.Id
-             INNER JOIN rpd.ServiceRoles sr ON sr.Id = e.ServiceRoleId
+        INNER JOIN rpd.Persons p ON p.UserId = u.Id
+        INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
+        INNER JOIN rpd.Organisations o ON o.Id = poc.OrganisationId
+        INNER JOIN rpd.Enrolments e ON e.ConnectionId = poc.Id
+        INNER JOIN rpd.ServiceRoles sr ON sr.Id = e.ServiceRoleId
     WHERE
-            sr.ServiceId=2 AND -- only regulator service users
-            u.UserId=@RegulatorUserId;  -- with provided ID
+        sr.ServiceId=2 AND -- only regulator service users
+        u.UserId=@RegulatorUserId  -- with provided ID
 
 -- Initial Filter CTE
-WITH InitialFilter AS (
+;WITH InitialFilter AS (
     SELECT distinct SubmissionId,	OrganisationId,	ComplianceSchemeId,	OrganisationName,	OrganisationReference,	OrganisationType,	ProducerType,	UserId,	FirstName,	LastName,	Email,	Telephone,	ServiceRole,	FileId,	SubmissionYear,	Combined_SubmissionCode as SubmissionCode,	Combined_ActualSubmissionPeriod as ActualSubmissionPeriod,	SubmissionPeriod,	SubmittedDate,	Decision,	IsResubmissionRequired,	Comments,	IsResubmission,	PreviousRejectionComments,	NationId, PomFileName,  PomBlobName
     FROM apps.SubmissionsSummaries ss
     WHERE
@@ -104,9 +103,9 @@ WITH InitialFilter AS (
 			   PomFileName,
 			   PomBlobName
 		from InitialFilter initial
-		inner join apps.SubmissionEvents se on se.submissionid = initial.submissionid 
+		INNER join apps.SubmissionEvents se on se.submissionid = initial.submissionid 
 				   and se.[Type] = 'PackagingResubmissionApplicationSubmitted'
-                   and se.FileId = initial.FileId
+				   and se.FileId = initial.FileId
 		WHERE initial.IsResubmission = 1		
 	)
 --select * from RemovedEarlyResubmissionIndicators  
