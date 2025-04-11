@@ -21,7 +21,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {
-        var sql = "EXECUTE [dbo].[sp_FilterAndPaginateSubmissionsSummaries_resub] @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
+        var sql = "EXECUTE [apps].[sp_FilterAndPaginateSubmissionsSummaries_resub] @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
 
         var sqlParameters = request.ToProcParams();
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: query {Query} parameters {Parameters}", _logPrefix, sql, JsonConvert.SerializeObject(sqlParameters));
