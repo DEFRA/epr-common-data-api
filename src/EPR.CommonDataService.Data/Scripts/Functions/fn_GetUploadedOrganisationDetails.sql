@@ -1,4 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.sql_modules WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails]'))
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails]'))
     DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails];
 GO
 
@@ -21,6 +21,8 @@ WITH
 			,RegistrationSetId
 			,ComplianceSchemeId
 			,Created
+			,FileId
+			,FileName
 			,STRING_AGG(FileType, ',') AS FileTypes
 			,row_number() OVER (partition BY organisationid, SubmissionPeriod, ComplianceSchemeId ORDER BY created desc, load_ts DESC) AS RowNum
             FROM
@@ -28,7 +30,7 @@ WITH
             WHERE SubmissionType = 'Registration'
                 AND (ISNULL(@SubmissionPeriod,'') = '' OR SubmissionPeriod = @SubmissionPeriod)
                 AND (ISNULL(@OrganisationUUID,'') = '' OR organisationid = @OrganisationUUID)
-            GROUP BY organisationid, submissionperiod, complianceschemeid, registrationsetid, fileId, filename, created, submissionid, load_ts
+            GROUP BY submissionid, organisationid, submissionperiod, complianceschemeid, registrationsetid, fileId, filename, created, load_ts
 		) AS z
         WHERE z.RowNum = 1
     )
@@ -50,6 +52,8 @@ WITH
 		,cfm.complianceschemeid
 		,CASE WHEN cfm.complianceschemeid IS NOT NULL THEN 1 ELSE 0 END AS IsComplianceScheme
 		,cd.FileName AS CompanyFileName
+		,lud.FileName as LUDFileName
+		,lud.FileId as LUDFileId
 		,cfm.RegistrationSetId AS CompanySetId
 		,cfm.FileId AS CompanyFileId
 		,cfm.Blobname AS CompanyBlobname
@@ -58,7 +62,9 @@ WITH
             LatestUploadedData lud
             INNER JOIN rpd.cosmos_file_metadata cfm ON cfm.registrationsetid = lud.registrationsetid
 			AND UPPER(cfm.FileType) = 'COMPANYDETAILS'
-            INNER JOIN rpd.companydetails cd ON cfm.filename = cd.filename
+            INNER JOIN rpd.companydetails cd ON lud.filename = cd.filename
+                AND (ISNULL(@OrganisationUUID,'') = '' OR cfm.organisationid = @OrganisationUUID )
+                AND (ISNULL(@SubmissionPeriod,'') = '' OR lud.SubmissionPeriod = @SubmissionPeriod)
         WHERE ISNULL(cd.subsidiary_id,'') = ''
     )
 ,PartnerFileDetails
@@ -133,3 +139,5 @@ SELECT
     *
 FROM
     companyandfiledetails
+)
+GO
