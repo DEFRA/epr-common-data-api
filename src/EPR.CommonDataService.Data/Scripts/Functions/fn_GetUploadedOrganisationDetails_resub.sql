@@ -1,4 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails_resub]'))
+﻿IF EXISTS (SELECT 1 FROM sys.sql_modules WHERE object_id = OBJECT_ID(N'[dbo].[fn_GetUploadedOrganisationDetails_resub]'))
     DROP FUNCTION [dbo].[fn_GetUploadedOrganisationDetails_resub];
 GO
 
