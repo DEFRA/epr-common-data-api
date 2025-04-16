@@ -45,4 +45,10 @@ BEGIN
         CLUSTERED COLUMNSTORE INDEX
     )
 END;
+
+IF NOT EXISTS (SELECT 1 FROM SYS.COLUMNS WHERE [Name] = N'PackagingResubmissionReferenceNumber' AND object_id = OBJECT_ID(N'[apps].[SubmissionEvents]'))
+BEGIN
+    ALTER TABLE [apps].[SubmissionEvents] ADD [PackagingResubmissionReferenceNumber] NVARCHAR (4000) NULL
+END;
+
 GO
