@@ -39,13 +39,14 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS WITH
     (
         SELECT
 			cd.FileName
+            ,cd.organisation_id
             ,COUNT(DISTINCT subsidiary_id) AS NumberOfSubsidiaries
             ,COUNT(CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries
         FROM
             rpd.companydetails cd
         WHERE cd.Subsidiary_Id IS NOT NULL
         AND cd.leaver_date IS NULL
-        GROUP BY cd.FileName
+        GROUP BY cd.FileName, cd.organisation_id
     )
 	,OrganisationPaycalDetailsCTE AS (
 		SELECT 
@@ -61,7 +62,7 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS WITH
 		   ,ISNULL(NumberOfSubsidiaries,0) as NumberOfSubsidiaries
 		   ,ISNULL(OnlineMarketPlaceSubsidiaries,0) as OnlineMarketPlaceSubsidiaries
 		FROM OrganisationDetailsCTE od
-		left join SubsidiaryCountsCTE sc on sc.FileName = od.FileName
+		left join SubsidiaryCountsCTE sc on sc.FileName = od.FileName AND od.OrganisationId = sc.organisation_id
     )
 SELECT
     *
