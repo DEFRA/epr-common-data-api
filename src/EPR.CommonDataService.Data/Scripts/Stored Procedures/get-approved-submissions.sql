@@ -144,8 +144,6 @@ BEGIN
         JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
         left JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber
         WHERE LEFT(p.submission_period, 4) = @PeriodYear 
-        AND p.packaging_material IN (SELECT * FROM #IncludePackagingMaterialsTable)
-        AND p.packaging_type IN (SELECT * FROM #IncludePackagingTypesTable)
         AND p.organisation_size IN (SELECT * FROM #IncludeOrganisationSizeTable); 
 
 
@@ -178,11 +176,13 @@ BEGIN
         );
 
 
-        --Use H1H2 organisation ids to filter approved submission POM files
+        --Use H1H2 organisation ids to filter approved submission POM files, also exclude unwanted packaging materials and packaging types
         SELECT f.OrganisationId, f.Created, f.PackagingMaterial, f.PackType, f.SixDigitOrgId, f.SubmissionPeriod, f.weight, f.TransitionalPackaging
         INTO #FilteredApprovedSubmissions
         FROM #FilteredByApproveAfterYear f
         JOIN #FilteredOrgIdsForH1H2 h1h2 ON f.OrganisationId = h1h2.OrganisationId
+        WHERE f.PackagingMaterial IN (SELECT * FROM #IncludePackagingMaterialsTable)
+        AND f.PackType IN (SELECT * FROM #IncludePackagingTypesTable); 
 
 
         --Get all Periods including partial periods
@@ -317,4 +317,3 @@ BEGIN
     END
 END
 GO
-
