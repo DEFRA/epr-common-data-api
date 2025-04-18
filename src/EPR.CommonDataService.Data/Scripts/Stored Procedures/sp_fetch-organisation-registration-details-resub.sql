@@ -144,13 +144,13 @@ SET NOCOUNT ON;
 			SELECT TOP 1 *
 			FROM ReconciledSubmissionEvents
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
-			ORDER BY RowNum desc
+			ORDER BY RowNum asc
 		)
 		,InitialDecisionCTE AS (
 			SELECT TOP 1 *
 			FROM ReconciledSubmissionEvents
 			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
-			ORDER BY RowNum desc
+			ORDER BY RowNum asc
 		)
     	,ResubmissionCTE AS (
 			SELECT TOP 1 *
@@ -167,7 +167,9 @@ SET NOCOUNT ON;
 			SELECT TOP 1
 				s.SubmissionId
 				-- Submission Status comes from initial regulator decision if any, else 'Pending'
-				,COALESCE(id.SubmissionStatus, 'Pending') AS SubmissionStatus
+                ,CASE WHEN s.DecisionDate > id.DecisionDate THEN 'Pending'
+					  ELSE COALESCE(id.SubmissionStatus, 'Pending') 
+				 END AS SubmissionStatus
 				,s.SubmissionEventId
 				,s.Comment as SubmissionComment
 				,s.DecisionDate as SubmissionDate
