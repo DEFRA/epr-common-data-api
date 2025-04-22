@@ -79,14 +79,14 @@ BEGIN
 	)
 	,InitialSubmissionCTE AS (
 		SELECT * FROM (
-			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate ASC) AS RowNum
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
 			FROM ReconciledSubmissionEvents
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
 		) t WHERE RowNum = 1
 	)
 	,InitialDecisionCTE AS (
 		SELECT * FROM (
-			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate ASC) AS RowNum
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
 			FROM ReconciledSubmissionEvents
 			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
 		) t WHERE RowNum = 1
@@ -108,7 +108,9 @@ BEGIN
 	,SubmissionStatusCTE AS (
 		SELECT
 			s.SubmissionId,
-			COALESCE(id.SubmissionStatus, 'Pending') AS SubmissionStatus,
+			CASE WHEN s.DecisionDate > id.DecisionDate THEN 'Pending'
+					  ELSE COALESCE(id.SubmissionStatus, 'Pending') 
+				 END AS SubmissionStatus,
 			CASE
 				WHEN r.SubmissionEventId IS NOT NULL AND rd.SubmissionEventId IS NOT NULL THEN rd.ResubmissionStatus
 				WHEN r.SubmissionEventId IS NOT NULL THEN 'Pending'
@@ -224,7 +226,7 @@ BEGIN
 				,ROW_NUMBER() OVER (
                     PARTITION BY s.OrganisationId,
                     s.SubmissionPeriod, s.ComplianceSchemeId
-                    ORDER BY s.load_ts DESC
+                    ORDER BY s.Created DESC, s.load_ts DESC
                 ) AS RowNum
             FROM
                 [rpd].[Submissions] AS s
