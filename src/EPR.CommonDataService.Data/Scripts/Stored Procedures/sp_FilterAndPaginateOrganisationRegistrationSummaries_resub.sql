@@ -160,10 +160,7 @@ BEGIN
 							SELECT
 							TRIM(value)
 						FROM
-							STRING_SPLIT(
-									CONCAT('2024,2025,', @SubmissionYearsCommaSeparated),
-									','
-								)
+							STRING_SPLIT(@SubmissionYearsCommaSeparated,',')
 						)
 					)
 					AND (
