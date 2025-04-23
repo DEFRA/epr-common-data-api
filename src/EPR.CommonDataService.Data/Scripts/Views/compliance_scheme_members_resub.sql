@@ -101,7 +101,7 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				-- Overriding with the first (earliest) submission date and its late fee flag
 				COALESCE(amo.SubmittedDate, lmo.SubmittedDate) as SubmittedDate,
 				COALESCE(amo.IsLateFeeApplicable, lmo.IsLateFeeApplicable) as IsLateFeeApplicable,
-				COALESCE(amo.FileName, lmo.FileName) as FileName,
+				lmo.FileName as FileName,
 				Row_Number() over ( partition by 
 												lmo.ComplianceSchemeId, 
 												lmo.SubmissionPeriod, 
