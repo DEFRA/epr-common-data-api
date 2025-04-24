@@ -1,4 +1,5 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
+/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 24/04/2025 10:26:16 ******/
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
@@ -140,17 +141,11 @@ SET NOCOUNT ON;
 			from ProdSubmissionsRegulatorDecisionsCTE decision
 			where IsProducerSubmission = 1 or IsProducerResubmission = 1 or IsRegulatorDecision = 1	or IsRegulatorResubmissionDecision = 1
 		)
-        ,LatestSubmissionCTE AS (
-			SELECT TOP 1 *
-			FROM ReconciledSubmissionEvents
-			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
-			ORDER BY RowNum asc
-		)
 		,InitialSubmissionCTE AS (
 			SELECT TOP 1 *
 			FROM ReconciledSubmissionEvents
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
-			ORDER BY RowNum desc
+			ORDER BY RowNum asc
 		)
 		,InitialDecisionCTE AS (
 			SELECT TOP 1 *
@@ -207,7 +202,6 @@ SET NOCOUNT ON;
 				,id.RegistrationReferenceNumber
 			FROM InitialSubmissionCTE s
 			LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
-            LEFT JOIN LatestSubmissionCTE ls ON ls.SubmissionId = s.SubmissionId
 			LEFT JOIN ResubmissionCTE r ON r.SubmissionId = s.SubmissionId
 			LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 			order by resubmissiondecisiondate desc
@@ -394,7 +388,7 @@ SET NOCOUNT ON;
 		)
 		,ComplianceSchemeMembersCTE as (
 			select *
-			from dbo.v_ComplianceSchemeMembers_resub csm
+			from dbo.v_ComplianceSchemeMembers csm
 			where @IsComplianceScheme = 1
 				  and csm.CSOReference = @CSOReferenceNumber
 				  and csm.SubmissionPeriod = @SubmissionPeriod
@@ -415,8 +409,8 @@ SET NOCOUNT ON;
 				,ppp.OnlineMarketPlaceSubsidiaries as NumberOfSubsidiariesBeingOnlineMarketPlace
 				,csm.submissionperiod
 				,@SubmissionPeriod AS WantedPeriod
-            FROM 
-                dbo.v_ComplianceSchemeMembers_resub csm
+            FROM
+                dbo.v_ComplianceSchemeMembers csm
                 INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
