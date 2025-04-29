@@ -41,7 +41,8 @@ SET NOCOUNT ON;
                 WHEN 'SC' THEN 3
                 WHEN 'WS' THEN 4
                 WHEN 'WA' THEN 4
-            END AS NationId
+            END AS NationId,
+            CASE WHEN cd.joiner_date IS NOT NULL THEN 1 ELSE 0 END AS IsNewJoiner
         FROM
             [rpd].[CompanyDetails] cd
         WHERE
@@ -54,6 +55,7 @@ SET NOCOUNT ON;
         ISNULL(sd.TotalSubsidiaries, 0) AS NumberOfSubsidiaries,
         ISNULL(sd.OnlineMarketPlaceSubsidiaries, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
         CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
+        CAST(od.IsNewJoiner AS BIT) AS IsNewJoiner,
         NationId
     FROM
         OrganisationDetails od
