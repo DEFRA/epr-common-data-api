@@ -14,6 +14,8 @@ public class RegistrationFeeCalculationDetailsModel
     public string OrganisationSize { get; set; }
     
     public bool IsOnlineMarketplace  { get; set; }
-    
+
+    public bool IsNewJoiner  { get; set; }
+
     public int NationId { get; set; }
 }

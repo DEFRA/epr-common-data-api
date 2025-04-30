@@ -31,7 +31,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "L",
                 NumberOfSubsidiaries = 54,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 29,
-                IsOnlineMarketplace = true
+                IsOnlineMarketplace = true,
+                IsNewJoiner = true
             }
         };
         _synapseContextMock
@@ -47,6 +48,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result[0].NumberOfSubsidiaries.Should().Be(54);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
         result[0].IsOnlineMarketplace.Should().BeTrue();
+        result[0].IsNewJoiner.Should().BeTrue();
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
@@ -67,7 +69,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "s",
                 NumberOfSubsidiaries = 100,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
-                IsOnlineMarketplace = false
+                IsOnlineMarketplace = false,
+                IsNewJoiner = false
             }
         };
 
@@ -84,6 +87,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result[0].NumberOfSubsidiaries.Should().Be(100);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
         result[0].IsOnlineMarketplace.Should().BeFalse();
+        result[0].IsNewJoiner.Should().BeFalse();
     }
 
     [TestMethod]
@@ -136,7 +140,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "X", // Invalid size
                 NumberOfSubsidiaries = 10,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 5,
-                IsOnlineMarketplace = false
+                IsOnlineMarketplace = false,
+                IsNewJoiner = false
             }
         };
         _synapseContextMock
@@ -152,6 +157,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result[0].NumberOfSubsidiaries.Should().Be(10);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(5);
         result[0].IsOnlineMarketplace.Should().BeFalse();
+        result[0].IsNewJoiner.Should().BeFalse();
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
