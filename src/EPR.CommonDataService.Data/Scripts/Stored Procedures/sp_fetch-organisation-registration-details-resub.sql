@@ -520,7 +520,7 @@ SET NOCOUNT ON;
         ,r.BrandsBlobName
 		,r.ComplianceSchemeId
 		,r.CSId
-        ,acpp.FinalJson AS CSOJson
+        ,ISNULL(acpp.FinalJson, '{}') AS CSOJson
     FROM
         SubmissionDetails r
         INNER JOIN [rpd].[Organisations] o
