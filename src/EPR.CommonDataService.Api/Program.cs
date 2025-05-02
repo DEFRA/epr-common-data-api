@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Api.Extensions;
 using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
+using Microsoft.OpenApi.Models;
 
 namespace EPR.CommonDataService.Api;
 
