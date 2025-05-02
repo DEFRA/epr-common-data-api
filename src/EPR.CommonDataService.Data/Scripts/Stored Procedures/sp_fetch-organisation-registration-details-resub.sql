@@ -2,6 +2,7 @@
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
+/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 02/05/2025 10:18:26 ******/
 SET ANSI_NULLS ON
 GO
 
@@ -346,7 +347,7 @@ SET NOCOUNT ON;
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'
 					 END as ProducerSize
-					,org.IsComplianceScheme
+					,CONVERT(bit, org.IsComplianceScheme) as IsComplianceScheme
 					,CASE 
 						WHEN org.IsComplianceScheme = 1 THEN 'Compliance'
 						WHEN UPPER(TRIM(org.organisationsize)) = 'S' THEN 'Small'
@@ -386,8 +387,16 @@ SET NOCOUNT ON;
 			WHERE a.RowNum = 1
 		)
 		,ComplianceSchemeMembersCTE as (
-			select *
-			from dbo.v_ComplianceSchemeMembers csm
+			select csm.*
+				   ,CASE WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
+						 ELSE 0 END
+					AS IsOriginal
+				   ,CASE WHEN csm.SubmittedDate<= ss.RegistrationDecisionDate THEN 0
+					     WHEN ( csm.SubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
+					     WHEN ( csm.SubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
+					END as IsNewJoiner
+			from dbo.v_ComplianceSchemeMembers_resub csm,
+				SubmissionStatusCTE ss
 			where @IsComplianceScheme = 1
 				  and csm.CSOReference = @CSOReferenceNumber
 				  and csm.SubmissionPeriod = @SubmissionPeriod
@@ -402,22 +411,26 @@ SET NOCOUNT ON;
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,csm.IsLateFeeApplicable
+				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
+					 ELSE 0 END AS IsLateFeeApplicable
+				,csm.OrganisationName
+				,csm.leaver_code
+				,csm.leaver_date
+				,csm.joiner_date
+				,csm.organisation_change_reason
 				,ppp.IsOnlineMarketPlace
 				,ppp.NumberOfSubsidiaries
 				,ppp.OnlineMarketPlaceSubsidiaries as NumberOfSubsidiariesBeingOnlineMarketPlace
 				,csm.submissionperiod
 				,@SubmissionPeriod AS WantedPeriod
             FROM
-                dbo.v_ComplianceSchemeMembers csm
-                INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
+				ComplianceSchemeMembersCTE csm
+				INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
-                AND csm.CSOReference = @CSOReferenceNumber
-                AND csm.SubmissionPeriod = @SubmissionPeriod
-				AND csm.ComplianceSchemeId = @ComplianceSchemeId
+				  AND csm.IsOriginal = 1 or csm.IsNewJoiner = 1
         ) 
-		,JsonifiedCompliancePaycalCTE
+	   ,JsonifiedCompliancePaycalCTE
         AS
         (
             SELECT
@@ -464,7 +477,7 @@ SET NOCOUNT ON;
 		,r.ResubmissionFileId
 		,r.SubmissionPeriod
         ,r.RelevantYear
-        ,r.IsComplianceScheme
+        ,CONVERT(bit, r.IsComplianceScheme) as IsComplianceScheme
         ,r.ProducerSize AS OrganisationSize
         ,r.OrganisationType
         ,r.NationId
@@ -505,7 +518,7 @@ SET NOCOUNT ON;
         ,r.BrandsBlobName
 		,r.ComplianceSchemeId
 		,r.CSId
-        ,acpp.FinalJson AS CSOJson
+        ,ISNULL(acpp.FinalJson, '{}') AS CSOJson
     FROM
         SubmissionDetails r
         INNER JOIN [rpd].[Organisations] o
