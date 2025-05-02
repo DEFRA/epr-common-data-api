@@ -5,6 +5,13 @@ WHERE object_id = OBJECT_ID(N'[dbo].[v_ComplianceSchemeMembers_resub]')
 ) DROP VIEW [dbo].[v_ComplianceSchemeMembers_resub];
 GO
 
+/****** Object:  View [dbo].[v_ComplianceSchemeMembers_resub]    Script Date: 02/05/2025 10:20:04 ******/
+SET ANSI_NULLS ON
+GO
+
+SET QUOTED_IDENTIFIER ON
+GO
+
 CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFilesCTE
 		as
 		(
@@ -43,6 +50,7 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				,CSOReference
 				,organisation_id as OrganisationReference
 				,o.ExternalId as OrganisationId
+				,o.Name
 				,lcof.ComplianceSchemeId
 				,submissionperiod
 				,RelevantYear
@@ -51,6 +59,10 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 					WHEN SubmittedDate > DATEFROMPARTS(RelevantYear, 4, 1) THEN 1
 					ELSE 0
 				 END IsLateFeeApplicable
+				,cd.leaver_code
+				,cd.leaver_date
+				,cd.joiner_date
+				,cd.organisation_change_reason
 				,lcof.FileName
 				,Row_Number() over ( partition by 
 												ComplianceSchemeId, 
@@ -59,8 +71,8 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 									order by CONVERT(DATETIME, Substring(SubmittedDate, 1, 23)) asc
 				) as RowNum
 			from [rpd].[CompanyDetails] cd
-				inner join AllComplianceOrgFilesCTE lcof on lcof.FileName = cd.FileName --inner join rpd.Organisations o on o.ReferenceNumber = cd.organisation_id
-				inner join rpd.organisations o on o.ReferenceNumber = cd.organisation_id
+				inner join AllComplianceOrgFilesCTE lcof on lcof.FileName = cd.FileName 
+				inner join rpd.organisations o on o.ReferenceNumber = cd.organisation_id and cd.Subsidiary_id is null
 		)
 		,LatestMemberOrgsCTE 
 		AS
@@ -70,6 +82,7 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				,CSOReference
 				,organisation_id as OrganisationReference
 				,o.ExternalId as OrganisationId
+				,o.Name
 				,lcof.ComplianceSchemeId
 				,submissionperiod
 				,RelevantYear
@@ -78,6 +91,10 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 					WHEN SubmittedDate > DATEFROMPARTS(RelevantYear, 4, 1) THEN 1
 					ELSE 0
 				 END IsLateFeeApplicable
+				,cd.leaver_code
+				,cd.leaver_date
+				,cd.joiner_date
+				,cd.organisation_change_reason
 				,lcof.FileName
 				,Row_Number() over ( partition by 
 												ComplianceSchemeId, 
@@ -86,8 +103,8 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 									order by CONVERT(DATETIME, Substring(SubmittedDate, 1, 23)) asc
 				) as RowNum
 			from [rpd].[CompanyDetails] cd
-				inner join LatestUploadedFileCTE lcof on lcof.FileName = cd.FileName --inner join rpd.Organisations o on o.ReferenceNumber = cd.organisation_id
-				inner join rpd.organisations o on o.ReferenceNumber = cd.organisation_id
+				inner join LatestUploadedFileCTE lcof on lcof.FileName = cd.FileName 
+				inner join rpd.organisations o on o.ReferenceNumber = cd.organisation_id and cd.Subsidiary_id is null
 		)
 		,LatestMemberOrgsWithAllDetailsCTE AS (
 			SELECT
@@ -95,12 +112,18 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				lmo.CSOReference,
 				lmo.OrganisationReference,
 				lmo.OrganisationId,
+				lmo.Name,
 				lmo.ComplianceSchemeId,
 				lmo.SubmissionPeriod,
 				lmo.RelevantYear,
+				amo.joiner_date as AllJoinerDate,
 				-- Overriding with the first (earliest) submission date and its late fee flag
 				COALESCE(amo.SubmittedDate, lmo.SubmittedDate) as SubmittedDate,
 				COALESCE(amo.IsLateFeeApplicable, lmo.IsLateFeeApplicable) as IsLateFeeApplicable,
+				COALESCE(NULLIF(amo.leaver_code,''), lmo.leaver_code) as leaver_code,
+				COALESCE(amo.leaver_date, lmo.leaver_date) as leaver_date,
+				COALESCE(NULLIF(amo.joiner_date,''), lmo.joiner_date) as joiner_date,
+				COALESCE(amo.organisation_change_reason,lmo.organisation_change_reason) as organisation_change_reason,
 				lmo.FileName as FileName,
 				Row_Number() over ( partition by 
 												lmo.ComplianceSchemeId, 
@@ -114,15 +137,20 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				AND lmo.ComplianceSchemeId = amo.ComplianceSchemeId
 				AND lmo.SubmissionPeriod = amo.SubmissionPeriod
     	)
-	SELECT u.CSOExternalId
+		SELECT u.CSOExternalId
 		  ,u.CSOReference
 		  ,u.ComplianceSchemeId
 		  ,u.OrganisationReference as ReferenceNumber
 		  ,u.OrganisationId as ExternalId
+		  ,u.Name as OrganisationName
 		  ,u.SubmissionPeriod
 		  ,u.RelevantYear
 		  ,u.SubmittedDate
 		  ,u.IsLateFeeApplicable
+		  ,u.leaver_code
+		  ,u.leaver_date
+		  ,u.joiner_date
+		  ,u.organisation_change_reason
 		  ,u.FileName
 	from LatestMemberOrgsWithAllDetailsCTE u
 		inner join rpd.organisations o on o.referencenumber = u.OrganisationReference
