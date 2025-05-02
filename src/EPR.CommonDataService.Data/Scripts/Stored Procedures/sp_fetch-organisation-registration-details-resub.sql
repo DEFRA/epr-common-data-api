@@ -389,7 +389,8 @@ SET NOCOUNT ON;
 		)
 		,ComplianceSchemeMembersCTE as (
 			select csm.*
-				   ,CASE WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
+				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
+						 WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
 						 ELSE 0 END
 					AS IsOriginal
 				   ,CASE WHEN csm.SubmittedDate<= ss.RegistrationDecisionDate THEN 0
@@ -519,7 +520,7 @@ SET NOCOUNT ON;
         ,r.BrandsBlobName
 		,r.ComplianceSchemeId
 		,r.CSId
-        ,ISNULL(acpp.FinalJson, '{}') AS CSOJson
+        ,acpp.FinalJson AS CSOJson
     FROM
         SubmissionDetails r
         INNER JOIN [rpd].[Organisations] o
