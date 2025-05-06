@@ -4,12 +4,6 @@ DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
 /****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 02/05/2025 10:18:26 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
 
 BEGIN
@@ -154,7 +148,21 @@ SET NOCOUNT ON;
 			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
 			ORDER BY RowNum asc
 		)
-    	,ResubmissionCTE AS (
+		,RegistrationDecisionCTE AS (
+			SELECT TOP 1 *
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+			AND SubmissionStatus = 'Granted'
+			ORDER BY RowNum asc
+		)
+		,LatestDecisionCTE AS (
+			SELECT * FROM (
+				SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNumber
+				FROM ReconciledSubmissionEvents
+				WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+			) t WHERE RowNumber = 1
+		)
+	    ,ResubmissionCTE AS (
 			SELECT TOP 1 *
 			FROM ReconciledSubmissionEvents
 			WHERE IsProducerResubmission = 1
@@ -168,20 +176,16 @@ SET NOCOUNT ON;
 		,SubmissionStatusCTE AS (
 			SELECT TOP 1
 				s.SubmissionId
-				-- Submission Status comes from initial regulator decision if any, else 'Pending'
-                ,CASE WHEN s.DecisionDate > id.DecisionDate THEN 'Pending'
-					  ELSE COALESCE(id.SubmissionStatus, 'Pending') 
-				 END AS SubmissionStatus
+				,COALESCE(ld.SubmissionStatus, reg.SubmissionStatus, id.SubmissionStatus, 'Pending') AS SubmissionStatus
 				,s.SubmissionEventId
 				,s.Comment as SubmissionComment
 				,s.DecisionDate as SubmissionDate
 				,s.FileId as SubmittedFileId
-				-- Join on matching FileId for resubmission decision
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
 				
-				,id.DecisionDate AS RegistrationDecisionDate
+				,COALESCE(reg.DecisionDate, id.DecisionDate) AS RegistrationDecisionDate
 				,id.StatusPendingDate
-				,id.SubmissionEventId AS RegistrationDecisionEventId
+				,COALESCE(reg.SubmissionEventId, ld.SubmissionEventId, id.SubmissionEventId) AS RegistrationDecisionEventId
 
 				,CASE
 					WHEN r.SubmissionEventId IS NOT NULL AND rd.SubmissionEventId IS NOT NULL THEN rd.ResubmissionStatus
@@ -195,14 +199,16 @@ SET NOCOUNT ON;
 				,rd.DecisionDate AS ResubmissionDecisionDate
 				,rd.SubmissionEventId AS ResubmissionDecisionEventId
 
-				,COALESCE(rd.Comment, id.Comment) AS RegulatorComment
+				,COALESCE(rd.Comment, ld.Comment, id.Comment) AS RegulatorComment
 				,COALESCE(r.FileId, s.FileId) AS FileId
 				,COALESCE(rd.UserId, id.UserId) AS RegulatorUserId
 				,COALESCE(r.UserId, s.UserId) as LatestProducerUserId
 
-				,id.RegistrationReferenceNumber
+				,reg.RegistrationReferenceNumber
 			FROM InitialSubmissionCTE s
 			LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
+			LEFT JOIN LatestDecisionCTE ld ON ld.SubmissionId = s.SubmissionId
+			LEFT JOIN RegistrationDecisionCTE reg on reg.SubmissionId = s.SubmissionId
 			LEFT JOIN ResubmissionCTE r ON r.SubmissionId = s.SubmissionId
 			LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 			order by resubmissiondecisiondate desc
@@ -520,7 +526,7 @@ SET NOCOUNT ON;
         ,r.BrandsBlobName
 		,r.ComplianceSchemeId
 		,r.CSId
-        ,ISNULL(acpp.FinalJson, '{}') AS CSOJson
+        ,acpp.FinalJson AS CSOJson
     FROM
         SubmissionDetails r
         INNER JOIN [rpd].[Organisations] o
