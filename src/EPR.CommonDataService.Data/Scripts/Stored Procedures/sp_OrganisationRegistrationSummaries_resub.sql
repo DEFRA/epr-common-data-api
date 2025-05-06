@@ -258,8 +258,6 @@ BEGIN
         ) AS a
         WHERE a.RowNum = 1
     )
-
-   -- SELECT * FROM LatestOrganisationRegistrationSubmissionsCTE
 	,AllSubmissionsAndDecisionsAndCommentCTE
     AS
     (
