@@ -250,7 +250,14 @@ BEGIN
             a.SixDigitOrgId;
 
 
-        -- Get Real organisation Id and also get the data that has data after approved date
+        --Get OrganisationIds with at least one record after @ApprovedAfter
+        ;WITH ValidOrganisations AS (
+            SELECT DISTINCT p.organisation_id
+            FROM #FileNames f
+            JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
+            WHERE TRY_CAST(f.Created AS datetime2) > @ApprovedAfter
+        )
+
         SELECT DISTINCT
             CAST(f.SubmissionId AS uniqueidentifier) AS SubmissionId,
             p.submission_period AS SubmissionPeriod,
@@ -269,7 +276,7 @@ BEGIN
             AND f.Created = m.LatestDate
         JOIN [rpd].[Organisations] o 
             ON p.organisation_id = o.ReferenceNumber
-        WHERE TRY_CAST([Created] AS datetime2) > @ApprovedAfter
+        WHERE p.organisation_id IN (SELECT organisation_id FROM ValidOrganisations)
 
 
         -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data and round to the nearest whole number
