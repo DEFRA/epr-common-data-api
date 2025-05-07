@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 DROP PROCEDURE [dbo].[sp_OrganisationRegistrationSummaries_resub];
 GO
 
-CREATE PROC [dbo].[sp_OrganisationRegistrationSummaries_resub] AS
+ALTER PROC [dbo].[sp_OrganisationRegistrationSummaries_resub] AS
 BEGIN
 	SET NOCOUNT ON;
 
@@ -92,11 +92,12 @@ BEGIN
 		) t WHERE RowNum = 1
 	)
 	,RegistrationDecisionCTE AS (
-		SELECT TOP 1 *
-		FROM ReconciledSubmissionEvents
-		WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
-		AND SubmissionStatus = 'Granted'
-		ORDER BY RowNum asc
+		SELECT TOP 1 * FROM (
+			select *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate ASC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+			AND SubmissionStatus = 'Granted'
+		) t where RowNum = 1		
 	)
 	,LatestDecisionCTE AS (
 		SELECT * FROM (
