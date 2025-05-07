@@ -5,14 +5,8 @@ WHERE object_id = OBJECT_ID(N'[dbo].[v_ComplianceSchemeMembers_resub]')
 ) DROP VIEW [dbo].[v_ComplianceSchemeMembers_resub];
 GO
 
-/****** Object:  View [dbo].[v_ComplianceSchemeMembers_resub]    Script Date: 02/05/2025 10:20:04 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
-CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFilesCTE
+CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS 
+WITH AllComplianceOrgFilesCTE
 		as
 		(
 			SELECT distinct 
@@ -23,6 +17,7 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				,c.Created as SubmittedDate
 				, c.ComplianceSchemeId
 				,c.[FileName]
+				,c.FileId
 				,c.created
 				,CONVERT(DATETIME, Substring(c.[created], 1, 23)) as SortBy --For a given Organisation, in a given submission period, finding the most recently accepted org file based on the submission date--
 				,Row_Number() Over(
@@ -64,6 +59,7 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				,cd.joiner_date
 				,cd.organisation_change_reason
 				,lcof.FileName
+				,lcof.FileId
 				,Row_Number() over ( partition by 
 												ComplianceSchemeId, 
 												SubmissionPeriod, 
@@ -117,7 +113,6 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				lmo.SubmissionPeriod,
 				lmo.RelevantYear,
 				amo.joiner_date as AllJoinerDate,
-				-- Overriding with the first (earliest) submission date and its late fee flag
 				COALESCE(amo.SubmittedDate, lmo.SubmittedDate) as SubmittedDate,
 				COALESCE(amo.IsLateFeeApplicable, lmo.IsLateFeeApplicable) as IsLateFeeApplicable,
 				COALESCE(NULLIF(amo.leaver_code,''), lmo.leaver_code) as leaver_code,
@@ -125,25 +120,34 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 				COALESCE(NULLIF(amo.joiner_date,''), lmo.joiner_date) as joiner_date,
 				COALESCE(amo.organisation_change_reason,lmo.organisation_change_reason) as organisation_change_reason,
 				lmo.FileName as FileName,
-				Row_Number() over ( partition by 
-												lmo.ComplianceSchemeId, 
-												lmo.SubmissionPeriod, 
-												lmo.OrganisationReference
-									order by CONVERT(DATETIME, Substring(lmo.SubmittedDate, 1, 23)) asc
-				) as RowNum
+				amo.SubmittedDate as FirstUploadedDate,
+				amo.IsLateFeeApplicable as FirstIsLateFeeApplicable,
+				amo.FileName as FirstUploadedFileName,
+				lmo.SubmittedDate as LatestUploadedDate,
+				lmo.IsLateFeeApplicable as LatestIsLateFeeApplicable,
+				lmo.FileName as LatestUploadedFileName,
+				ROW_NUMBER() OVER (
+					PARTITION BY lmo.ComplianceSchemeId, lmo.SubmissionPeriod, lmo.OrganisationReference
+					ORDER BY CONVERT(DATETIME, SUBSTRING(lmo.SubmittedDate, 1, 23)) ASC
+				) AS RowNum
 			FROM LatestMemberOrgsCTE lmo
-			LEFT JOIN All_MemberOrgsCTE amo
-				ON lmo.OrganisationId = amo.OrganisationId
-				AND lmo.ComplianceSchemeId = amo.ComplianceSchemeId
-				AND lmo.SubmissionPeriod = amo.SubmissionPeriod
-    	)
+			OUTER APPLY (
+				SELECT TOP 1 *
+				FROM All_MemberOrgsCTE amo
+				WHERE amo.OrganisationId = lmo.OrganisationId
+					AND amo.ComplianceSchemeId = lmo.ComplianceSchemeId
+					AND amo.SubmissionPeriod = lmo.SubmissionPeriod
+					AND CONVERT(DATETIME, SUBSTRING(amo.SubmittedDate, 1, 23)) <= CONVERT(DATETIME, SUBSTRING(lmo.SubmittedDate, 1, 23))
+				ORDER BY CONVERT(DATETIME, SUBSTRING(amo.SubmittedDate, 1, 23)) ASC
+			) amo
+		)
 		SELECT u.CSOExternalId
 		  ,u.CSOReference
 		  ,u.ComplianceSchemeId
 		  ,u.OrganisationReference as ReferenceNumber
 		  ,u.OrganisationId as ExternalId
 		  ,u.Name as OrganisationName
-		  ,u.SubmissionPeriod
+		  ,u.SubmissionPeriod	  
 		  ,u.RelevantYear
 		  ,u.SubmittedDate
 		  ,u.IsLateFeeApplicable
@@ -152,8 +156,8 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS WITH AllComplianceOrgFile
 		  ,u.joiner_date
 		  ,u.organisation_change_reason
 		  ,u.FileName
-	from LatestMemberOrgsWithAllDetailsCTE u
+		  ,u.FileId
+	from All_MemberOrgsCTE u
 		inner join rpd.organisations o on o.referencenumber = u.OrganisationReference
 	where o.IsComplianceScheme = 0
-	and u.RowNum = 1;
 GO
