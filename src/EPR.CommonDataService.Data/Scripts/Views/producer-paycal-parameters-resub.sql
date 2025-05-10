@@ -6,8 +6,8 @@
 
 GO
 
-CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS WITH 
-    OrganisationDetailsCTE AS (
+CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS 
+	WITH OrganisationDetailsCTE AS (
         SELECT 
             cfm.OrganisationId as OrganisationExternalId
 			,cd.Organisation_Id AS OrganisationId
@@ -29,12 +29,16 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS WITH
                 WHEN 'WS' THEN 4
                 WHEN 'WA' THEN 4
             END AS NationId
+			,cd.leaver_date
+			,cd.leaver_code
+			,cd.organisation_change_reason
+			,cd.joiner_date
         FROM
             [rpd].[CompanyDetails] cd
 			inner join rpd.cosmos_file_metadata cfm on cfm.FileName = cd.FileName
         WHERE cd.Subsidiary_Id IS NULL
     )
-    ,SubsidiaryCountsCTE
+	,SubsidiaryCountsCTE
     AS
     (
         SELECT
@@ -44,8 +48,7 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS WITH
             ,COUNT(CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries
         FROM
             rpd.companydetails cd
-        WHERE cd.Subsidiary_Id IS NOT NULL
-        AND cd.leaver_date IS NULL
+        WHERE cd.Subsidiary_Id IS NOT NULL and leaver_date is null
         GROUP BY cd.FileName, cd.organisation_id
     )
 	,OrganisationPaycalDetailsCTE AS (
