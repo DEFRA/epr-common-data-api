@@ -91,6 +91,21 @@ BEGIN
 			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
 		) t WHERE RowNum = 1
 	)
+	,RegistrationDecisionCTE AS (
+		SELECT * FROM (
+			select *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate ASC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+			AND SubmissionStatus = 'Granted'
+		) t where RowNum = 1		
+	)
+	,LatestDecisionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNumber
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+		) t WHERE RowNumber = 1
+	)
 	,ResubmissionCTE AS (
 		SELECT * FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
@@ -109,7 +124,7 @@ BEGIN
 		SELECT
 			s.SubmissionId,
 			CASE WHEN s.DecisionDate > id.DecisionDate THEN 'Pending'
-					  ELSE COALESCE(id.SubmissionStatus, 'Pending') 
+				 ELSE COALESCE(ld.SubmissionStatus, id.SubmissionStatus, reg.SubmissionStatus, 'Pending')
 				 END AS SubmissionStatus,
 			CASE
 				WHEN r.SubmissionEventId IS NOT NULL AND rd.SubmissionEventId IS NOT NULL THEN rd.ResubmissionStatus
@@ -118,9 +133,9 @@ BEGIN
 			END AS ResubmissionStatus,
 			s.DecisionDate as SubmissionDate,
 			s.SubmissionEventId as ProducerSubmissionEventId,
-			id.DecisionDate AS RegistrationDate,
+			COALESCE(reg.DecisionDate, ld.DecisionDate, id.DecisionDate) AS RegistrationDate,
 			id.SubmissionEventId AS SubmissionDecisionEventId,
-			id.StatusPendingDate,
+			COALESCE(ld.StatusPendingDate, id.StatusPendingDate) as StatusPendingDate,
 			rd.DecisionDate AS ResubmissionDecisionDate,
 			rd.SubmissionEventId AS ResubmissionDecisionEventId,
 			r.DecisionDate as ResubmissionDate, 
@@ -128,9 +143,11 @@ BEGIN
 			COALESCE(r.FileId, s.FileId) AS FileId,
 			COALESCE(r.UserId, s.UserId) AS ProducerUserId,
 			COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
-			id.RegistrationReferenceNumber
+			reg.RegistrationReferenceNumber
 		FROM InitialSubmissionCTE s
 		LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
+		LEFT JOIN LatestDecisionCTE ld ON ld.SubmissionId = s.SubmissionId
+		LEFT JOIN RegistrationDecisionCTE reg on reg.SubmissionId = s.SubmissionId
 		LEFT JOIN ResubmissionCTE r ON r.SubmissionId = s.SubmissionId
 		LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 	)
@@ -242,6 +259,8 @@ BEGIN
         ) AS a
         WHERE a.RowNum = 1
     )
+
+   -- SELECT * FROM LatestOrganisationRegistrationSubmissionsCTE
 	,AllSubmissionsAndDecisionsAndCommentCTE
     AS
     (
