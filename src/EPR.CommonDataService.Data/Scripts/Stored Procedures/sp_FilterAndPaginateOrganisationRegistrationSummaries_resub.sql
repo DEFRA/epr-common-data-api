@@ -43,7 +43,7 @@ BEGIN
 			NationId INT NULL,
 			NationCode NVARCHAR(10) NULL
 		);
-		
+
 		exec dbo.sp_OrganisationRegistrationSummaries_resub;
 
 		WITH
@@ -117,13 +117,21 @@ BEGIN
     						OR (
         						LEN(ISNULL(@OrganisationNameCommaSeparated, '')) > 0
         						AND LEN(ISNULL(@OrganisationReferenceCommaSeparated, '')) = 0
-        						AND EXISTS (
-        									SELECT
-        										1
-        									FROM
-        										STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
-        									WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
-        						)
+								AND (
+										SELECT COUNT(*)
+										FROM STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Words
+										WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Words.value)) + '%'
+									) = (
+										SELECT COUNT(*)
+										FROM STRING_SPLIT(@OrganisationNameCommaSeparated, ',')
+								)
+								--AND EXISTS (
+        						--			SELECT
+        						--				1
+        						--			FROM
+        						--				STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
+        						--			WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
+        						--)
     					    ) 
     						-- Only OrganisationReference specified
     						OR (
@@ -160,7 +168,7 @@ BEGIN
 							SELECT
 							TRIM(value)
 						FROM
-							STRING_SPLIT(@SubmissionYearsCommaSeparated,',')
+							STRING_SPLIT(@SubmissionYearsCommaSeparated, ',')
 						)
 					)
 					AND (
