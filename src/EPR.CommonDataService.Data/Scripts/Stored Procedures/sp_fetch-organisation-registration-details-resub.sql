@@ -17,6 +17,12 @@ SET NOCOUNT ON;
 	DECLARE @IsComplianceScheme bit;
     DECLARE @LateFeeCutoffDate DATE; 
 
+    DECLARE @LateFeeCutoffDate DATETIME = DATEFROMPARTS(CONVERT( int, SUBSTRING(
+                                        @SubmissionPeriod,
+                                        PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
+                                        4
+                                    )),4, 1); 
+
     SELECT
         @OrganisationIDForSubmission = O.Id 
 		,@OrganisationUUIDForSubmission = O.ExternalId 
