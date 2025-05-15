@@ -169,6 +169,13 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
         ,JoinedSubmissionsAndEventsWithResubmissionCTE AS (
         SELECT
         l.*,
+        (SELECT COUNT(*)
+        FROM JoinedSubmissionsAndEventsCTE j
+        WHERE
+        j.SubmissionId = l.SubmissionId AND
+        j.RowNum > l.RowNum AND
+        j.Decision='Accepted' -- how many decisions BEFORE this one           
+        ) AS PreviousAcceptedDecisions,
         (
         SELECT COUNT(*)
         FROM JoinedSubmissionsAndEventsCTE j
@@ -247,7 +254,7 @@ LatestUserSubmissions AS(
 			ELSE ISNULL(IsResubmissionRequired,0) END AS IsResubmissionRequired,
 		Comments,
 		CASE
-			WHEN PreviousDecisions > 0 THEN 1
+			WHEN PreviousAcceptedDecisions > 0 THEN 1
 			ELSE 0
 			END AS IsResubmission,
 		PreviousRejectionComments,
