@@ -20,7 +20,7 @@ SET NOCOUNT ON;
                                         @SubmissionPeriod,
                                         PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
                                         4
-                                    )),5, 14); 
+                                    )),4, 1); 
 
     SELECT
         @OrganisationIDForSubmission = O.Id 
