@@ -16,12 +16,6 @@ SET NOCOUNT ON;
 	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
 
-    DECLARE @LateFeeCutoffDate DATETIME = DATEFROMPARTS(CONVERT( int, SUBSTRING(
-                                        @SubmissionPeriod,
-                                        PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
-                                        4
-                                    )),4, 1); 
-
     SELECT
         @OrganisationIDForSubmission = O.Id 
 		,@OrganisationUUIDForSubmission = O.ExternalId 
@@ -147,12 +141,6 @@ SET NOCOUNT ON;
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
 			ORDER BY RowNum asc
 		)
-		,FirstSubmissionCTE AS (
-			SELECT TOP 1 *
-			FROM ReconciledSubmissionEvents
-			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
-			ORDER BY RowNum desc
-		)
 		,InitialDecisionCTE AS (
 			SELECT TOP 1 *
 			FROM ReconciledSubmissionEvents
@@ -192,19 +180,23 @@ SET NOCOUNT ON;
 				 END as SubmissionStatus
 				,s.SubmissionEventId
 				,s.Comment as SubmissionComment
-				,fs.DecisionDate as SubmissionDate
+				,s.DecisionDate as SubmissionDate
 				,CAST(
                     CASE
-                        WHEN fs.DecisionDate > @LateFeeCutoffDate THEN 1
+                        WHEN s.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+                                        @SubmissionPeriod,
+                                        PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
+                                        4
+                                    )),4,1) THEN 1
                         ELSE 0
                     END AS BIT
                 ) AS IsLateSubmission
 				,s.FileId as SubmittedFileId
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
 				
-				,reg.DecisionDate AS RegistrationDecisionDate
+				,COALESCE(reg.DecisionDate, id.DecisionDate) AS RegistrationDecisionDate
 				,id.StatusPendingDate
-				,reg.SubmissionEventId AS RegistrationDecisionEventId
+				,COALESCE(reg.SubmissionEventId, ld.SubmissionEventId, id.SubmissionEventId) AS RegistrationDecisionEventId
 
 				,CASE
 					WHEN r.SubmissionEventId IS NOT NULL AND rd.SubmissionEventId IS NOT NULL THEN rd.ResubmissionStatus
@@ -225,7 +217,6 @@ SET NOCOUNT ON;
 
 				,reg.RegistrationReferenceNumber
 			FROM InitialSubmissionCTE s
-			LEFT JOIN FirstSubmissionCTE fs on fs.SubmissionId = s.SubmissionId
 			LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
 			LEFT JOIN LatestDecisionCTE ld ON ld.SubmissionId = s.SubmissionId
 			LEFT JOIN RegistrationDecisionCTE reg on reg.SubmissionId = s.SubmissionId
@@ -360,7 +351,16 @@ SET NOCOUNT ON;
 							4
 						) AS INT
 					) AS RelevantYear
-					,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
+					,CAST(
+						CASE
+							WHEN SubmittedCTE.SubmissionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+											s.SubmissionPeriod,
+											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
+											4
+										)),4,1) THEN 1
+							ELSE 0
+						END AS BIT
+					) AS IsLateSubmission
 					,CASE UPPER(TRIM(org.organisationsize))
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'
