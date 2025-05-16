@@ -15,6 +15,7 @@ SET NOCOUNT ON;
 	DECLARE @ComplianceSchemeId nvarchar(50);
 	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
+    DECLARE @LateFeeCutoffDate DATE; 
 
     DECLARE @LateFeeCutoffDate DATETIME = DATEFROMPARTS(CONVERT( int, SUBSTRING(
                                         @SubmissionPeriod,
@@ -34,6 +35,12 @@ SET NOCOUNT ON;
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
+
+	SET @LateFeeCutoffDate = DATEFROMPARTS(CONVERT( int, SUBSTRING(
+                                @SubmissionPeriod,
+                                PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
+                                4
+                            )),4, 1);
 
     WITH
 		SubmissionEventsCTE as (
