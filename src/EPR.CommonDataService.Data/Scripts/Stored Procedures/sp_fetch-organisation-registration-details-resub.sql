@@ -6,8 +6,7 @@ GO
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
 
 BEGIN
-SET NOCOUNT ON;
-
+	SET NOCOUNT ON;
 	DECLARE @OrganisationIDForSubmission INT;
 	DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
 	DECLARE @SubmissionPeriod nvarchar(100);
@@ -253,26 +252,36 @@ SET NOCOUNT ON;
 					ResubmissionDate
 			FROM SubmissionStatusCTE
 		)
-		,AppropriateSubmissionDateCTE as (
-			SELECT S.SubmissionDate, P.ResubmissionDate 
-			FROM SubmittedCTE S LEFT JOIN ResubmissionDetailsCTE P
-			ON P.SubmissionId = S.SubmissionId
-		)
 		,UploadedDataForOrganisationCTE as (
-			select *, Row_Number() over (partition by UploadingOrgExternalId, SubmissionPeriod, ComplianceSchemeId order by UploadDate desc) as UpSeq
+			select distinct org.*
 			FROM
-				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org 
+				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org
+				inner join SubmissionStatusCTE ss on ss.FileId = org.CompanyFileId
 			WHERE org.UploadingOrgExternalId = @OrganisationUUIDForSubmission
 				and org.SubmissionPeriod = @SubmissionPeriod
-				and @ComplianceSchemeId IS NULL OR org.ComplianceSchemeId = @ComplianceSchemeId
+				and (@ComplianceSchemeId IS NULL OR org.ComplianceSchemeId = @ComplianceSchemeId)
+				and (org.CompanyFileId IN (SELECT FileId from SubmissionStatusCTE))
 		)
 		,UploadedViewCTE as (
-			select * from (
-				select *, Row_Number() over (order by UpSeq asc) as RowNum
-				FROM
-					UploadedDataForOrganisationCTE org 
-				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
-			) uploadeddata where RowNum = 1
+			select distinct
+				org.UploadingOrgName
+				,org.UploadingOrgExternalId
+				,CASE WHEN org.IsComplianceScheme = 1 THEN NULL
+					  ELSE org.OrganisationSize
+				 END as OrganisationSize
+				,org.NationCode
+				,org.IsComplianceScheme
+				,org.CompanyFileId
+				,org.CompanyUploadFileName
+				,org.CompanyBlobName
+				,org.BrandFileId
+				,org.BrandUploadFileName
+				,org.BrandBlobName
+				,org.PartnerUploadFileName
+				,org.PartnerFileId
+				,org.PartnerBlobName
+			FROM
+				UploadedDataForOrganisationCTE org 
 		)
 		,ProducerPaycalParametersCTE
 			AS
@@ -289,15 +298,14 @@ SET NOCOUNT ON;
 				,OnlineMarketPlaceSubsidiaries
 				FROM
 					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
-				inner join UploadedViewCTE udc on udc.CompanyFileName = ppp.FileName
-			WHERE ppp.OrganisationExternalId = @OrganisationUUIDForSubmission
+				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
 		)
 		,SubmissionDetails AS (
 		    select a.* FROM (
 				SELECT
 					s.SubmissionId
 					,o.Name AS OrganisationName
-					,org.UploadOrgName as UploadedOrganisationName
+					,org.UploadingOrgName as UploadedOrganisationName
 					,o.ReferenceNumber as OrganisationReferenceNumber
 					,org.UploadingOrgExternalId as OrganisationId
 					,SubmittedCTE.SubmissionDate as SubmittedDateTime
