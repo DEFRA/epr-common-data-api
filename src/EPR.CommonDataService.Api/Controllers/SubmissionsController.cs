@@ -2,10 +2,8 @@ using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System.Globalization;
 
 namespace EPR.CommonDataService.Api.Controllers;
@@ -146,11 +144,17 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetails([FromRoute] Guid? SubmissionId)
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetails(
+        Guid? SubmissionId,
+        [FromQuery] int LateFeeCutOffDay,
+        [FromQuery] int LateFeeCutOffMonth)
     {
         var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
-        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
-        
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission" +
+            "/{SubmissionId}?lateFeeCutOffDay={LateFeeCutOffDay}&lateFeeCutOffMonth={LateFeeCutOffMonth}'",
+            _logPrefix, sanitisedSubmissionId, LateFeeCutOffDay, LateFeeCutOffMonth);
+
         try
         {
             if (!SubmissionId.HasValue)
@@ -160,7 +164,13 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return ValidationProblem(ModelState);
             }
 
-            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = SubmissionId.Value });
+            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetails(
+                new OrganisationRegistrationDetailRequest
+                {
+                    SubmissionId = SubmissionId.Value,
+                    LateFeeCutOffDay = LateFeeCutOffDay,
+                    LateFeeCutOffMonth = LateFeeCutOffMonth
+                });
 
             if (submissiondetails is null)
             {
@@ -220,7 +230,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
                 return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
             }
-            
+
             if (string.IsNullOrWhiteSpace(dbResult.Reference))
             {
                 logger.LogError("The data for POM Resubmissions {SubmissionId} doesn't have a required reference number.", sanitisedSubmissionId);

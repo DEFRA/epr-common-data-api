@@ -18,6 +18,14 @@ public static class StoredProcedureExtensions
             new ("@SubmissionId", SqlDbType.NVarChar,40)
             {
                 Value = request.SubmissionId.ToString("D")
+            },
+            new ("@LateFeeCutOffDay", SqlDbType.Int)
+            {
+                Value = request.LateFeeCutOffDay
+            },
+            new ("@LateFeeCutOffMonth", SqlDbType.Int)
+            {
+                Value = request.LateFeeCutOffMonth
             }
         ];
     }
