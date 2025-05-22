@@ -74,9 +74,9 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
         decision.Decision,
         decision.Comments,
         CASE
-            WHEN UPPER( ISNULL(decision.IsResubmissionRequired,'FALSE')) = 'TRUE' THEN 1
-            ELSE 0
-        END AS IsResubmissionRequired ,
+		 WHEN UPPER(ISNULL(CAST(decision.IsResubmissionRequired AS NVARCHAR), 'FALSE')) IN ('1', 'TRUE') THEN 1
+		 ELSE 0
+		END AS IsResubmissionRequired,
         decision.Created AS DecisionDate,
         ROW_NUMBER() OVER(
         PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
