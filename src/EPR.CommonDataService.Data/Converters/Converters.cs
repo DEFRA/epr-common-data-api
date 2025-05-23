@@ -25,6 +25,5 @@ public static class StringToDateConverter
         dateTimeValue => dateTimeValue == null ? null : dateTimeValue.Value.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture),
         stringValue => string.IsNullOrEmpty(stringValue) ? null : DateTime.ParseExact(stringValue, "yyyy-MM-ddTHH:mm:ss.fffffffZ", CultureInfo.InvariantCulture ).ToUniversalTime()
     );
-
 }
 
