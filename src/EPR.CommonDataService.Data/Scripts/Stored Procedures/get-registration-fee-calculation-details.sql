@@ -26,7 +26,6 @@ SET NOCOUNT ON;
         WHERE
             TRIM(cd.FileName) = @fileName
             AND cd.Subsidiary_Id IS NOT NULL
-            AND cd.leaver_date IS NULL
         GROUP BY 
             cd.Organisation_Id
     )
