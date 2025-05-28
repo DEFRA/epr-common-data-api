@@ -102,10 +102,10 @@ BEGIN
         INSERT INTO #PartialPeriodYearTableP3 (Period) VALUES ('2024-P4');
         
         --get approved submissions from the start of the year
-        SELECT DISTINCT SubmissionId, Max(Created) As Created 
+        SELECT DISTINCT SubmissionId, Max(Created) As Created, Decision
         INTO #ApprovedSubmissions
         FROM [rpd].[SubmissionEvents] WHERE TRY_CAST([Created] AS datetime2) > @StartDate AND Decision = 'Accepted'
-        GROUP BY SubmissionId;
+        GROUP BY SubmissionId, Decision;
 
         --get most recent file id for approved submissions
         SELECT s.SubmissionId, se.FileId, se.Created as SubmissionApprovedDate, s.Created
@@ -116,6 +116,7 @@ BEGIN
             FROM [rpd].[SubmissionEvents] se
             WHERE se.SubmissionId = s.SubmissionId
             AND se.FileId IS NOT NULL
+            AND se.Decision = 'Accepted'
             ORDER BY se.Created DESC
         ) se;
         
