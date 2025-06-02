@@ -201,7 +201,7 @@ BEGIN
                 ) AS IsLateSubmission
 				,s.FileId as SubmittedFileId
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
-				
+				,COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) as RegulatorDecisionDate
 				,reg.DecisionDate AS RegistrationDecisionDate
 				,id.StatusPendingDate
 				,reg.SubmissionEventId AS RegistrationDecisionEventId
@@ -233,7 +233,7 @@ BEGIN
 			LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 			order by resubmissiondecisiondate desc
 		)
-		,SubmittedCTE as (
+	,SubmittedCTE as (
 			SELECT SubmissionId, 
 					SubmissionEventId, 
 					SubmissionComment, 
@@ -356,7 +356,8 @@ BEGIN
 					 END AS NationCode
 					,ss.RegulatorUserId
 					,ss.ResubmissionEventId
-					,GREATEST(ss.RegistrationDecisionDate,ss.ResubmissionDecisionDate) as RegulatorDecisionDate
+					,GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) as RegulatorDecisionDate
+					,ss.ResubmissionDecisionDate as RegulatorResubmissionDecisionDate
 					,CASE WHEN ss.SubmissionStatus = 'Cancelled' 
 						  THEN ss.StatusPendingDate
 						  ELSE null
@@ -518,6 +519,7 @@ BEGIN
         ,r.RegulatorComment
         ,r.ProducerComment
         ,r.RegulatorDecisionDate
+		,r.RegulatorResubmissionDecisionDate
         ,r.RegulatorUserId
         ,o.CompaniesHouseNumber
         ,o.BuildingName
