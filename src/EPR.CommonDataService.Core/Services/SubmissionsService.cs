@@ -53,12 +53,12 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             "including packaging types {IncludePackagingTypes}, including packaging materials {IncludePackagingMaterials} and including organisation size {IncludeOrganisationSize}",
             _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
 
-        var sql = "EXECUTE dbo.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @IncludePackagingTypes, @IncludePackagingMaterials, @IncludeOrganisationSize";
+        var sql = "EXECUTE rpd.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @IncludePackagingTypes, @IncludePackagingMaterials, @IncludeOrganisationSize";
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
             var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
