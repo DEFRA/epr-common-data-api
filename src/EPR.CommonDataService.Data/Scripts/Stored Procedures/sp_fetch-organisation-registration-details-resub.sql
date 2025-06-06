@@ -192,7 +192,8 @@ BEGIN
 				 END as SubmissionStatus
 				,s.SubmissionEventId
 				,s.Comment as SubmissionComment
-				,fs.DecisionDate as SubmissionDate
+				,s.DecisionDate as SubmissionDate
+				,fs.DecisionDate as FirstSubmissionDate
 				,CAST(
                     CASE
                         WHEN fs.DecisionDate > @LateFeeCutoffDate THEN 1
