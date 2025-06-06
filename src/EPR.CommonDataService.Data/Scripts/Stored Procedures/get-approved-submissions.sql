@@ -15,7 +15,7 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
-  -- Check if there are any approved submissions after the specified date
+ -- Check if there are any approved submissions after the specified date
     IF EXISTS (
         SELECT 1
         FROM [rpd].[SubmissionEvents]
@@ -193,11 +193,11 @@ BEGIN
             CASE
                 WHEN f.ComplianceSchemeId IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
                 ELSE f.ComplianceSchemeId
-            END AS PrincipalId,
+            END AS PrincipleId,
             CASE
                 WHEN f.ComplianceSchemeId IS NULL THEN @DirectRegistrantType
                 ELSE @ComplianceSchemeType
-            END AS PrincipalType
+            END AS PrincipleType
         INTO #FilteredByApproveAfterYear
         FROM #FileIdss f
         INNER JOIN FilteredPom p ON f.FileName = p.FileName
@@ -248,8 +248,8 @@ BEGIN
                 f.SubmissionPeriod,
                 f.Weight,
                 f.TransitionalPackaging,
-                f.PrincipalId,
-                f.PrincipalType
+                f.PrincipleId,
+                f.PrincipleType
             FROM #FilteredByApproveAfterYear f
             INNER JOIN AllQualifiedOrgs q ON f.OrganisationId = q.OrganisationId
             WHERE f.PackagingMaterial IN (SELECT * FROM #IncludePackagingMaterialsTable)
@@ -305,8 +305,8 @@ BEGIN
             SUM(f.Weight) AS Weight,
             SUM(f.TransitionalPackaging) AS TransitionalPackaging,
             f.SixDigitOrgId,
-            f.PrincipalId,
-            f.PrincipalType
+            f.PrincipleId,
+            f.PrincipleType
         INTO #AggregatedWeightsForDuplicates
         FROM #FilteredApprovedSubmissions f
         INNER JOIN #LatestDates ld
@@ -320,8 +320,8 @@ BEGIN
             f.OrganisationId, 
             ld.LatestDate,
             f.SixDigitOrgId,
-            f.PrincipalId,
-            f.PrincipalType;
+            f.PrincipleId,
+            f.PrincipleType;
 
         -- Step 13: Identify orgs with submissions after ApprovedAfter
         SELECT DISTINCT 
@@ -339,8 +339,8 @@ BEGIN
             aw.Weight AS PackagingMaterialWeight,
             aw.TransitionalPackaging,
             aw.OrganisationId,
-            aw.PrincipalId,
-            aw.PrincipalType
+            aw.PrincipleId,
+            aw.PrincipleType
         INTO #AggregatedMaterials
         FROM #FileIdss f
         INNER JOIN [rpd].[Pom] p 
@@ -376,15 +376,15 @@ BEGIN
                 ) AS INT
             ) AS PackagingMaterialWeight,
             OrganisationId,
-            PrincipalId,
-            PrincipalType
+            PrincipleId,
+            PrincipleType
         FROM 
             #AggregatedMaterials
         GROUP BY 
             OrganisationId, 
             PackagingMaterial,
-            PrincipalId,
-            PrincipalType;
+            PrincipleId,
+            PrincipleType;
 
     END
     ELSE
@@ -395,9 +395,10 @@ BEGIN
             CAST(NULL AS VARCHAR(50)) AS PackagingMaterial,
             CAST(NULL AS FLOAT) AS PackagingMaterialWeight,
             CAST(NULL AS UNIQUEIDENTIFIER) AS OrganisationId,
-            CAST(NULL AS UNIQUEIDENTIFIER) AS PrincipalId,
-            CAST(NULL AS VARCHAR(50)) AS PrincipalType
+            CAST(NULL AS UNIQUEIDENTIFIER) AS PrincipleId,
+            CAST(NULL AS VARCHAR(50)) AS PrincipleType
         WHERE 1 = 0; -- Ensures no rows are returned
     END
 END
 GO
+
