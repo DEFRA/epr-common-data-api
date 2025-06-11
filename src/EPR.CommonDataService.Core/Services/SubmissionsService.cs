@@ -58,7 +58,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
             var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },

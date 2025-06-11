@@ -15,7 +15,7 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
-    -- Check if there are any approved submissions after the specified date
+ -- Check if there are any approved submissions after the specified date
     IF EXISTS (
         SELECT 1
         FROM [rpd].[SubmissionEvents]
@@ -25,7 +25,7 @@ BEGIN
     BEGIN
         SET NOCOUNT ON;
 
-        -- Clean up any pre-existing temp tables
+        -- Clean up temp tables
         IF OBJECT_ID('tempdb..#ApprovedSubmissions') IS NOT NULL DROP TABLE #ApprovedSubmissions;
         IF OBJECT_ID('tempdb..#FileIdss') IS NOT NULL DROP TABLE #FileIdss;
         IF OBJECT_ID('tempdb..#FileNames') IS NOT NULL DROP TABLE #FileNames;
@@ -43,10 +43,15 @@ BEGIN
         IF OBJECT_ID('tempdb..#AggregatedWeightsForDuplicates') IS NOT NULL DROP TABLE #AggregatedWeightsForDuplicates;
         IF OBJECT_ID('tempdb..#AggregatedMaterials') IS NOT NULL DROP TABLE #AggregatedMaterials;
         IF OBJECT_ID('tempdb..#IncludeOrganisationSizeTable') IS NOT NULL DROP TABLE #IncludeOrganisationSizeTable;
-
+        IF OBJECT_ID('tempdb..#ValidOrganisations') IS NOT NULL DROP TABLE #ValidOrganisations;
 
         -- Get start date for the current year
         DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
+
+        -- Declare parent type
+        DECLARE @DirectRegistrantType NVARCHAR(50) = 'DirectRegistrant';
+        DECLARE @ComplianceSchemeType NVARCHAR(50) = 'ComplianceScheme';
+
 
         -- Create temporary tables
         CREATE TABLE #PeriodYearTable (Period VARCHAR(10));
@@ -58,35 +63,35 @@ BEGIN
         DECLARE @Delimiter CHAR(1) = ',';
 
         WITH CTE_Split AS (
-        SELECT value AS Period FROM STRING_SPLIT(@Periods, @Delimiter)
+            SELECT value AS Period FROM STRING_SPLIT(@Periods, @Delimiter)
         )
         INSERT INTO #PeriodYearTable (Period)
         SELECT Period FROM CTE_Split;
 
         WITH CTE_Split_IncludePT AS (
-        SELECT value AS PackagingType FROM STRING_SPLIT(@IncludePackagingTypes, @Delimiter)
+            SELECT value AS PackagingType FROM STRING_SPLIT(@IncludePackagingTypes, @Delimiter)
         )
         INSERT INTO #IncludePackagingTypesTable (PackagingType)
         SELECT PackagingType FROM CTE_Split_IncludePT;
 
         WITH CTE_Split_Include AS (
-        SELECT value AS PackagingMaterials FROM STRING_SPLIT(@IncludePackagingMaterials, @Delimiter)
+            SELECT value AS PackagingMaterials FROM STRING_SPLIT(@IncludePackagingMaterials, @Delimiter)
         )
         INSERT INTO #IncludePackagingMaterialsTable (PackagingMaterials)
         SELECT PackagingMaterials FROM CTE_Split_Include;
 
         WITH CTE_Split_IncludeOrganisation AS (
-        SELECT value AS OrganisationSize FROM STRING_SPLIT(@IncludeOrganisationSize, @Delimiter)
+            SELECT value AS OrganisationSize FROM STRING_SPLIT(@IncludeOrganisationSize, @Delimiter)
         )
         INSERT INTO #IncludeOrganisationSizeTable (OrganisationSize)
         SELECT OrganisationSize FROM CTE_Split_IncludeOrganisation;
 
         DECLARE @PeriodYear VARCHAR(4);
+
         -- Get the year from the first period
         SET @PeriodYear = (SELECT TOP 1 LEFT(Period, 4) FROM #PeriodYearTable);
 
-
-        --This script results in a temp table, populated with each period value prefixed by the specified year (e.g., 2024-P2, 2024-P4) for a partial scenario
+        -- This script results in a temp table, populated with each period value prefixed by the specified year (e.g., 2024-P2, 2024-P4) for a partial scenario
         DECLARE @PartialPeriod VARCHAR(10) = '2024-P2'; 
         DECLARE @NumberOfDaysInReportingPeriod INT = 91;
         DECLARE @NumberOfDaysInWholePeriod INT = 182;
@@ -94,222 +99,292 @@ BEGIN
         INSERT INTO #PartialPeriodYearTableP2 (Period) VALUES (@PartialPeriod);
         INSERT INTO #PartialPeriodYearTableP2 (Period) VALUES ('2024-P4');
 
-        --This script results in a temp table, populated with each period value prefixed by the specified year (e.g., 2024-P3, 2024-P4) for a partial scenario
+        -- This script results in a temp table, populated with each period value prefixed by the specified year (e.g., 2024-P3, 2024-P4) for a partial scenario
         DECLARE @PartialPeriodP3 VARCHAR(10) = '2024-P3'; 
         DECLARE @NumberOfDaysInReportingPeriodP3 INT = 61;
         CREATE TABLE #PartialPeriodYearTableP3 (Period VARCHAR(10));
         INSERT INTO #PartialPeriodYearTableP3 (Period) VALUES (@PartialPeriodP3);
         INSERT INTO #PartialPeriodYearTableP3 (Period) VALUES ('2024-P4');
-        
-        --get approved submissions from the start of the year
-        SELECT DISTINCT SubmissionId, Max(Created) As Created 
-        INTO #ApprovedSubmissions
-        FROM [rpd].[SubmissionEvents] WHERE TRY_CAST([Created] AS datetime2) > @StartDate AND Decision = 'Accepted'
-        GROUP BY SubmissionId;
 
-        --get most recent file id for approved submissions
-        SELECT s.SubmissionId, se.FileId, se.Created as SubmissionApprovedDate, s.Created
-        INTO #FileIdss
-        FROM #ApprovedSubmissions s
-        CROSS APPLY (
-            SELECT TOP 1 se.FileId, se.Created
-            FROM [rpd].[SubmissionEvents] se
-            WHERE se.SubmissionId = s.SubmissionId
-            AND se.FileId IS NOT NULL
-            ORDER BY se.Created DESC
-        ) se;
-        
-        --get filenames for fileid
-        SELECT f.SubmissionId, fm.[FileName], f.Created, fm.ComplianceSchemeId
-        INTO #FileNames
-        FROM #FileIdss f
-        JOIN [rpd].[cosmos_file_metadata] fm ON f.FileId = fm.FileId;
-        
-        --Get approved pom files by year
+
+        -- Step 1: Filter SubmissionEvents and cast
+        WITH CleanedSubmissionEvents AS (
+            SELECT
+                SubmissionId,
+                FileId,
+                TRY_CAST(Created AS datetime2) AS Created,
+                Decision
+            FROM [rpd].[SubmissionEvents]
+            WHERE TRY_CAST(Created AS datetime2) IS NOT NULL
+        ),
+
+        -- Step 2: Get latest approved submission per SubmissionId
+        ApprovedSubmissions AS (
+            SELECT 
+                SubmissionId, 
+                MAX(Created) AS Created
+            FROM CleanedSubmissionEvents
+            WHERE Created > @StartDate
+            AND Decision = 'Accepted'
+            GROUP BY SubmissionId
+        ),
+
+        -- Step 3: Rank accepted files per submission by Created date
+        RankedApprovedFiles AS (
+            SELECT 
+                se.SubmissionId,
+                se.FileId,
+                se.Created AS SubmissionApprovedDate,
+                ROW_NUMBER() OVER (
+                    PARTITION BY se.SubmissionId 
+                    ORDER BY se.Created DESC
+                ) AS rn
+            FROM CleanedSubmissionEvents se
+            WHERE se.FileId IS NOT NULL
+            AND se.Decision = 'Accepted'
+        )
+
+        -- Step 4: Output latest file metadata per approved submission
         SELECT 
-        p.submission_period AS SubmissionPeriod,
-        p.packaging_material AS PackagingMaterial,
+            a.SubmissionId,
+            r.FileId,
+            r.SubmissionApprovedDate,
+            a.Created AS Created,
+            fm.FileName,
+            fm.Created AS FileCreated,
+            fm.ComplianceSchemeId
+        INTO #FileIdss
+        FROM ApprovedSubmissions a
+        JOIN RankedApprovedFiles r
+            ON a.SubmissionId = r.SubmissionId
+        JOIN [rpd].[cosmos_file_metadata] fm
+            ON r.FileId = fm.FileId
+        WHERE r.rn = 1;
+
+        -- Step 5: Filter Pom data
+        WITH FilteredPom AS (
+            SELECT 
+                p.[FileName],
+                p.submission_period,
+                p.packaging_material,
+                p.packaging_material_weight,
+                p.transitional_packaging_units,
+                p.organisation_id,
+                p.subsidiary_id,
+                p.packaging_type
+            FROM [rpd].[Pom] p
+            WHERE LEFT(p.submission_period, 4) = @PeriodYear
+            AND p.organisation_size IN (SELECT OrganisationSize FROM #IncludeOrganisationSizeTable)
+        )
+
+        -- Step 6: Get organisation numbers and compliance info
+        SELECT 
+            p.submission_period AS SubmissionPeriod,
+            p.packaging_material AS PackagingMaterial,
             CASE
-                WHEN p.subsidiary_id IS NULL THEN CAST(o.ExternalId AS uniqueidentifier)
-                ELSE CAST(o2.ExternalId AS uniqueidentifier)
+                WHEN p.subsidiary_id IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
+                ELSE CAST(o2.ExternalId AS UNIQUEIDENTIFIER)
             END AS OrganisationId,
-        f.Created AS Created,
-        p.packaging_material_weight as weight,
-        p.transitional_packaging_units as TransitionalPackaging,
-        p.organisation_id AS SixDigitOrgId,
-        p.packaging_type as PackType
+            f.Created AS Created,
+            p.packaging_material_weight AS Weight,
+            p.transitional_packaging_units AS TransitionalPackaging,
+            p.organisation_id AS SixDigitOrgId,
+            p.packaging_type AS PackType,
+            CASE
+                WHEN f.ComplianceSchemeId IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
+                ELSE f.ComplianceSchemeId
+            END AS PrincipleId,
+            CASE
+                WHEN f.ComplianceSchemeId IS NULL THEN @DirectRegistrantType
+                ELSE @ComplianceSchemeType
+            END AS PrincipleType
         INTO #FilteredByApproveAfterYear
-        FROM #FileNames f
-        JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
-        JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
-        left JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber
-        WHERE LEFT(p.submission_period, 4) = @PeriodYear 
-        AND p.organisation_size IN (SELECT * FROM #IncludeOrganisationSizeTable); 
+        FROM #FileIdss f
+        INNER JOIN FilteredPom p ON f.FileName = p.FileName
+        INNER JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
+        LEFT JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber;
 
 
-        --Filter organisation ID that have H1 and H2 
-        SELECT DISTINCT FA.OrganisationId
-        INTO #FilteredOrgIdsForH1H2
-        FROM #FilteredByApproveAfterYear FA
-        WHERE FA.OrganisationId IN (
+
+        -- Step 7: Identify eligible organisations per period group
+        WITH 
+        PeriodGroup1 AS (
             SELECT OrganisationId
             FROM #FilteredByApproveAfterYear
-            WHERE submissionPeriod IN (SELECT Period FROM #PeriodYearTable)
+            WHERE SubmissionPeriod IN (SELECT Period FROM #PeriodYearTable)
             GROUP BY OrganisationId
-            HAVING COUNT(DISTINCT submissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable)
-
+            HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PeriodYearTable)
+        ),
+        PeriodGroup2 AS (
+            SELECT OrganisationId
+            FROM #FilteredByApproveAfterYear
+            WHERE SubmissionPeriod IN (SELECT Period FROM #PartialPeriodYearTableP2)
+            GROUP BY OrganisationId
+            HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP2)
+        ),
+        PeriodGroup3 AS (
+            SELECT OrganisationId
+            FROM #FilteredByApproveAfterYear
+            WHERE SubmissionPeriod IN (SELECT Period FROM #PartialPeriodYearTableP3)
+            GROUP BY OrganisationId
+            HAVING COUNT(DISTINCT SubmissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP3)
+        ),
+        AllQualifiedOrgs AS (
+            SELECT DISTINCT OrganisationId FROM PeriodGroup1
             UNION
-
-            SELECT OrganisationId
-            FROM #FilteredByApproveAfterYear
-            WHERE submissionPeriod IN (SELECT Period FROM #PartialPeriodYearTableP2)
-            GROUP BY OrganisationId
-            HAVING COUNT(DISTINCT submissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP2)
-
+            SELECT OrganisationId FROM PeriodGroup2
             UNION
+            SELECT OrganisationId FROM PeriodGroup3
+        ),
 
-            SELECT OrganisationId
-            FROM #FilteredByApproveAfterYear
-            WHERE submissionPeriod IN (SELECT Period FROM #PartialPeriodYearTableP3)
-            GROUP BY OrganisationId
-            HAVING COUNT(DISTINCT submissionPeriod) = (SELECT COUNT(*) FROM #PartialPeriodYearTableP3)
-        );
+        -- Step 8: Apply packaging material/type filters
+        FilteredApprovedSubmissions AS (
+            SELECT 
+                f.OrganisationId,
+                f.Created,
+                f.PackagingMaterial,
+                f.PackType,
+                f.SixDigitOrgId,
+                f.SubmissionPeriod,
+                f.Weight,
+                f.TransitionalPackaging,
+                f.PrincipleId,
+                f.PrincipleType
+            FROM #FilteredByApproveAfterYear f
+            INNER JOIN AllQualifiedOrgs q ON f.OrganisationId = q.OrganisationId
+            WHERE f.PackagingMaterial IN (SELECT * FROM #IncludePackagingMaterialsTable)
+            AND f.PackType IN (SELECT * FROM #IncludePackagingTypesTable)
+        )
 
-
-        --Use H1H2 organisation ids to filter approved submission POM files, also exclude unwanted packaging materials and packaging types
-        SELECT f.OrganisationId, f.Created, f.PackagingMaterial, f.PackType, f.SixDigitOrgId, f.SubmissionPeriod, f.weight, f.TransitionalPackaging
+        -- Step 9: Save filtered results
+        SELECT *
         INTO #FilteredApprovedSubmissions
-        FROM #FilteredByApproveAfterYear f
-        JOIN #FilteredOrgIdsForH1H2 h1h2 ON f.OrganisationId = h1h2.OrganisationId
-        WHERE f.PackagingMaterial IN (SELECT * FROM #IncludePackagingMaterialsTable)
-        AND f.PackType IN (SELECT * FROM #IncludePackagingTypesTable); 
+        FROM FilteredApprovedSubmissions;
 
-
-        --Get all Periods including partial periods
-        SELECT DISTINCT Period
-        INTO #AllPeriods
-        FROM (
+        -- Step 10: Build all relevant periods
+        WITH AllPeriods AS (
             SELECT Period FROM #PeriodYearTable
             UNION
             SELECT Period FROM #PartialPeriodYearTableP2
             UNION
             SELECT Period FROM #PartialPeriodYearTableP3
-        ) AS Combined;
-
-        --remove all invalid periods
-        DELETE FROM #FilteredApprovedSubmissions
-        WHERE NOT EXISTS (
-            SELECT 1 
-            FROM #AllPeriods ap
-            WHERE ap.Period = #FilteredApprovedSubmissions.SubmissionPeriod
-        );
-
-
-        -- Step 1: Filter the latest duplicate OrganisationId, SubmissionPeriod, and PackagingMaterial
-        SELECT 
-            SubmissionPeriod,
-            PackagingMaterial, 
-            OrganisationId, 
-            MAX(Created) AS LatestDate
-        INTO 
-            #LatestDates
-        FROM 
-            #FilteredApprovedSubmissions
-        GROUP BY 
-            SubmissionPeriod, 
-            PackagingMaterial,
-            OrganisationId;
-
-
-
-        -- Step 2: Aggregate weight for each unique combination of OrganisationId, SubmissionPeriod, and PackagingMaterial
-        SELECT 
-            a.SubmissionPeriod, 
-            a.PackagingMaterial, 
-            a.OrganisationId,
-            ld.LatestDate,
-            SUM(a.Weight) AS Weight,
-            SUM(a.TransitionalPackaging) AS TransitionalPackaging,
-            a.SixDigitOrgId AS SixDigitOrgId
-        INTO
-            #AggregatedWeightsForDuplicates            
-        FROM 
-            #FilteredApprovedSubmissions AS a
-        JOIN 
-            #LatestDates AS ld
-        ON 
-            a.PackagingMaterial = ld.PackagingMaterial
-            AND a.SubmissionPeriod = ld.SubmissionPeriod
-            AND a.OrganisationId = ld.OrganisationId
-            AND a.Created = ld.LatestDate
-        GROUP BY 
-            a.SubmissionPeriod, 
-            a.PackagingMaterial, 
-            a.OrganisationId, 
-            ld.LatestDate,
-            a.SixDigitOrgId;
-
-
-        --Get OrganisationIds with at least one record after @ApprovedAfter
-        ;WITH ValidOrganisations AS (
-            SELECT DISTINCT p.organisation_id
-            FROM #FileNames f
-            JOIN [rpd].[Pom] p ON p.[FileName] = f.[FileName]
-            WHERE TRY_CAST(f.Created AS datetime2) > @ApprovedAfter
+        ),
+        FilteredValidSubmissions AS (
+            SELECT *
+            FROM #FilteredApprovedSubmissions f
+            WHERE EXISTS (
+                SELECT 1 
+                FROM AllPeriods ap
+                WHERE ap.Period = f.SubmissionPeriod
+            )
+        ),
+        LatestDates AS (
+            SELECT 
+                SubmissionPeriod,
+                PackagingMaterial, 
+                OrganisationId, 
+                MAX(Created) AS LatestDate
+            FROM FilteredValidSubmissions
+            GROUP BY 
+                SubmissionPeriod, 
+                PackagingMaterial,
+                OrganisationId
         )
 
+        -- Step 11: Store latest dates
+        SELECT *
+        INTO #LatestDates
+        FROM LatestDates;
+
+        -- Step 12: Aggregate latest weight and units
+        SELECT 
+            f.SubmissionPeriod, 
+            f.PackagingMaterial, 
+            f.OrganisationId,
+            ld.LatestDate,
+            SUM(f.Weight) AS Weight,
+            SUM(f.TransitionalPackaging) AS TransitionalPackaging,
+            f.SixDigitOrgId,
+            f.PrincipleId,
+            f.PrincipleType
+        INTO #AggregatedWeightsForDuplicates
+        FROM #FilteredApprovedSubmissions f
+        INNER JOIN #LatestDates ld
+            ON f.SubmissionPeriod = ld.SubmissionPeriod
+            AND f.PackagingMaterial = ld.PackagingMaterial
+            AND f.OrganisationId = ld.OrganisationId
+            AND f.Created = ld.LatestDate
+        GROUP BY 
+            f.SubmissionPeriod, 
+            f.PackagingMaterial, 
+            f.OrganisationId, 
+            ld.LatestDate,
+            f.SixDigitOrgId,
+            f.PrincipleId,
+            f.PrincipleType;
+
+        -- Step 13: Identify orgs with submissions after ApprovedAfter
+        SELECT DISTINCT 
+            p.organisation_id
+        INTO #ValidOrganisations
+        FROM #FileIdss f
+        INNER JOIN [rpd].[Pom] p ON p.FileName = f.FileName
+        WHERE TRY_CAST(f.Created AS datetime2) > @ApprovedAfter;
+
+        -- Step 14: Build final aggregation
         SELECT DISTINCT
-            CAST(f.SubmissionId AS uniqueidentifier) AS SubmissionId,
+            CAST(f.SubmissionId AS UNIQUEIDENTIFIER) AS SubmissionId,
             p.submission_period AS SubmissionPeriod,
             p.packaging_material AS PackagingMaterial,
-            m.Weight AS PackagingMaterialWeight,
-            m.TransitionalPackaging AS TransitionalPackaging,
-            m.OrganisationId AS OrganisationId
+            aw.Weight AS PackagingMaterialWeight,
+            aw.TransitionalPackaging,
+            aw.OrganisationId,
+            aw.PrincipleId,
+            aw.PrincipleType
         INTO #AggregatedMaterials
-        FROM #FileNames f
-        JOIN [rpd].[Pom] p 
-            ON p.[FileName] = f.[FileName]
-        JOIN #AggregatedWeightsForDuplicates m 
-            ON p.submission_period = m.SubmissionPeriod
-            AND p.packaging_material = m.PackagingMaterial
-            AND p.organisation_id = m.SixDigitOrgId
-            AND f.Created = m.LatestDate
-        JOIN [rpd].[Organisations] o 
+        FROM #FileIdss f
+        INNER JOIN [rpd].[Pom] p 
+            ON p.FileName = f.FileName
+        INNER JOIN #AggregatedWeightsForDuplicates aw
+            ON p.submission_period = aw.SubmissionPeriod
+            AND p.packaging_material = aw.PackagingMaterial
+            AND p.organisation_id = aw.SixDigitOrgId
+            AND f.Created = aw.LatestDate
+        INNER JOIN [rpd].[Organisations] o 
             ON p.organisation_id = o.ReferenceNumber
-        WHERE p.organisation_id IN (SELECT organisation_id FROM ValidOrganisations)
+        WHERE p.organisation_id IN (SELECT organisation_id FROM #ValidOrganisations);
 
-
-        -- Update PackagingMaterialWeight for records with SubmissionPeriod '2024-P2' or '2024-P3' - which is partial data and round to the nearest whole number
+        -- Step 15: Handle Partial
         UPDATE #AggregatedMaterials
-        SET PackagingMaterialWeight =
-            CASE 
-                WHEN SubmissionPeriod = @PartialPeriod THEN ROUND(((PackagingMaterialWeight/@NumberOfDaysInReportingPeriod) * @NumberOfDaysInWholePeriod), 0)
-                WHEN SubmissionPeriod = @PartialPeriodP3 THEN ROUND(((PackagingMaterialWeight/@NumberOfDaysInReportingPeriodP3) * @NumberOfDaysInWholePeriod), 0)
-                ELSE 1 -- No adjustment for other periods
-            END
+        SET PackagingMaterialWeight = CASE 
+            WHEN SubmissionPeriod = @PartialPeriod 
+                THEN ROUND((PackagingMaterialWeight * @NumberOfDaysInWholePeriod) / @NumberOfDaysInReportingPeriod, 0)
+            WHEN SubmissionPeriod = @PartialPeriodP3 
+                THEN ROUND((PackagingMaterialWeight * @NumberOfDaysInWholePeriod) / @NumberOfDaysInReportingPeriodP3, 0)
+            ELSE PackagingMaterialWeight
+        END
         WHERE SubmissionPeriod IN (@PartialPeriod, @PartialPeriodP3);
 
-
-        --Need  to minus transitional packaging
-
-
-        -- Aggregate duplicate materials weight for duplicate materials for org id
+        -- Step 16: Final rollup
         SELECT 
             @PeriodYear AS SubmissionPeriod,
             PackagingMaterial,
             CAST(
-                CASE 
-                    WHEN SUM(TransitionalPackaging) IS NULL 
-                    THEN ROUND(SUM(PackagingMaterialWeight) / 1000, 0)
-                    ELSE ROUND((SUM(PackagingMaterialWeight) - COALESCE(SUM(TransitionalPackaging), 0)) / 1000, 0)
-                END AS INT
-            ) AS PackagingMaterialWeight, 
-            OrganisationId
+                ROUND(
+                    (SUM(PackagingMaterialWeight) - COALESCE(SUM(TransitionalPackaging), 0)) / 1000.0, 
+                    0
+                ) AS INT
+            ) AS PackagingMaterialWeight,
+            OrganisationId,
+            PrincipleId,
+            PrincipleType
         FROM 
             #AggregatedMaterials
         GROUP BY 
             OrganisationId, 
-            PackagingMaterial;
+            PackagingMaterial,
+            PrincipleId,
+            PrincipleType;
 
     END
     ELSE
@@ -319,8 +394,11 @@ BEGIN
             CAST(NULL AS VARCHAR(10)) AS SubmissionPeriod,
             CAST(NULL AS VARCHAR(50)) AS PackagingMaterial,
             CAST(NULL AS FLOAT) AS PackagingMaterialWeight,
-            CAST(NULL AS UNIQUEIDENTIFIER) AS OrganisationId
+            CAST(NULL AS UNIQUEIDENTIFIER) AS OrganisationId,
+            CAST(NULL AS UNIQUEIDENTIFIER) AS PrincipleId,
+            CAST(NULL AS VARCHAR(50)) AS PrincipleType
         WHERE 1 = 0; -- Ensures no rows are returned
     END
 END
 GO
+
