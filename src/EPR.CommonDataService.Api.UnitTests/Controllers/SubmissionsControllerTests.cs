@@ -40,7 +40,8 @@ public class SubmissionsControllerTests
         var configurationMock = new Mock<IConfiguration>();
         configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
-        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
+        ////TODO:: Update with ILateFeeService
+        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, default, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {

@@ -10,7 +10,11 @@ namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> apiConfig, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(apiConfig)
+public class SubmissionsController(ISubmissionsService submissionsService,
+    ILateFeeService lateFeeService,
+    IOptions<ApiConfig> apiConfig, 
+    ILogger<SubmissionsController> logger, 
+    IConfiguration config) : ApiControllerBase(apiConfig)
 {
     private readonly string? _logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
     private readonly ApiConfig apiConfig = apiConfig.Value;
@@ -355,9 +359,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             }
 
             var payCalParams = await submissionsService.GetPaycalParametersAsync(submissionId);
-
-            //Call late fee rules and update the result set then return as json
-            return new JsonResult(payCalParams);
+            return new JsonResult(lateFeeService.UpdateLateFeeFlag(queryParams, payCalParams));
         }
         catch (TimeoutException ex)
         {

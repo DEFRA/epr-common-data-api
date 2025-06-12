@@ -4,6 +4,10 @@ public class PaycalParametersResponse
 {
     public bool IsCso { get; set; }
 
+    public int RelevantYear { get; set; }
+
+    public bool IsLateFee { get; set; }
+
     public char OrganisationSize { get; set; }
 
     public string OrganisationType { get; set; } = string.Empty;
