@@ -15,4 +15,13 @@ namespace EPR.CommonDataService.Core.Models.Requests
         [Required]
         public int LateFeeCutOffMonth { get; set; }
     }
+
+    public class OrganisationRegistrationDetailRequestV2
+    {
+        [Required]
+        public Guid SubmissionId { get; set; }
+
+        [Required]
+        public IDictionary<string, string> Params { get; set; }
+    }
 }

@@ -1,3 +1,4 @@
+using Azure.Core;
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.Models.Requests;
@@ -133,7 +134,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             throw new DataException("An exception occurred when executing query.", ex);
         }
     }
-
+    
     public async Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get sp_PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
@@ -207,6 +208,93 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         catch (SqlException ex)
         {
             logger.LogError(ex, "{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
+
+    public async Task<IList<PaycalParametersResponse>> GetPaycalParametersAsync(Guid submissionId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetPaycalParametersAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
+        var sql = "TODO::<ADD THE BACK END SP>";
+        var sqlParameters = new List<SqlParameter>();
+        var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
+        {
+            Value = submissionId.ToString("D")
+        };
+        sqlParameters.Add(sqlParameter);
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<PaycalParametersResponse>(sql, logger, _logPrefix, [..sqlParameters]);
+            return dbSet;
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetPaycalParametersAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetPaycalParametersAsync: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
+
+    public async Task<SubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid submissionId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetailsPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
+        var sql = "TODO::<ADD THE BACK END SP>";
+        var sqlParameters = new List<SqlParameter>();
+        var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
+        {
+            Value = submissionId.ToString("D")
+        };
+        sqlParameters.Add(sqlParameter);
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionDetailsResponse>(sql, logger, _logPrefix, [..sqlParameters]);
+            return dbSet[0];
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetailsPartAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetailsPartAsync: Get GetOrganisationRegistrationSubmissionDetails: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
+
+    public async Task<SubmissionStatusResponse> GetOrganisationRegistrationSubmissionStatusPartAsync(Guid submissionId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
+        var sql = "TODO::<ADD THE BACK END SP>";
+        var sqlParameters = new List<SqlParameter>();
+        var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
+        {
+            Value = submissionId.ToString("D")
+        };
+        sqlParameters.Add(sqlParameter);
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionStatusResponse>(sql, logger, _logPrefix, [..sqlParameters]);
+            return dbSet[0];
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync: Get GetOrganisationRegistrationSubmissionDetails: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new DataException("An exception occurred when executing query.", ex);
         }
     }

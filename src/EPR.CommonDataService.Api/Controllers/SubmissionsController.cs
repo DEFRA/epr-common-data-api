@@ -190,7 +190,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
-    }
+    }    
 
     [HttpGet("pom-resubmission-paycal-parameters/{SubmissionId}")]
     [Produces("application/json")]
@@ -324,6 +324,139 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         catch (Exception ex)
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("organisation-registration-submission-paycal-params/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionPayCalParameters(
+        Guid submissionId,
+        [FromQuery] IDictionary<string, string> queryParams)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params" +
+            "/{SubmissionId}?queryParams={QueryParams}'",
+            _logPrefix, sanitisedSubmissionId, queryParams);
+
+        try
+        {
+            if (submissionId == Guid.Empty)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: Invalid SubmissionId provided; please make sure it's a valid Guid", _logPrefix);
+                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+                return ValidationProblem(ModelState);
+            }
+
+            var payCalParams = await submissionsService.GetPaycalParametersAsync(submissionId);
+
+            //Call late fee rules and update the result set then return as json
+            return new JsonResult(payCalParams);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("organisation-registration-submission-details-part/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetailsPart(Guid submissionId)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-details-part/{SubmissionId}'",
+            _logPrefix, sanitisedSubmissionId);
+
+        try
+        {
+            if (submissionId == Guid.Empty)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: Invalid SubmissionId provided; please make sure it's a valid Guid", _logPrefix);
+                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+                return ValidationProblem(ModelState);
+            }
+
+            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetailsPartAsync(submissionId);
+
+            if (submissiondetails is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NoContent();
+            }
+
+            return Ok(submissiondetails);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("organisation-registration-submission-status-part/{SubmissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionStatusPart(Guid submissionId)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-status-part/{SubmissionId}'",
+            _logPrefix, sanitisedSubmissionId);
+
+        try
+        {
+            if (submissionId == Guid.Empty)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionStatusPart: Invalid SubmissionId provided; please make sure it's a valid Guid", _logPrefix);
+                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+                return ValidationProblem(ModelState);
+            }
+
+            var submissionStatus = await submissionsService.GetOrganisationRegistrationSubmissionStatusPartAsync(submissionId);
+
+            if (submissionStatus is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionStatusPart: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NoContent();
+            }
+
+            return Ok(submissionStatus);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionStatusPart: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionStatusPart: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
