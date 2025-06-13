@@ -2,47 +2,164 @@
 DROP VIEW [dbo].[v_OrganisationRegistrationSummaries];
 GO
 
-/****** Object:  View [dbo].[v_OrganisationRegistrationSummaries]    Script Date: 06/01/2025 17:29:13 ******/
 SET ANSI_NULLS ON
 GO
-
 SET QUOTED_IDENTIFIER ON
 GO
-
-CREATE VIEW [dbo].[v_OrganisationRegistrationSummaries] AS 
-WITH
-	ProdCommentsRegulatorDecisionsCTE as (
-		SELECT
-			decisions.SubmissionId
-			,decisions.SubmissionEventId
-			,decisions.Created as DecisionDate
-			,decisions.Comments AS Comment
-			,decisions.RegistrationReferenceNumber AS RegistrationReferenceNumber
-			,CASE
-				WHEN LTRIM(RTRIM(decisions.Decision)) = 'Accepted' THEN 'Granted'
-				WHEN LTRIM(RTRIM(decisions.Decision)) = 'Rejected' THEN 'Refused'
-				WHEN decisions.decision IS NULL THEN 'Pending'
-				ELSE decisions.Decision
-			END AS SubmissionStatus
-			,null AS StatusPendingDate
-			,CASE WHEN decisions.Type = 'RegistrationApplicationSubmitted'
-				 THEN 1
-				 ELSE 0
-		     END AS IsProducerComment
-			,UserId
-			,ROW_NUMBER() OVER (
-				PARTITION BY decisions.SubmissionId, decisions.Type
-				ORDER BY decisions.Created DESC -- mark latest submissionEvent synced from cosmos
-			) AS RowNum
-		FROM
-			rpd.SubmissionEvents as decisions
-		WHERE decisions.Type IN ( 'RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision')
+CREATE VIEW [apps].[v_OrganisationRegistrationSummaries]
+AS	
+    WITH 
+	SubmissionEventsCTE as (
+		select * from (
+			SELECT
+				decisions.SubmissionId,
+				decisions.SubmissionEventId,
+				decisions.Created AS DecisionDate,
+				decisions.Comments AS Comment,
+				decisions.UserId,
+				decisions.Type,
+				decisions.FileId,
+				CASE 
+					WHEN decisions.Type = 'RegulatorRegistrationDecision' AND decisions.FileId IS NULL THEN
+						CASE 
+							WHEN LTRIM(RTRIM(decisions.Decision)) = 'Accepted' THEN 'Granted'
+							WHEN LTRIM(RTRIM(decisions.Decision)) = 'Rejected' THEN 'Refused'
+							WHEN decisions.Decision IS NULL THEN 'Pending'
+							ELSE decisions.Decision
+						END
+					ELSE NULL
+				END AS SubmissionStatus,
+				CASE 
+					WHEN decisions.Type = 'RegulatorRegistrationDecision' AND decisions.FileId IS NOT NULL THEN
+						CASE 
+							WHEN decisions.Decision IS NULL THEN 'Pending'
+							ELSE decisions.Decision
+						END
+					ELSE NULL
+				END AS ResubmissionStatus,
+				CASE WHEN decisions.Type = 'RegulatorRegistrationDecision' AND FileId IS NULL THEN 1 ELSE 0 END AS IsRegulatorDecision,
+				CASE WHEN decisions.Type = 'RegulatorRegistrationDecision' AND FileId IS NOT NULL THEN 1 ELSE 0 END AS IsRegulatorResubmissionDecision,
+				CASE WHEN decisions.Type = 'Submitted' THEN 1 ELSE 0 END AS UploadEvent,
+				CASE 
+					WHEN decisions.Type = 'RegistrationApplicationSubmitted' AND ISNULL(decisions.IsResubmission,0) = 0 THEN 1 ELSE 0
+				END AS IsProducerSubmission,
+				CASE 
+					WHEN decisions.Type = 'RegistrationApplicationSubmitted' AND ISNULL(decisions.IsResubmission,0) = 1 THEN 1 ELSE 0
+				END AS IsProducerResubmission,
+				decisions.RegistrationReferenceNumber,
+				decisions.DecisionDate AS StatusPendingDate,
+                decisions.load_ts,
+				ROW_NUMBER() OVER (PARTITION BY decisions.SubmissionId, decisions.SubmissionEventId ORDER BY decisions.Created DESC) AS RowNum
+			FROM rpd.SubmissionEvents AS decisions
+			WHERE decisions.Type IN ('RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision', 'Submitted')
+		) t where t.RowNum = 1
 	)
-	,GrantedDecisionsCTE as (
-		SELECT *
-		FROM ProdCommentsRegulatorDecisionsCTE granteddecision
-		WHERE IsProducerComment = 0
-				AND SubmissionStatus = 'Granted'
+    ,MaxLoadTimeCTE as (
+        SELECT SubmissionId, Max(load_ts) as MaxLoadTime
+        FROM  SubmissionEventsCTE
+        GROUP BY SubmissionId
+    )
+	,LatestUploadsCTE AS (
+		SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS UploadOrder
+		FROM SubmissionEventsCTE
+		WHERE UploadEvent = 1
+	)
+	,ReconciledSubmissionEvents AS (
+		SELECT
+			f.SubmissionId,
+			f.SubmissionEventId,
+			f.DecisionDate,
+			f.Comment,
+			f.UserId,
+			f.Type,
+			(SELECT TOP 1 l.FileId FROM LatestUploadsCTE l WHERE l.SubmissionId = f.SubmissionId AND l.DecisionDate < f.DecisionDate ORDER BY l.UploadOrder ASC) AS FileId,
+			f.RegistrationReferenceNumber,
+			f.SubmissionStatus,
+			f.ResubmissionStatus,
+			f.StatusPendingDate,
+			f.IsRegulatorDecision,
+			f.IsRegulatorResubmissionDecision,
+			f.IsProducerSubmission,
+			f.IsProducerResubmission,
+			f.UploadEvent
+		FROM SubmissionEventsCTE f
+		WHERE f.IsProducerSubmission = 1 OR f.IsProducerResubmission = 1 OR f.IsRegulatorDecision = 1 OR f.IsRegulatorResubmissionDecision = 1
+	)
+	,InitialSubmissionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
+		) t WHERE RowNum = 1
+	)
+	,InitialDecisionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+		) t WHERE RowNum = 1
+	)
+	,RegistrationDecisionCTE AS (
+		SELECT * FROM (
+			select *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate ASC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+			AND SubmissionStatus = 'Granted'
+		) t where RowNum = 1		
+	)
+	,LatestDecisionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNumber
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
+		) t WHERE RowNumber = 1
+	)
+	,ResubmissionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsProducerResubmission = 1
+		) t WHERE RowNum = 1
+	)
+	,ResubmissionDecisionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsRegulatorResubmissionDecision = 1
+		) t WHERE RowNum = 1
+	)
+	,SubmissionStatusCTE AS (
+		SELECT
+			s.SubmissionId,
+			CASE WHEN s.DecisionDate > id.DecisionDate THEN 'Pending'
+				 ELSE COALESCE(ld.SubmissionStatus, id.SubmissionStatus, reg.SubmissionStatus, 'Pending')
+				 END AS SubmissionStatus,
+			CASE
+				WHEN r.SubmissionEventId IS NOT NULL AND rd.SubmissionEventId IS NOT NULL THEN rd.ResubmissionStatus
+				WHEN r.SubmissionEventId IS NOT NULL THEN 'Pending'
+				ELSE NULL
+			END AS ResubmissionStatus,
+			s.DecisionDate as SubmissionDate,
+			s.SubmissionEventId as ProducerSubmissionEventId,
+			COALESCE(reg.DecisionDate, ld.DecisionDate, id.DecisionDate) AS RegistrationDate,
+			id.SubmissionEventId AS SubmissionDecisionEventId,
+			COALESCE(ld.StatusPendingDate, id.StatusPendingDate) as StatusPendingDate,
+			rd.DecisionDate AS ResubmissionDecisionDate,
+			rd.SubmissionEventId AS ResubmissionDecisionEventId,
+			r.DecisionDate as ResubmissionDate, 
+			r.SubmissionEventId AS ResubmissionEventId,
+			COALESCE(r.FileId, s.FileId) AS FileId,
+			COALESCE(r.UserId, s.UserId) AS ProducerUserId,
+			COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
+			reg.RegistrationReferenceNumber,
+            lt.MaxLoadTime
+		FROM InitialSubmissionCTE s
+		INNER JOIN MaxLoadTimeCTE lt on lt.SubmissionId = s.SubmissionId
+        LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
+		LEFT JOIN LatestDecisionCTE ld ON ld.SubmissionId = s.SubmissionId
+		LEFT JOIN RegistrationDecisionCTE reg on reg.SubmissionId = s.SubmissionId
+		LEFT JOIN ResubmissionCTE r ON r.SubmissionId = s.SubmissionId
+		LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 	)
 	,LatestOrganisationRegistrationSubmissionsCTE
     AS
@@ -52,24 +169,13 @@ WITH
         FROM
             (
             SELECT
-                o.Name AS OrganisationName
+                s.SubmissionId
+                ,o.Name AS OrganisationName
                 ,org.UploadOrgName as UploadedOrganisationName
 				,o.ReferenceNumber
 				,o.Id as OrganisationInternalId
 				,o.ExternalId as OrganisationId
                 ,s.AppReferenceNumber AS ApplicationReferenceNumber
-                ,granteddecision.RegistrationReferenceNumber
-				,granteddecision.SubmissionStatus
-				,granteddecision.DecisionDate as RegulatorDecisionDate
-				,granteddecision.UserId as RegulatorUserId
-            	,se.DecisionDate as ProducerCommentDate
-				,se.Comment as ProducerComment
-				,se.SubmissionEventId as ProducerSubmissionEventId
-				,granteddecision.SubmissionEventId as RegulatorSubmissionEventId
-				,s.SubmissionPeriod
-                ,s.SubmissionId
-                ,s.OrganisationId AS InternalOrgId
-                ,se.DecisionDate AS SubmittedDateTime
                 ,CASE 
 					WHEN cs.NationId IS NOT NULL THEN cs.NationId
 					ELSE
@@ -98,18 +204,45 @@ WITH
 						WHEN 'WA' THEN 'GB-WLS'
 					END
 				 END AS NationCode
-                ,s.SubmissionType
-                ,s.UserId AS SubmittedUserId
+                ,ss.RegistrationReferenceNumber
+				,ss.RegistrationDate
+				,ss.SubmissionDate as SubmittedDateTime
+                ,CASE WHEN ss.ResubmissionDate IS NOT NULL 
+						  THEN 1
+						  ELSE 0
+				 END as IsResubmission
+				,ss.ResubmissionStatus
+				,ss.SubmissionStatus
+				,ss.ResubmissionDecisionDate
+				,ss.StatusPendingDate
+				,'' as ProducerComment
+				,s.SubmissionPeriod
                 ,CAST(
                     SUBSTRING(
                         s.SubmissionPeriod,
                         PATINDEX('%[0-9][0-9][0-9][0-9]%', s.SubmissionPeriod),
                         4
                     ) AS INT
-                ) AS RelevantYear
+                 ) AS RelevantYear
+				,CASE UPPER(TRIM(org.organisationsize))
+					WHEN 'S' THEN 'Small'
+					WHEN 'L' THEN 'Large'
+				 END 
+				 as ProducerSize
+				,CASE WHEN s.ComplianceSchemeId is not null THEN 1 ELSE 0 END 
+				 as IsComplianceScheme
+				,ss.RegulatorUserId
+				,ss.ProducerSubmissionEventId
+				,ss.SubmissionDecisionEventId as RegulatorGrantedEventId
+				,ss.ResubmissionDecisionEventId as ResubmissionDecisionEventId
+				,ss.ResubmissionEventId as ResubmissionEventId
+            	,ss.ResubmissionDate
+				,s.OrganisationId AS InternalOrgId
+                ,s.SubmissionType
+                ,s.UserId AS SubmittedUserId
                 ,CAST(
                     CASE
-                        WHEN se.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
+                        WHEN ss.SubmissionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
                                         s.SubmissionPeriod,
                                         PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
                                         4
@@ -117,78 +250,36 @@ WITH
                         ELSE 0
                     END AS BIT
                 ) AS IsLateSubmission
-				,CASE UPPER(TRIM(org.organisationsize))
-					WHEN 'S' THEN 'Small'
-					WHEN 'L' THEN 'Large'
-				END as ProducerSize
-				,CASE WHEN s.ComplianceSchemeId is not null THEN 1 ELSE 0 END as IsComplianceScheme
-                ,ROW_NUMBER() OVER (
+                , ss.MaxLoadTime
+				,ROW_NUMBER() OVER (
                     PARTITION BY s.OrganisationId,
                     s.SubmissionPeriod, s.ComplianceSchemeId
-                    ORDER BY s.load_ts DESC
+                    ORDER BY s.Created DESC, s.load_ts DESC
                 ) AS RowNum
             FROM
                 [rpd].[Submissions] AS s
                 INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
 					ON org.SubmittingExternalId = s.OrganisationId 
 					and org.SubmissionPeriod = s.SubmissionPeriod
-					and org.SubmissionId = s.SubmissionId
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
+				INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
 				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
-				LEFT JOIN GrantedDecisionsCTE granteddecision on granteddecision.SubmissionId = s.SubmissionId 
-				INNER JOIN ProdCommentsRegulatorDecisionsCTE se on se.SubmissionId = s.SubmissionId 
-					and se.IsProducerComment = 1
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
-				ANd s.IsSubmitted = 1
+				AND s.IsSubmitted = 1
         ) AS a
         WHERE a.RowNum = 1
-    )
-	,LatestRelatedRegulatorDecisionsCTE AS
-	(
-		select b.SubmissionId
-			,b.SubmissionEventId
-			,b.DecisionDate as RegulatorDecisionDate
-			,b.Comment as RegulatorComment
-			,b.RegistrationReferenceNumber
-			,b.SubmissionStatus
-			,b.StatusPendingDate
-			,b.UserId
-		from ProdCommentsRegulatorDecisionsCTE as b
-		where b.IsProducerComment = 0 and b.RowNum = 1
-	)
-	,AllRelatedProducerCommentEventsCTE
-    AS
-    (
-        SELECT
-            CONVERT(uniqueidentifier, c.SubmissionId) as SubmissionId
-			,c.SubmissionEventId
-			,c.Comment AS ProducerComment
-			,c.DecisionDate AS ProducerCommentDate
-        FROM
-            (
-			SELECT TOP 1
-                ProdCommentsRegulatorDecisionsCTE.SubmissionEventId
-				,ProdCommentsRegulatorDecisionsCTE.SubmissionId
-				,ProdCommentsRegulatorDecisionsCTE.Comment 
-				,ProdCommentsRegulatorDecisionsCTE.DecisionDate 
-            FROM LatestOrganisationRegistrationSubmissionsCTE 
-					LEFT JOIN ProdCommentsRegulatorDecisionsCTE 
-					ON ProdCommentsRegulatorDecisionsCTE.IsProducerComment = 1 
-					   AND ProdCommentsRegulatorDecisionsCTE.SubmissionId = LatestOrganisationRegistrationSubmissionsCTE.SubmissionId 
-			ORDER BY ProdCommentsRegulatorDecisionsCTE.DecisionDate desc
-		) AS c
     )
 	,AllSubmissionsAndDecisionsAndCommentCTE
     AS
     (
         SELECT DISTINCT
             submissions.SubmissionId
-            ,submissions.OrganisationId
+			,submissions.OrganisationId
 			,submissions.OrganisationInternalId
             ,submissions.OrganisationName
 			,submissions.UploadedOrganisationName
-            ,submissions.ReferenceNumber as OrganisationReferenceNumber
+            ,submissions.ReferenceNumber as OrganisationReference
             ,submissions.SubmittedUserId
             ,submissions.IsComplianceScheme
 			,CASE 
@@ -199,27 +290,24 @@ WITH
             ,submissions.ApplicationReferenceNumber
 			,submissions.RegistrationReferenceNumber
             ,submissions.SubmittedDateTime
-            ,submissions.RelevantYear
+            ,submissions.RegistrationDate
+			,submissions.IsResubmission
+			,submissions.ResubmissionDate
+			,submissions.RelevantYear
             ,submissions.SubmissionPeriod
             ,submissions.IsLateSubmission
-            ,ISNULL(decisions.SubmissionStatus, 'Pending') as SubmissionStatus
-            ,decisions.StatusPendingDate
-            ,decisions.RegulatorDecisionDate
-			,decisions.UserId as RegulatorUserId
-            ,ISNULL(submissions.ProducerCommentDate, producercomments.ProducerCommentDate) as ProducerCommentDate
-            ,ISNULL(submissions.ProducerSubmissionEventId, producercomments.SubmissionEventId) as ProducerSubmissionEventId
-			,ISNULL(submissions.RegulatorSubmissionEventId, decisions.SubmissionEventId) AS RegulatorSubmissionEventId
+            ,ISNULL(submissions.SubmissionStatus, 'Pending') as SubmissionStatus
+            ,submissions.ResubmissionStatus
+			,ResubmissionDecisionDate
+			,StatusPendingDate
             ,submissions.NationId
             ,submissions.NationCode
+            ,submissions.MaxLoadTime
         FROM
             LatestOrganisationRegistrationSubmissionsCTE submissions
-            LEFT JOIN LatestRelatedRegulatorDecisionsCTE decisions
-				ON decisions.SubmissionId = submissions.SubmissionId
-            LEFT JOIN AllRelatedProducerCommentEventsCTE producercomments
-				ON producercomments.SubmissionId = submissions.SubmissionId
-    )
-SELECT
-    DISTINCT *
-FROM
-    AllSubmissionsAndDecisionsAndCommentCTE submissions;
+		)
+	SELECT
+		DISTINCT *
+	FROM
+		AllSubmissionsAndDecisionsAndCommentCTE submissions;
 GO
