@@ -5,45 +5,10 @@ GO
 CREATE PROCEDURE [apps].[sp_AggregateAndMergeOrgRegSummaries]
 AS
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[apps].[OrgRegistrationsSummaries]') AND type in (N'U'))
-    BEGIN
-        CREATE TABLE [apps].[OrgRegistrationsSummaries] (
-            SubmissionId NVARCHAR(150) NULL,
-            OrganisationId NVARCHAR(150) NULL,
-            OrganisationInternalId INT NULL,
-            OrganisationName NVARCHAR(500) NULL,
-            UploadedOrganisationName NVARCHAR(500) NULL,
-            OrganisationReference NVARCHAR(25) NULL,
-            SubmittedUserId NVARCHAR(150) NULL,
-            IsComplianceScheme BIT,
-            OrganisationType NVARCHAR(50) NULL,
-            ProducerSize NVARCHAR(50) NULL,
-            ApplicationReferenceNumber NVARCHAR(50) NULL,
-            RegistrationReferenceNumber NVARCHAR(50) NULL,
-            SubmittedDateTime NVARCHAR(50) NULL,
-            RegistrationDate NVARCHAR(50) NULL, --NEW
-            IsResubmission BIT, --NEW
-            ResubmissionDate NVARCHAR(50) NULL, --NEW
-            RelevantYear INT NULL,
-            SubmissionPeriod NVARCHAR(500) NULL,
-            IsLateSubmission BIT,
-            SubmissionStatus NVARCHAR(20) NULL,
-            ResubmissionStatus NVARCHAR(50) NULL, --NEW
-            RegulatorDecisionDate NVARCHAR(50) NULL, --NEW
-            StatusPendingDate NVARCHAR(50) NULL,
-            NationId INT NULL,
-            NationCode NVARCHAR(10) NULL
-        )
-        WITH
-        (
-            DISTRIBUTION = HASH([SubmissionId])
-        );
-    END;
+    SET NOCOUNT ON;
 
     IF OBJECT_ID('tempDB..#TempOrgRegTable', 'U') IS NOT NULL
     DROP TABLE #TempOrgRegTable
-
-    DECLARE @loadTime DATETIME2(7) = SYSDATETIME();
 
     CREATE TABLE #TempOrgRegTable (
         SubmissionId NVARCHAR(150) NULL,
@@ -59,6 +24,7 @@ BEGIN
         ApplicationReferenceNumber NVARCHAR(50) NULL,
         RegistrationReferenceNumber NVARCHAR(50) NULL,
         SubmittedDateTime NVARCHAR(50) NULL,
+		FirstSubmissionDate NVARCHAR(50) NULL,
         RegistrationDate NVARCHAR(50) NULL, --NEW
         IsResubmission BIT, --NEW
         ResubmissionDate NVARCHAR(50) NULL, --NEW
@@ -67,16 +33,26 @@ BEGIN
         IsLateSubmission BIT,
         SubmissionStatus NVARCHAR(20) NULL,
         ResubmissionStatus NVARCHAR(50) NULL, --NEW
+        ResubmissionDecisionDate NVARCHAR(50) NULL,
         RegulatorDecisionDate NVARCHAR(50) NULL, --NEW
         StatusPendingDate NVARCHAR(50) NULL,
         NationId INT NULL,
         NationCode NVARCHAR(10) NULL,
-        MaxLoadTime DATETIME2(7)
-    );
+        ComplianceSchemeId NVARCHAR(50) NULL,
+        ProducerComment NVARCHAR(4000) NULL,
+        RegulatorComment NVARCHAR(4000) NULL,
+        FileId NVARCHAR(50) NULL,
+		ResubmissionComment NVARCHAR(4000) NULL,
+		ResubmittedUserId NVARCHAR(50) NULL,
+    	ProducerUserId NVARCHAR(50) NULL,
+		RegulatorUserId NVARCHAR(50) NULL
+);
 
     INSERT INTO #TempOrgRegTable 
     SELECT *
     FROM [apps].[v_OrganisationRegistrationSummaries];
+
+    DECLARE @loadTime DATETIME2(7) = SYSDATETIME();
 
     MERGE INTO [apps].[OrgRegistrationsSummaries] as Target
         USING #TempOrgRegTable as Source
@@ -96,6 +72,7 @@ BEGIN
                 Target.ApplicationReferenceNumber = Source.ApplicationReferenceNumber,
                 Target.RegistrationReferenceNumber = Source.RegistrationReferenceNumber,
                 Target.SubmittedDateTime = Source.SubmittedDateTime,
+                Target.FirstSubmissionDate = Source.FirstSubmissionDate,
                 Target.RegistrationDate = Source.RegistrationDate,
                 Target.IsResubmission = Source.IsResubmission,
                 Target.ResubmissionDate = Source.ResubmissionDate,
@@ -104,10 +81,20 @@ BEGIN
                 Target.IsLateSubmission = Source.IsLateSubmission,
                 Target.SubmissionStatus = Source.SubmissionStatus,
                 Target.ResubmissionStatus = Source.ResubmissionStatus,
+                Target.ResubmissionDecisionDate = Source.ResubmissionDecisionDate,
                 Target.RegulatorDecisionDate = Source.RegulatorDecisionDate,
                 Target.StatusPendingDate = Source.StatusPendingDate,
                 Target.NationId = Source.NationId,
-                Target.NationCode = Source.NationCode
+                Target.NationCode = Source.NationCode,
+                Target.ComplianceSchemeId = Source.ComplianceSchemeId,
+                Target.ProducerComment = Source.ProducerComment,
+                Target.RegulatorComment = Source.RegulatorComment,
+                Target.FileId = Source.FileId,
+                Target.ResubmissionComment = Source.ResubmissionComment,
+                Target.ResubmittedUserId = Source.ResubmittedUserId,
+		        Target.ProducerUserId =  Source.ProducerUserId,
+		        Target.RegulatorUserId = Source.RegulatorUserId,
+                Target.load_ts = @loadTime
         WHEN NOT MATCHED BY TARGET THEN
             INSERT (
                 SubmissionId,
@@ -123,6 +110,7 @@ BEGIN
                 ApplicationReferenceNumber,
                 RegistrationReferenceNumber,
                 SubmittedDateTime,
+                FirstSubmissionDate,
                 RegistrationDate,
                 IsResubmission,
                 ResubmissionDate,
@@ -131,10 +119,19 @@ BEGIN
                 IsLateSubmission,
                 SubmissionStatus,
                 ResubmissionStatus,
+                ResubmissionDecisionDate,
                 RegulatorDecisionDate,
                 StatusPendingDate,
                 NationId,
                 NationCode,
+                ComplianceSchemeId,
+                ProducerComment,
+                RegulatorComment,
+                FileId,
+                ResubmissionComment,
+                ResubmittedUserId,
+                ProducerUserId,
+                RegulatorUserId,
                 load_ts
             )
             VALUES (
@@ -151,6 +148,7 @@ BEGIN
                 Source.ApplicationReferenceNumber,
                 Source.RegistrationReferenceNumber,
                 Source.SubmittedDateTime,
+                Source.FirstSubmissionDate,
                 Source.RegistrationDate,
                 Source.IsResubmission,
                 Source.ResubmissionDate,
@@ -159,16 +157,26 @@ BEGIN
                 Source.IsLateSubmission,
                 Source.SubmissionStatus,
                 Source.ResubmissionStatus,
+                Source.ResubmissionDecisionDate,
                 Source.RegulatorDecisionDate,
                 Source.StatusPendingDate,
                 Source.NationId,
                 Source.NationCode,
+                Source.ComplianceSchemeId,
+                Source.ProducerComment,
+                Source.RegulatorComment,
+                Source.FileId,
+                Source.ResubmissionComment,
+                Source.ResubmittedUserId,
+                Source.ProducerUserId,
+                Source.RegulatorUserId,
                 @loadTime
             )
         WHEN NOT MATCHED BY SOURCE THEN
             DELETE;
 
     IF OBJECT_ID('tempDB..#TempOrgRegTable', 'U') IS NOT NULL
-    DROP TABLE #TempOrgRegTable
-END;
+    DROP TABLE #TempOrgRegTable;
+END
+
 GO

@@ -1,6 +1,7 @@
-﻿IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[dbo].[v_OrganisationRegistrationSummaries]'))
-DROP VIEW [dbo].[v_OrganisationRegistrationSummaries];
+﻿IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_OrganisationRegistrationSummaries]'))
+   DROP VIEW [apps].[v_OrganisationRegistrationSummaries];
 GO
+
 
 SET ANSI_NULLS ON
 GO
@@ -54,11 +55,6 @@ AS
 			WHERE decisions.Type IN ('RegistrationApplicationSubmitted', 'RegulatorRegistrationDecision', 'Submitted')
 		) t where t.RowNum = 1
 	)
-    ,MaxLoadTimeCTE as (
-        SELECT SubmissionId, Max(load_ts) as MaxLoadTime
-        FROM  SubmissionEventsCTE
-        GROUP BY SubmissionId
-    )
 	,LatestUploadsCTE AS (
 		SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS UploadOrder
 		FROM SubmissionEventsCTE
@@ -88,6 +84,13 @@ AS
 	,InitialSubmissionCTE AS (
 		SELECT * FROM (
 			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate DESC) AS RowNum
+			FROM ReconciledSubmissionEvents
+			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
+		) t WHERE RowNum = 1
+	)
+	,FirstSubmissionCTE AS (
+		SELECT * FROM (
+			SELECT *, ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY DecisionDate ASC) AS RowNum
 			FROM ReconciledSubmissionEvents
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
 		) t WHERE RowNum = 1
@@ -140,22 +143,28 @@ AS
 				ELSE NULL
 			END AS ResubmissionStatus,
 			s.DecisionDate as SubmissionDate,
+			fs.DecisionDate as FirstSubmissionDate,
 			s.SubmissionEventId as ProducerSubmissionEventId,
 			COALESCE(reg.DecisionDate, ld.DecisionDate, id.DecisionDate) AS RegistrationDate,
 			id.SubmissionEventId AS SubmissionDecisionEventId,
 			COALESCE(ld.StatusPendingDate, id.StatusPendingDate) as StatusPendingDate,
+			COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) as RegulatorDecisionDate,
 			rd.DecisionDate AS ResubmissionDecisionDate,
 			rd.SubmissionEventId AS ResubmissionDecisionEventId,
-			r.DecisionDate as ResubmissionDate, 
+			r.DecisionDate as ResubmissionDate,
+			r.Comment as ResubmissionComment,
+			r.UserId as ResubmittedUserId, 
 			r.SubmissionEventId AS ResubmissionEventId,
 			COALESCE(r.FileId, s.FileId) AS FileId,
 			COALESCE(r.UserId, s.UserId) AS ProducerUserId,
 			COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
 			reg.RegistrationReferenceNumber,
-            lt.MaxLoadTime
+			COALESCE(r.Comment, s.Comment) as ProducerComment,
+			COALESCE(rd.Comment, reg.Comment, id.Comment) as RegulatorComment,
+			reg.DecisionDate AS RegistrationDecisionDate
 		FROM InitialSubmissionCTE s
-		INNER JOIN MaxLoadTimeCTE lt on lt.SubmissionId = s.SubmissionId
-        LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
+        LEFT JOIN FirstSubmissionCTE fs on fs.SubmissionId = s.SubmissionId
+		LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
 		LEFT JOIN LatestDecisionCTE ld ON ld.SubmissionId = s.SubmissionId
 		LEFT JOIN RegistrationDecisionCTE reg on reg.SubmissionId = s.SubmissionId
 		LEFT JOIN ResubmissionCTE r ON r.SubmissionId = s.SubmissionId
@@ -207,6 +216,7 @@ AS
                 ,ss.RegistrationReferenceNumber
 				,ss.RegistrationDate
 				,ss.SubmissionDate as SubmittedDateTime
+				,ss.FirstSubmissionDate
                 ,CASE WHEN ss.ResubmissionDate IS NOT NULL 
 						  THEN 1
 						  ELSE 0
@@ -214,8 +224,10 @@ AS
 				,ss.ResubmissionStatus
 				,ss.SubmissionStatus
 				,ss.ResubmissionDecisionDate
+				,ss.RegulatorDecisionDate
 				,ss.StatusPendingDate
-				,'' as ProducerComment
+				,ss.ProducerComment
+				,ss.RegulatorComment
 				,s.SubmissionPeriod
                 ,CAST(
                     SUBSTRING(
@@ -250,7 +262,11 @@ AS
                         ELSE 0
                     END AS BIT
                 ) AS IsLateSubmission
-                , ss.MaxLoadTime
+				,s.ComplianceSchemeId
+				,ss.FileId
+				,ss.ResubmissionComment
+				,ss.ResubmittedUserId
+				,ss.ProducerUserId
 				,ROW_NUMBER() OVER (
                     PARTITION BY s.OrganisationId,
                     s.SubmissionPeriod, s.ComplianceSchemeId
@@ -290,6 +306,7 @@ AS
             ,submissions.ApplicationReferenceNumber
 			,submissions.RegistrationReferenceNumber
             ,submissions.SubmittedDateTime
+			,submissions.FirstSubmissionDate
             ,submissions.RegistrationDate
 			,submissions.IsResubmission
 			,submissions.ResubmissionDate
@@ -299,10 +316,18 @@ AS
             ,ISNULL(submissions.SubmissionStatus, 'Pending') as SubmissionStatus
             ,submissions.ResubmissionStatus
 			,ResubmissionDecisionDate
+			,RegulatorDecisionDate
 			,StatusPendingDate
             ,submissions.NationId
             ,submissions.NationCode
-            ,submissions.MaxLoadTime
+			,submissions.ComplianceSchemeId
+			,submissions.ProducerComment
+			,submissions.RegulatorComment
+			,submissions.FileId
+			,submissions.ResubmissionComment
+			,submissions.ResubmittedUserId
+			,submissions.ProducerUserId
+			,submissions.RegulatorUserId
         FROM
             LatestOrganisationRegistrationSubmissionsCTE submissions
 		)

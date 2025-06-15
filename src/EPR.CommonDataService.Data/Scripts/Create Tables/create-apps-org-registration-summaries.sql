@@ -14,6 +14,7 @@ BEGIN
 		ApplicationReferenceNumber NVARCHAR(50) NULL,
 		RegistrationReferenceNumber NVARCHAR(50) NULL,
 		SubmittedDateTime NVARCHAR(50) NULL,
+		FirstSubmissionDate NVARCHAR(50) NULL,
 		RegistrationDate NVARCHAR(50) NULL, --NEW
 		IsResubmission BIT, --NEW
 		ResubmissionDate NVARCHAR(50) NULL, --NEW
@@ -22,10 +23,21 @@ BEGIN
 		IsLateSubmission BIT,
 		SubmissionStatus NVARCHAR(20) NULL,
 		ResubmissionStatus NVARCHAR(50) NULL, --NEW
+		ResubmissionDecisionDate NVARCHAR(50) NULL,
 		RegulatorDecisionDate NVARCHAR(50) NULL, --NEW
 		StatusPendingDate NVARCHAR(50) NULL,
 		NationId INT NULL,
-		NationCode NVARCHAR(10) NULL
+		NationCode NVARCHAR(10) NULL,
+		ComplianceSchemeId NVARCHAR(50) NULL,
+		ProducerComment NVARCHAR(4000) NULL,
+		RegulatorComment NVARCHAR(4000) NULL,
+		FileId NVARCHAR(50) NULL,
+		ResubmissionComment NVARCHAR(4000) NULL,
+		ResubmittedUserId NVARCHAR(50) NULL,
+		ProducerUserId NVARCHAR(50) NULL,
+		RegulatorUserId NVARCHAR(50) NULL,
+		ResubmissionDecisionDate NVARCHAR(50) NULL,
+		load_ts datetime2(7)
 	)
 	WITH
     (
