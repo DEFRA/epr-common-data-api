@@ -36,7 +36,7 @@ BEGIN
 		ResubmittedUserId NVARCHAR(50) NULL,
 		ProducerUserId NVARCHAR(50) NULL,
 		RegulatorUserId NVARCHAR(50) NULL,
-		ResubmissionDecisionDate NVARCHAR(50) NULL,
+
 		load_ts datetime2(7)
 	)
 	WITH
