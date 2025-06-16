@@ -237,6 +237,39 @@ public class SynapseContext : DbContext
         return await Set<TEntity>().FromSqlRaw(sql, parameters).AsAsyncEnumerable().ToListAsync();
     }
 
+
+    public virtual async Task<IList<TEntity>> RunSQLCommandAsync<TEntity>(string sql, ILogger logger, string logPrefix, params SqlParameter[] parameters) where TEntity: new()
+    {
+        DbConnection connection = Database.GetDbConnection();
+
+        try
+        {
+            if (connection.State != ConnectionState.Open)
+                await connection.OpenAsync();
+
+            if (connection.State == ConnectionState.Open)
+            {
+                var command = CreateSQLCommand(connection, sql, parameters);
+                command.CommandTimeout = Database.GetCommandTimeout() ?? 120;
+
+                var readerResult = await command.ExecuteReaderAsync();
+                var result = await PopulateDto<TEntity>(readerResult, logger, logPrefix);
+
+                await readerResult.DisposeAsync();
+                await command.DisposeAsync();
+                return result;
+            }
+        }
+        finally
+        {
+            if (connection.State == ConnectionState.Open)
+            {
+                await connection.CloseAsync();
+            }
+        }
+        return [];
+    }
+
     public virtual async Task<IList<TEntity>> RunSpCommandAsync<TEntity>(string storedProcName, ILogger logger, string logPrefix, params SqlParameter[] parameters) where TEntity : new()
     {
         DbConnection connection = Database.GetDbConnection();
@@ -378,6 +411,19 @@ public class SynapseContext : DbContext
         var command = connection.CreateCommand();
         command.CommandText = sql;
         command.CommandType = CommandType.StoredProcedure;
+        foreach (var parameter in parameters)
+        {
+            command.Parameters.Add(parameter);
+        }
+
+        return command;
+    }
+
+    private static DbCommand CreateSQLCommand(DbConnection connection, string sql, params SqlParameter[] parameters)
+    {
+        var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.CommandType = CommandType.Text;
         foreach (var parameter in parameters)
         {
             command.Parameters.Add(parameter);
