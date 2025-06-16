@@ -1,5 +1,4 @@
-﻿/****** Object:  StoredProcedure [apps].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 24/04/2025 10:26:16 ******/
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_FetchOrganisationRegistrationSubmissionDetails]'))
+﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_FetchOrganisationRegistrationSubmissionDetails]'))
 DROP PROCEDURE [apps].[sp_FetchOrganisationRegistrationSubmissionDetails];
 GO
 
@@ -34,6 +33,7 @@ BEGIN
                                 PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
                                 4
                             )),4, 1);
+
     WITH
         OriginCTE as (
             select *
@@ -87,7 +87,6 @@ BEGIN
 
             FROM OriginCTE as ss
 		)
---select * from SubmissionStatusCTE
 	    ,SubmittedCTE as (
 			SELECT SubmissionId, 
 					SubmissionComment, 
@@ -114,7 +113,7 @@ BEGIN
 					,o.ReferenceNumber as OrganisationReferenceNumber
 					,o.ExternalId as OrganisationId
 					,SubmittedCTE.SubmissionDate as SubmittedDateTime
-					,s.AppReferenceNumber AS ApplicationReferenceNumber
+					,s.ApplicationReferenceNumber
 					,ss.RegistrationReferenceNumber
 					,ss.RegistrationDecisionDate as RegistrationDate
             		,ss.ResubmissionDate
@@ -174,7 +173,7 @@ BEGIN
 						ORDER BY s.load_ts DESC
 					) AS RowNum
 				FROM
-					[rpd].[Submissions] AS s
+                    OriginCTE as s
 						INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
 						INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 						INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
