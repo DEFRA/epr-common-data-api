@@ -267,21 +267,6 @@ AS
 				,ss.ResubmissionComment
 				,ss.ResubmittedUserId
 				,ss.ProducerUserId
-
-				,org.CompanyFileId
-				,org.CompanyUploadFileName
-				,org.CompanyBlobName
-				,org.BrandFileId
-				,org.BrandUploadFileName
-				,org.BrandBlobName
-				,org.PartnerUploadFileName
-				,org.PartnerFileId
-				,org.PartnerBlobName
-
-				,CONVERT(bit, ISNULL(ppp.IsOnlineMarketplace, 0)) AS IsOnlineMarketplace
-				,ISNULL(ppp.NumberOfSubsidiaries, 0) AS NumberOfSubsidiaries
-				,ISNULL(ppp.OnlineMarketPlaceSubsidiaries,0) AS NumberOfSubsidiariesBeingOnlineMarketPlace
-
 				,ROW_NUMBER() OVER (
                     PARTITION BY s.OrganisationId,
                     s.SubmissionPeriod, s.ComplianceSchemeId
@@ -289,14 +274,11 @@ AS
                 ) AS RowNum
             FROM
                 [rpd].[Submissions] AS s
+                INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
+					ON org.SubmittingExternalId = s.OrganisationId 
+					and org.SubmissionPeriod = s.SubmissionPeriod
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
-                INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org 
-					ON org.UploadingOrgExternalId = s.OrganisationId 
-					and org.SubmissionPeriod = s.SubmissionPeriod
-					and (s.ComplianceSchemeId is NULL OR org.ComplianceSchemeId = s.ComplianceSchemeId)
-					and org.CompanyFileId = ss.FileId
-		        INNER JOIN [dbo].[v_ProducerPaycalParameters_resub] AS ppp on ppp.FileId = ss.FileId
 				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
@@ -304,8 +286,6 @@ AS
         ) AS a
         WHERE a.RowNum = 1
     )
-
-   -- SELECT * FROM LatestOrganisationRegistrationSubmissionsCTE
 	,AllSubmissionsAndDecisionsAndCommentCTE
     AS
     (
@@ -348,20 +328,6 @@ AS
 			,submissions.ResubmittedUserId
 			,submissions.ProducerUserId
 			,submissions.RegulatorUserId
-
-			,CompanyFileId
-			,CompanyUploadFileName
-			,CompanyBlobName
-			,BrandFileId
-			,BrandUploadFileName
-			,BrandBlobName
-			,PartnerUploadFileName
-			,PartnerFileId
-			,PartnerBlobName
-
-			,IsOnlineMarketplace
-			,NumberOfSubsidiaries
-			,NumberOfSubsidiariesBeingOnlineMarketPlace
         FROM
             LatestOrganisationRegistrationSubmissionsCTE submissions
 		)

@@ -33,7 +33,6 @@ BEGIN
                                 PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
                                 4
                             )),4, 1);
-
     WITH
         OriginCTE as (
             select *
@@ -65,29 +64,10 @@ BEGIN
 				,ss.ProducerUserId as LatestProducerUserId
 
 				,ss.RegistrationReferenceNumber
-
-                ,ss.IsComplianceScheme
-                ,ss.ProducerSize
-                ,ss.OrganisationType
-                ,ss.NationId
-                ,ss.NationCode
-                ,CompanyFileId,         
-                CompanyUploadFileName, 
-                CompanyBlobName,
-                BrandFileId,
-                BrandUploadFileName,
-                BrandBlobName,
-                PartnerUploadFileName,
-                PartnerFileId,
-                PartnerBlobName,
-
-                IsOnlineMarketPlace,
-                NumberOfSubsidiaries,
-                NumberOfSubsidiariesBeingOnlineMarketPlace
-
             FROM OriginCTE as ss
 		)
-	    ,SubmittedCTE as (
+--select * from SubmissionStatusCTE
+	,SubmittedCTE as (
 			SELECT SubmissionId, 
 					SubmissionComment, 
 					SubmittedFileId as FileId, 
@@ -104,16 +84,64 @@ BEGIN
 					ResubmissionDate
 			FROM SubmissionStatusCTE
 		)
+		,UploadedDataForOrganisationCTE as (
+			select distinct org.*
+			FROM
+				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org
+				inner join SubmissionStatusCTE ss on ss.FileId = org.CompanyFileId
+			WHERE org.UploadingOrgExternalId = @OrganisationUUIDForSubmission
+				and org.SubmissionPeriod = @SubmissionPeriod
+				and (@ComplianceSchemeId IS NULL OR org.ComplianceSchemeId = @ComplianceSchemeId)
+				and (org.CompanyFileId IN (SELECT FileId from SubmissionStatusCTE))
+		)
+		,UploadedViewCTE as (
+			select distinct
+				org.UploadingOrgName
+				,org.UploadingOrgExternalId
+				,CASE WHEN org.IsComplianceScheme = 1 THEN NULL
+					  ELSE org.OrganisationSize
+				 END as OrganisationSize
+				,org.NationCode
+				,org.IsComplianceScheme
+				,org.CompanyFileId
+				,org.CompanyUploadFileName
+				,org.CompanyBlobName
+				,org.BrandFileId
+				,org.BrandUploadFileName
+				,org.BrandBlobName
+				,org.PartnerUploadFileName
+				,org.PartnerFileId
+				,org.PartnerBlobName
+			FROM
+				UploadedDataForOrganisationCTE org 
+		)
+		,ProducerPaycalParametersCTE
+			AS
+			(
+				SELECT
+				OrganisationExternalId
+				,OrganisationId
+				,ppp.RegistrationSetId
+				,FileId
+				,FileName
+				,ProducerSize
+				,IsOnlineMarketplace
+				,NumberOfSubsidiaries
+				,OnlineMarketPlaceSubsidiaries
+				FROM
+					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
+				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
+		)
 		,SubmissionDetails AS (
 		    select a.* FROM (
 				SELECT
 					s.SubmissionId
 					,o.Name AS OrganisationName
-					,o.Name AS UploadedOrganisationName
+					,org.UploadingOrgName as UploadedOrganisationName
 					,o.ReferenceNumber as OrganisationReferenceNumber
-					,o.ExternalId as OrganisationId
+					,org.UploadingOrgExternalId as OrganisationId
 					,SubmittedCTE.SubmissionDate as SubmittedDateTime
-					,s.ApplicationReferenceNumber
+					,s.AppReferenceNumber AS ApplicationReferenceNumber
 					,ss.RegistrationReferenceNumber
 					,ss.RegistrationDecisionDate as RegistrationDate
             		,ss.ResubmissionDate
@@ -129,8 +157,34 @@ BEGIN
 					 END as ResubmissionFileId
 					,ss.RegulatorComment
 					,COALESCE(ss.ResubmissionComment, ss.SubmissionComment) as ProducerComment
-					,ss.NationId
-					,ss.NationCode
+					,CASE 
+						WHEN cs.NationId IS NOT NULL THEN cs.NationId
+						ELSE
+						CASE UPPER(org.NationCode)
+							WHEN 'EN' THEN 1
+							WHEN 'NI' THEN 2
+							WHEN 'SC' THEN 3
+							WHEN 'WS' THEN 4
+							WHEN 'WA' THEN 4
+						 END
+					 END AS NationId
+					,CASE
+						WHEN cs.NationId IS NOT NULL THEN
+							CASE cs.NationId
+								WHEN 1 THEN 'GB-ENG'
+								WHEN 2 THEN 'GB-NIR'
+								WHEN 3 THEN 'GB-SCT'
+								WHEN 4 THEN 'GB-WLS'
+							END
+						ELSE
+						CASE UPPER(org.NationCode)
+							WHEN 'EN' THEN 'GB-ENG'
+							WHEN 'NI' THEN 'GB-NIR'
+							WHEN 'SC' THEN 'GB-SCT'
+							WHEN 'WS' THEN 'GB-WLS'
+							WHEN 'WA' THEN 'GB-WLS'
+						END
+					 END AS NationCode
 					,ss.RegulatorUserId
 					,GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) as RegulatorDecisionDate
 					,ss.ResubmissionDecisionDate as RegulatorResubmissionDecisionDate
@@ -147,22 +201,28 @@ BEGIN
 						) AS INT
 					) AS RelevantYear
 					,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
-					,ss.ProducerSize
-					,CONVERT(bit, ss.IsComplianceScheme) as IsComplianceScheme
-					,ss.OrganisationType
-					,ss.IsOnlineMarketplace
-                    ,ss.NumberOfSubsidiaries
-                    ,ss.NumberOfSubsidiariesBeingOnlineMarketPlace
-                    ,ss.CompanyFileId as CompanyDetailsFileId
-                    ,ss.CompanyUploadFileName as CompanyDetailsFileName
-                    ,ss.CompanyBlobName as CompanyDetailsBlobName
-                    ,ss.BrandFileId as BrandsFileId
-                    ,ss.BrandUploadFileName as BrandsFileName
-                    ,ss.BrandBlobName as BrandsBlobName
-                    ,ss.PartnerUploadFileName as PartnershipFileName
-                    ,ss.PartnerFileId as PartnershipFileId
-                    ,ss.PartnerBlobName as PartnershipBlobName
-
+					,CASE UPPER(TRIM(org.organisationsize))
+						WHEN 'S' THEN 'Small'
+						WHEN 'L' THEN 'Large'
+					 END as ProducerSize
+					,CONVERT(bit, org.IsComplianceScheme) as IsComplianceScheme
+					,CASE 
+						WHEN org.IsComplianceScheme = 1 THEN 'Compliance'
+						WHEN UPPER(TRIM(org.organisationsize)) = 'S' THEN 'Small'
+						WHEN UPPER(TRIM(org.organisationsize)) = 'L' THEN 'Large'
+					 END AS OrganisationType
+					,CONVERT(bit, ISNULL(ppp.IsOnlineMarketplace, 0)) AS IsOnlineMarketplace
+					,ISNULL(ppp.NumberOfSubsidiaries, 0) AS NumberOfSubsidiaries
+					,ISNULL(ppp.OnlineMarketPlaceSubsidiaries,0) AS NumberOfSubsidiariesBeingOnlineMarketPlace
+					,org.CompanyFileId AS CompanyDetailsFileId
+					,org.CompanyUploadFileName AS CompanyDetailsFileName
+					,org.CompanyBlobName AS CompanyDetailsBlobName
+					,org.BrandFileId AS BrandsFileId
+					,org.BrandUploadFileName AS BrandsFileName
+					,org.BrandBlobName BrandsBlobName
+					,org.PartnerUploadFileName AS PartnershipFileName
+					,org.PartnerFileId AS PartnershipFileId
+					,org.PartnerBlobName AS PartnershipBlobName
 					,ss.LatestProducerUserId as SubmittedUserId
 					,s.ComplianceSchemeId
 					,@ComplianceSchemeId as CSId
@@ -173,10 +233,12 @@ BEGIN
 						ORDER BY s.load_ts DESC
 					) AS RowNum
 				FROM
-                    OriginCTE as s
+					[rpd].[Submissions] AS s
 						INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
+						INNER JOIN UploadedViewCTE org on org.UploadingOrgExternalId = s.OrganisationId
 						INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 						INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
+		                LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.OrganisationExternalId = s.OrganisationId
 						LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
 	    		WHERE s.SubmissionId = @SubmissionId
 			) as a

@@ -45,22 +45,8 @@ BEGIN
 		ResubmissionComment NVARCHAR(4000) NULL,
 		ResubmittedUserId NVARCHAR(50) NULL,
     	ProducerUserId NVARCHAR(50) NULL,
-		RegulatorUserId NVARCHAR(50) NULL,
-
-        CompanyFileId   NVARCHAR(50) NULL,
-        CompanyUploadFileName NVARCHAR(255) NULL,
-		CompanyBlobName NVARCHAR(50) NULL,
-		BrandFileId NVARCHAR(50) NULL,
-		BrandUploadFileName NVARCHAR(255) NULL,
-		BrandBlobName NVARCHAR(50) NULL,
-		PartnerUploadFileName NVARCHAR(255) NULL,
-		PartnerFileId NVARCHAR(59) NULL,
-		PartnerBlobName NVARCHAR(50) NULL,
-
-		IsOnlineMarketPlace BIT NULL,
-		NumberOfSubsidiaries INT NULL,
-		NumberOfSubsidiariesBeingOnlineMarketPlace INT NULL
-    );
+		RegulatorUserId NVARCHAR(50) NULL
+);
 
     INSERT INTO #TempOrgRegTable 
     SELECT *
@@ -108,21 +94,6 @@ BEGIN
                 Target.ResubmittedUserId = Source.ResubmittedUserId,
 		        Target.ProducerUserId =  Source.ProducerUserId,
 		        Target.RegulatorUserId = Source.RegulatorUserId,
-
-                Target.CompanyFileId = Source.CompanyFileId,         
-                Target.CompanyUploadFileName = Source.CompanyUploadFileName, 
-                Target.CompanyBlobName = Source.CompanyBlobName,
-                Target.BrandFileId = Source.BrandFileId,
-                Target.BrandUploadFileName  = Source.BrandUploadFileName,
-                Target.BrandBlobName = Source.BrandBlobName,
-                Target.PartnerUploadFileName = Source.PartnerUploadFileName,
-                Target.PartnerFileId = Source.PartnerFileId,
-                Target.PartnerBlobName = Source.PartnerBlobName,
-
-                Target.IsOnlineMarketPlace = Source.IsOnlineMarketPlace,
-                Target.NumberOfSubsidiaries = Source.NumberOfSubsidiaries,
-                Target.NumberOfSubsidiariesBeingOnlineMarketPlace = Source.NumberOfSubsidiariesBeingOnlineMarketPlace,
-
                 Target.load_ts = @loadTime
         WHEN NOT MATCHED BY TARGET THEN
             INSERT (
@@ -161,20 +132,6 @@ BEGIN
                 ResubmittedUserId,
                 ProducerUserId,
                 RegulatorUserId,
-                
-                CompanyFileId,         
-                CompanyUploadFileName, 
-                CompanyBlobName,
-                BrandFileId,
-                BrandUploadFileName,
-                BrandBlobName,
-                PartnerUploadFileName,
-                PartnerFileId,
-                PartnerBlobName,
-
-                IsOnlineMarketPlace,
-                NumberOfSubsidiaries,
-                NumberOfSubsidiariesBeingOnlineMarketPlace,
                 load_ts
             )
             VALUES (
@@ -213,21 +170,6 @@ BEGIN
                 Source.ResubmittedUserId,
                 Source.ProducerUserId,
                 Source.RegulatorUserId,
-
-                Source.CompanyFileId,         
-                Source.CompanyUploadFileName, 
-                Source.CompanyBlobName,
-                Source.BrandFileId,
-                Source.BrandUploadFileName,
-                Source.BrandBlobName,
-                Source.PartnerUploadFileName,
-                Source.PartnerFileId,
-                Source.PartnerBlobName,
-
-                Source.IsOnlineMarketPlace,
-                Source.NumberOfSubsidiaries,
-                Source.NumberOfSubsidiariesBeingOnlineMarketPlace,
-
                 @loadTime
             )
         WHEN NOT MATCHED BY SOURCE THEN
@@ -238,8 +180,3 @@ BEGIN
 END
 
 GO
-
-exec apps.sp_AggregateAndMergeOrgRegSummaries;
-GO
-select * from apps.OrgRegistrationsSummaries
-order by SubmissionId ASC;

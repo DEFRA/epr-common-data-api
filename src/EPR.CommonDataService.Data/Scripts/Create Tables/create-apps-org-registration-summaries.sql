@@ -36,21 +36,7 @@ BEGIN
 		ResubmittedUserId NVARCHAR(50) NULL,
 		ProducerUserId NVARCHAR(50) NULL,
 		RegulatorUserId NVARCHAR(50) NULL,
-
-		CompanyFileId   NVARCHAR(50) NULL,
-		CompanyUploadFileName NVARCHAR(255) NULL,
-		CompanyBlobName NVARCHAR(50) NULL,
-		BrandFileId NVARCHAR(50) NULL,
-		BrandUploadFileName NVARCHAR(255) NULL,
-		BrandBlobName NVARCHAR(50) NULL,
-		PartnerUploadFileName NVARCHAR(255) NULL,
-		PartnerFileId NVARCHAR(59) NULL,
-		PartnerBlobName NVARCHAR(50) NULL,
-
-		IsOnlineMarketPlace BIT NULL,
-		NumberOfSubsidiaries INT NULL,
-		NumberOfSubsidiariesBeingOnlineMarketPlace INT NULL,
-
+		
 		load_ts datetime2(7)
 	)
 	WITH
