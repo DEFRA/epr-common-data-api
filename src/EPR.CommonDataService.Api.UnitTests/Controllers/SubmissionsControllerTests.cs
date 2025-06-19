@@ -16,12 +16,14 @@ namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
-public class SubmissionsControllerTests
+public partial class SubmissionsControllerTests
 {
     private readonly Mock<ILogger<SubmissionsController>> _logger = new();
     private SubmissionsController _submissionsController = null!;
     private readonly Mock<ISubmissionsService> _mockSubmissionsService = new();
+    private readonly Mock<ILateFeeService> _mockLateFeeService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
+
     private Fixture _fixture = null!;
 
     [TestInitialize]
@@ -40,8 +42,7 @@ public class SubmissionsControllerTests
         var configurationMock = new Mock<IConfiguration>();
         configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
-        ////TODO:: Update with ILateFeeService
-        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, default, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
+        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _mockLateFeeService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {
