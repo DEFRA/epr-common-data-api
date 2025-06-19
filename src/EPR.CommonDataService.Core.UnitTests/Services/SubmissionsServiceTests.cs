@@ -24,6 +24,7 @@ public class SubmissionsServiceTests
     private SubmissionsService _sut = null!;
     private Fixture _fixture = null!;
     private Mock<IDatabaseTimeoutService> _databaseTimeoutService = null!;
+    private Mock<IDbContextFactory<SynapseContext>> _mockDbFactory = null!;
 
     [TestInitialize]
     public void Setup()
@@ -36,7 +37,17 @@ public class SubmissionsServiceTests
         var configurationMock = new Mock<IConfiguration>();
         configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
-        _sut = new SubmissionsService(_mockSynapseContext.Object, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
+        _mockDbFactory = new Mock<IDbContextFactory<SynapseContext>>();
+        
+        _mockDbFactory.Setup(c => c.CreateDbContext()).Returns(_mockSynapseContext.Object);
+        _mockDbFactory
+            .Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(_mockSynapseContext.Object);
+        _mockDbFactory
+            .Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(_mockSynapseContext.Object);
+
+        _sut = new SubmissionsService(_mockDbFactory.Object, /*_mockSynapseContext.Object, */_databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
     }
 
     [TestMethod]
@@ -650,10 +661,10 @@ public class SubmissionsServiceTests
 
         try
         {
-            using SynapseContext dbContext = new SynapseContext(options);
-            SubmissionsService svc = new(dbContext, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
+            //using SynapseContext dbContext = new SynapseContext(options);
+            //SubmissionsService svc = new(mockDb, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
 
-            var result = await svc.GetOrganisationRegistrationSubmissionSummaries(1, request);
+            var result = await _sut.GetOrganisationRegistrationSubmissionSummaries(1, request);
 
             result!.Items.Should().HaveCountGreaterThan(1);
         }
@@ -668,22 +679,22 @@ public class SubmissionsServiceTests
     //[TestMethod]
     public async Task GetOrganisationRegistrationDetails_RetrievesData_Correctly()
     {
-        var mockLogger = new Mock<ILogger<SubmissionsService>>();
-        var configurationMock = new Mock<IConfiguration>();
-        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+        //var mockLogger = new Mock<ILogger<SubmissionsService>>();
+        //var configurationMock = new Mock<IConfiguration>();
+        //configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
         var request = Guid.Parse("cf9b5bc0-e41a-47e3-bdbe-87388181f31c");
 
-        var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=localhost\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
-                        .LogTo(Console.WriteLine, LogLevel.Debug)
-                        .Options;
+        //var options = new DbContextOptionsBuilder<SynapseContext>().UseSqlServer(@"Server=localhost\MSSQLSERVER01;Initial Catalog=LocalSynapse;TrustServerCertificate=True;Trusted_Connection=true;Integrated Security=true;Pooling=False;")
+        //                .LogTo(Console.WriteLine, LogLevel.Debug)
+        //                .Options;
 
         try
         {
-            using SynapseContext dbContext = new(options);
-            SubmissionsService svc = new(dbContext, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
+            //using SynapseContext dbContext = new(options);
+            //SubmissionsService svc = new(dbContext, _databaseTimeoutService.Object, mockLogger.Object, configurationMock.Object);
 
-            var result = await svc.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = request });
+            var result = await _sut.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = request });
 
             result?.SubmissionId.Should().Be(request.ToString());
         }

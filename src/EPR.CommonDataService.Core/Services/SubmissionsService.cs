@@ -1,3 +1,4 @@
+using Azure.Core;
 using EPR.CommonDataService.Core.Extensions;
 using EPR.CommonDataService.Core.Models;
 using EPR.CommonDataService.Core.Models.Requests;
@@ -6,6 +7,8 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.SqlServer.Query.Internal;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -16,9 +19,10 @@ using System.Globalization;
 
 namespace EPR.CommonDataService.Core.Services;
 
-public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeoutService databaseTimeoutService, ILogger<SubmissionsService> logger, IConfiguration config) : ISubmissionsService
+public class SubmissionsService(IDbContextFactory<SynapseContext> dbFactory, /*SynapseContext _synapseContext, */IDatabaseTimeoutService databaseTimeoutService, ILogger<SubmissionsService> logger, IConfiguration config) : ISubmissionsService
 {
     private readonly string? _logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
+    private readonly SynapseContext _synapseContext = dbFactory.CreateDbContext();
 
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {
@@ -27,7 +31,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         var sqlParameters = request.ToProcParams();
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: query {Query} parameters {Parameters}", _logPrefix, sql, JsonConvert.SerializeObject(sqlParameters));
 
-        var response = await accountsDbContext.RunSqlAsync<PomSubmissionSummaryRow>(sql, sqlParameters);
+        var response = await _synapseContext.RunSqlAsync<PomSubmissionSummaryRow>(sql, sqlParameters);
         var itemsCount = response.FirstOrDefault()?.TotalItems ?? 0;
         var paginatedResponse = response.ToPaginatedResponse<PomSubmissionSummaryRow, T, PomSubmissionSummary>(request, itemsCount);
 
@@ -40,7 +44,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         var sqlParameters = request.ToProcParams();
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionRegistrationSummaries: query {Query} parameters {Parameters}", _logPrefix, sql, JsonConvert.SerializeObject(sqlParameters));
 
-        var response = await accountsDbContext.RunSqlAsync<RegistrationsSubmissionSummaryRow>(sql, sqlParameters);
+        var response = await _synapseContext.RunSqlAsync<RegistrationsSubmissionSummaryRow>(sql, sqlParameters);
         var itemsCount = response.FirstOrDefault()?.TotalItems ?? 0;
         var paginatedResponse = response.ToPaginatedResponse<RegistrationsSubmissionSummaryRow, T, RegistrationSubmissionSummary>(request, itemsCount);
 
@@ -58,8 +62,8 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
-            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+            databaseTimeoutService.SetCommandTimeout(_synapseContext, 120);
+            var paginatedResponse = await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
                 new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
@@ -92,7 +96,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         try
         {
             ///databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
-            var dataset = await accountsDbContext.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(sql, sqlParameters);
+            var dataset = await _synapseContext.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(sql, sqlParameters);
             var itemsCount = dataset.FirstOrDefault()?.TotalItems ?? 0;
 
             return dataset.ToCalculatedPaginatedResponse<OrganisationRegistrationSummaryDataRow, OrganisationRegistrationSummaryDto>(filter, itemsCount);
@@ -117,8 +121,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            //databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
-            var dbSet = await accountsDbContext.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await _synapseContext.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
 
             return dbSet.FirstOrDefault();
         }
@@ -132,6 +135,93 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get GetOrganisationRegistrationSubmissionDetails: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new DataException("An exception occurred when executing query.", ex);
         }
+    }
+
+    public async Task<OrganisationRegistrationDetailsDto?> GetOrgRegistrationSubmissionDetails_WithSeparatedCSO(OrganisationRegistrationDetailRequest request)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetOrgRegistrationSubmissionDetails_WithSeparatedCSO: Get OrganisationRegistrationSubmissionDetails for given request {Request}", _logPrefix, JsonConvert.SerializeObject(request));
+        var sql1 = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub_nocso";
+        var sql2 = "dbo.sp_FetchOrganisationRegistrationCSMemberDetails";
+
+        var sqlParameters1 = request.ToProcParams();
+        var sqlParameters2 = request.ToProcParams();
+
+        sqlParameters2 = [.. sqlParameters2.Append(new SqlParameter("@ForProducer", false))];
+
+        try
+        {
+            var ctx1 = await dbFactory.CreateDbContextAsync();
+            var ctx2 = await dbFactory.CreateDbContextAsync();
+            // 1) Kick off both SP calls in parallel
+            var detailsTask = ctx1
+                .RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql1, logger, _logPrefix, sqlParameters1);
+
+            var csoTask = ctx2
+                .RunSpCommandAsync<OrganisationRegistrationCSODetailsDto>(sql2, logger, _logPrefix, sqlParameters2);
+
+            // 2) As soon as csoTask completes, start GenerateCSOJson on its result
+            var jsonTask = csoTask.ContinueWith(
+                t => GenerateCSOJson(t.Result),
+                TaskContinuationOptions.OnlyOnRanToCompletion);
+
+            // 3) Await both the details and the JSON generation
+            await Task.WhenAll(detailsTask, jsonTask);
+
+            // 4) Bundle results
+            var details = detailsTask.Result;
+            var dto = details.FirstOrDefault();
+            if (dto != null)
+            {
+                dto.CSOJson = jsonTask.Result;
+            }
+
+            return dto;
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrgRegistrationSubmissionDetails_WithSeparatedCSO: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrgRegistrationSubmissionDetails_WithSeparatedCSO: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrgRegistrationSubmissionDetails_WithSeparatedCSO: An error occurred - {Ex}", _logPrefix, ex.Message);
+            throw new DataException($"An exception occurred when processing tasks. {ex.Message}", ex);
+        }
+    }
+
+    public static string GenerateCSOJson(IList<OrganisationRegistrationCSODetailsDto> csos)
+    {
+        if (csos == null || !csos.Any())
+        {
+            return "[]";
+        }
+
+        var shaped = csos.Select(c => new CSOMemberType
+        {
+            MemberId = c.ReferenceNumber.ToString(),
+            MemberType = c.ProducerSize,
+            IsOnlineMarketPlace = c.IsOnlineMarketPlace,
+            NumberOfSubsidiaries = c.NumberOfSubsidiaries,
+            NumberOfSubsidiariesOnlineMarketPlace = c.NumberOfSubsidiariesBeingOnlineMarketPlace,
+            RelevantYear = c.RelevantYear,
+            SubmittedDate = c.SubmittedDate,
+            IsLateFeeApplicable = c.IsLateFeeApplicable,
+            SubmissionPeriodDescription = c.SubmissionPeriod
+        }).ToList();
+
+        return JsonConvert.SerializeObject(
+            shaped,
+            new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                DateFormatString = "yyyy-MM-ddTHH:mm:ss.fffZ"
+            }
+        );
     }
 
     public async Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
@@ -153,7 +243,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            var dbSet = await accountsDbContext.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await _synapseContext.RunSpCommandAsync<PomResubmissionPaycalParametersDto>(sql, logger, _logPrefix, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get GetResubmissionPaycalParameters Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
 
             return dbSet.FirstOrDefault();
@@ -189,7 +279,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            var dbSet = await accountsDbContext.RunSpCommandAsync<CosmosSyncInfo>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await _synapseContext.RunSpCommandAsync<CosmosSyncInfo>(sql, logger, _logPrefix, sqlParameters);
             logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get GetResubmissionPaycalParameters Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
 
             if (dbSet.Count > 0)

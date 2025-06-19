@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Newtonsoft.Json;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -681,5 +682,53 @@ public class SubmissionsControllerTests
         // Assert
         result.Result.Should().BeOfType<ObjectResult>()
             .Which.StatusCode.Should().Be(500);
+    }
+
+    [TestMethod]
+    public void GenerateCSOJSon_Should_MapValues_When_Provided()
+    {
+        var subDate = "2025-02-21T16:44:25.313";
+        var csoDtoList = new List<OrganisationRegistrationCSODetailsDto>
+        {
+            new OrganisationRegistrationCSODetailsDto()
+            {
+                CSOOrgName = "Test CSO Org",
+                CSOReference = "CSO123",
+                IsLateFeeApplicable = false,
+                IsOnlineMarketPlace = true,
+                JoinerDate = DateTime.UtcNow.ToString("o"),
+                LeaverCode = "None",
+                LeaverDate = null,
+                MemberName = "Test Member",
+                NumberOfSubsidiaries = 5,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 2,
+                OrganisationChangeReason = "No Change",
+                ProducerSize = "Large",
+                ReferenceNumber = "REF123",
+                SubmissionPeriod = "January to December 2025",
+                SubmittedDate = subDate,
+                RelevantYear = 2025
+            }
+        };
+
+        var result = SubmissionsService.GenerateCSOJson(csoDtoList);
+
+        result.Should().NotBeNull();
+        result.Length.Should().BeGreaterThan(1);
+        var members = JsonConvert.DeserializeObject<List<CSOMemberType>>(result);
+
+        members.Count.Should().Be(1);
+        var member = members[0];
+        member.Should().NotBeNull();
+
+        member.IsLateFeeApplicable.Should().Be(false);
+        member.NumberOfSubsidiaries.Should().Be(5);
+        member.NumberOfSubsidiariesOnlineMarketPlace.Should().Be(2);
+        member.IsOnlineMarketPlace.Should().BeTrue();
+        member.MemberId.Should().Be("REF123");
+        member.RelevantYear.Should().Be(2025);
+        member.SubmittedDate.Should().Be(subDate);
+        member.MemberType.Should().Be("Large");
+        member.SubmissionPeriodDescription.Should().Be("January to December 2025");
     }
 }
