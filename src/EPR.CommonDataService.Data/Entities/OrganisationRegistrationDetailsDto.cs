@@ -38,6 +38,7 @@ namespace EPR.CommonDataService.Data.Entities
         public string RegulatorComment { get; set; }
         public string ProducerComment { get; set; }
         public string RegulatorDecisionDate { get; set; }
+        public string RegulatorResubmissionDecisionDate { get; set; }
         public Guid? RegulatorUserId { get; set; }
 
         // organisation details
