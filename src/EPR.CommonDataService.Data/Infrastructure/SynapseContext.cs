@@ -249,7 +249,6 @@ public class SynapseContext : DbContext
             if (connection.State == ConnectionState.Open)
             {
                 var command = CreateCommand(connection, storedProcName, parameters);
-                command.CommandTimeout = Database.GetCommandTimeout() ?? 120;
 
                 var readerResult = await command.ExecuteReaderAsync();
                 var result = await PopulateDto<TEntity>(readerResult, logger, logPrefix);
