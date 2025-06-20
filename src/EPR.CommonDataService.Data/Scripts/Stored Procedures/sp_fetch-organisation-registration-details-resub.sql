@@ -1,11 +1,12 @@
-﻿IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
+﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 24/04/2025 10:26:16 ******/
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
 
 BEGIN
-SET NOCOUNT ON;
+	SET NOCOUNT ON;
 
 	DECLARE @OrganisationIDForSubmission INT;
 	DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
@@ -14,6 +15,7 @@ SET NOCOUNT ON;
 	DECLARE @ComplianceSchemeId nvarchar(50);
 	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
+    DECLARE @LateFeeCutoffDate DATE; 
 
     SELECT
         @OrganisationIDForSubmission = O.Id 
@@ -27,6 +29,12 @@ SET NOCOUNT ON;
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
+
+	SET @LateFeeCutoffDate = DATEFROMPARTS(CONVERT( int, SUBSTRING(
+                                @SubmissionPeriod,
+                                PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
+                                4
+                            )),4, 1);
 
     WITH
 		SubmissionEventsCTE as (
@@ -140,6 +148,12 @@ SET NOCOUNT ON;
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
 			ORDER BY RowNum asc
 		)
+		,FirstSubmissionCTE AS (
+			SELECT TOP 1 *
+			FROM ReconciledSubmissionEvents
+			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
+			ORDER BY RowNum desc
+		)
 		,InitialDecisionCTE AS (
 			SELECT TOP 1 *
 			FROM ReconciledSubmissionEvents
@@ -180,22 +194,19 @@ SET NOCOUNT ON;
 				,s.SubmissionEventId
 				,s.Comment as SubmissionComment
 				,s.DecisionDate as SubmissionDate
+				,fs.DecisionDate as FirstSubmissionDate
 				,CAST(
                     CASE
-                        WHEN s.DecisionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
-                                        @SubmissionPeriod,
-                                        PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
-                                        4
-                                    )),4,1) THEN 1
+                        WHEN fs.DecisionDate > @LateFeeCutoffDate THEN 1
                         ELSE 0
                     END AS BIT
                 ) AS IsLateSubmission
 				,s.FileId as SubmittedFileId
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
-				
-				,COALESCE(reg.DecisionDate, id.DecisionDate) AS RegistrationDecisionDate
+				,COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) as RegulatorDecisionDate
+				,reg.DecisionDate AS RegistrationDecisionDate
 				,id.StatusPendingDate
-				,COALESCE(reg.SubmissionEventId, ld.SubmissionEventId, id.SubmissionEventId) AS RegistrationDecisionEventId
+				,reg.SubmissionEventId AS RegistrationDecisionEventId
 
 				,CASE
 					WHEN r.SubmissionEventId IS NOT NULL AND rd.SubmissionEventId IS NOT NULL THEN rd.ResubmissionStatus
@@ -216,6 +227,7 @@ SET NOCOUNT ON;
 
 				,reg.RegistrationReferenceNumber
 			FROM InitialSubmissionCTE s
+			LEFT JOIN FirstSubmissionCTE fs on fs.SubmissionId = s.SubmissionId
 			LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
 			LEFT JOIN LatestDecisionCTE ld ON ld.SubmissionId = s.SubmissionId
 			LEFT JOIN RegistrationDecisionCTE reg on reg.SubmissionId = s.SubmissionId
@@ -223,7 +235,7 @@ SET NOCOUNT ON;
 			LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 			order by resubmissiondecisiondate desc
 		)
-		,SubmittedCTE as (
+	,SubmittedCTE as (
 			SELECT SubmissionId, 
 					SubmissionEventId, 
 					SubmissionComment, 
@@ -248,18 +260,35 @@ SET NOCOUNT ON;
 			ON P.SubmissionId = S.SubmissionId
 		)
 		,UploadedDataForOrganisationCTE as (
-			select *, Row_Number() over (partition by UploadingOrgExternalId, SubmissionPeriod, ComplianceSchemeId order by UploadDate desc) as UpSeq
+			select distinct org.*
 			FROM
-				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org 
+				[dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org
+				inner join SubmissionStatusCTE ss on ss.FileId = org.CompanyFileId
 			WHERE org.UploadingOrgExternalId = @OrganisationUUIDForSubmission
 				and org.SubmissionPeriod = @SubmissionPeriod
-				and @ComplianceSchemeId IS NULL OR org.ComplianceSchemeId = @ComplianceSchemeId
+				and (@ComplianceSchemeId IS NULL OR org.ComplianceSchemeId = @ComplianceSchemeId)
+				and (org.CompanyFileId IN (SELECT FileId from SubmissionStatusCTE))
 		)
 		,UploadedViewCTE as (
-			select * from (
-				select *, Row_Number() over (order by UpSeq asc) as RowNum
-				FROM
-					UploadedDataForOrganisationCTE org 
+			select distinct
+				org.UploadingOrgName
+				,org.UploadingOrgExternalId
+				,CASE WHEN org.IsComplianceScheme = 1 THEN NULL
+					  ELSE org.OrganisationSize
+				 END as OrganisationSize
+				,org.NationCode
+				,org.IsComplianceScheme
+				,org.CompanyFileId
+				,org.CompanyUploadFileName
+				,org.CompanyBlobName
+				,org.BrandFileId
+				,org.BrandUploadFileName
+				,org.BrandBlobName
+				,org.PartnerUploadFileName
+				,org.PartnerFileId
+				,org.PartnerBlobName
+			FROM
+				UploadedDataForOrganisationCTE org 
 				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
 			) uploadeddata where RowNum = 1
 		)
@@ -278,15 +307,14 @@ SET NOCOUNT ON;
 				,OnlineMarketPlaceSubsidiaries
 				FROM
 					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
-				inner join UploadedViewCTE udc on udc.CompanyFileName = ppp.FileName
-			WHERE ppp.OrganisationExternalId = @OrganisationUUIDForSubmission
+				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
 		)
 		,SubmissionDetails AS (
 		    select a.* FROM (
 				SELECT
 					s.SubmissionId
 					,o.Name AS OrganisationName
-					,org.UploadOrgName as UploadedOrganisationName
+					,org.UploadingOrgName as UploadedOrganisationName
 					,o.ReferenceNumber as OrganisationReferenceNumber
 					,org.UploadingOrgExternalId as OrganisationId
 					,SubmittedCTE.SubmissionDate as SubmittedDateTime
@@ -337,7 +365,8 @@ SET NOCOUNT ON;
 					 END AS NationCode
 					,ss.RegulatorUserId
 					,ss.ResubmissionEventId
-					,GREATEST(ss.RegistrationDecisionDate,ss.ResubmissionDecisionDate) as RegulatorDecisionDate
+					,GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) as RegulatorDecisionDate
+					,ss.ResubmissionDecisionDate as RegulatorResubmissionDecisionDate
 					,CASE WHEN ss.SubmissionStatus = 'Cancelled' 
 						  THEN ss.StatusPendingDate
 						  ELSE null
@@ -350,21 +379,12 @@ SET NOCOUNT ON;
 							4
 						) AS INT
 					) AS RelevantYear
-					,CAST(
-						CASE
-							WHEN SubmittedCTE.SubmissionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
-											s.SubmissionPeriod,
-											PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
-											4
-										)),4,1) THEN 1
-							ELSE 0
-						END AS BIT
-					) AS IsLateSubmission
+					,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
 					,CASE UPPER(TRIM(org.organisationsize))
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'
 					 END as ProducerSize
-					,org.IsComplianceScheme
+					,CONVERT(bit, org.IsComplianceScheme) as IsComplianceScheme
 					,CASE 
 						WHEN org.IsComplianceScheme = 1 THEN 'Compliance'
 						WHEN UPPER(TRIM(org.organisationsize)) = 'S' THEN 'Small'
@@ -404,13 +424,20 @@ SET NOCOUNT ON;
 			WHERE a.RowNum = 1
 		)
 		,ComplianceSchemeMembersCTE as (
-			select *
+			select csm.*
 				   ,ss.SubmissionDate as SubmittedOn
 				   ,ss.IsLateSubmission
 				   ,ss.FileId as SubmittedFileId
+				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
+						 WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
 						 WHEN csm.joiner_date is null THEN 1
+						 ELSE 0 END
+					AS IsOriginal
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 0
 						 WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate THEN 0
+					     WHEN ( csm.SubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
+					     WHEN ( csm.SubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
+					END as IsNewJoiner
 			from dbo.v_ComplianceSchemeMembers_resub csm
 				,SubmissionStatusCTE ss
 			where @IsComplianceScheme = 1
@@ -428,22 +455,27 @@ SET NOCOUNT ON;
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,csm.IsLateFeeApplicable
+				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
 					  ELSE csm.IsLateSubmission END 
 			     AS IsLateFeeApplicable
+				,csm.OrganisationName
+				,csm.leaver_code
+				,csm.leaver_date
+				,csm.joiner_date
+				,csm.organisation_change_reason
 				,ppp.IsOnlineMarketPlace
 				,ppp.NumberOfSubsidiaries
 				,ppp.OnlineMarketPlaceSubsidiaries as NumberOfSubsidiariesBeingOnlineMarketPlace
 				,csm.submissionperiod
             FROM
-                dbo.v_ComplianceSchemeMembers csm
-                INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
+				ComplianceSchemeMembersCTE csm
+				INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
                 AND csm.SubmissionPeriod = @SubmissionPeriod
 				AND csm.ComplianceSchemeId = @ComplianceSchemeId
         ) 
-		,JsonifiedCompliancePaycalCTE
+	   ,JsonifiedCompliancePaycalCTE
         AS
         (
             SELECT
@@ -490,7 +522,7 @@ SET NOCOUNT ON;
 		,r.ResubmissionFileId
 		,r.SubmissionPeriod
         ,r.RelevantYear
-        ,r.IsComplianceScheme
+        ,CONVERT(bit, r.IsComplianceScheme) as IsComplianceScheme
         ,r.ProducerSize AS OrganisationSize
         ,r.OrganisationType
         ,r.NationId
@@ -498,6 +530,7 @@ SET NOCOUNT ON;
         ,r.RegulatorComment
         ,r.ProducerComment
         ,r.RegulatorDecisionDate
+		,r.RegulatorResubmissionDecisionDate
         ,r.RegulatorUserId
         ,o.CompaniesHouseNumber
         ,o.BuildingName
