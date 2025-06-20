@@ -321,7 +321,7 @@ public class SubmissionsControllerTests
     {
         Guid? request = null;
 
-        IActionResult result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request);
+        IActionResult? result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request);
 
         result.Should().BeNull();
         //var properResult = result as ObjectResult;
@@ -356,7 +356,7 @@ public class SubmissionsControllerTests
 
         _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<TimeoutException>();
 
-        IActionResult result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        IActionResult? result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
         result.Should().BeNull();
         //var properResult = result as ObjectResult;
@@ -371,7 +371,7 @@ public class SubmissionsControllerTests
 
         _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<Exception>();
 
-        IActionResult result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        IActionResult? result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
         result.Should().BeNull();
 
         //var properResult = result as ObjectResult;
@@ -392,7 +392,7 @@ public class SubmissionsControllerTests
         };
 
         _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).ReturnsAsync(innerResult);
-        IActionResult result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        IActionResult? result = null;// await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
 
         result.Should().BeNull();
         //var properResult = result as OkObjectResult;
