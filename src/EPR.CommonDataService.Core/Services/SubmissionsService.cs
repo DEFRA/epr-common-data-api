@@ -58,6 +58,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
             var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
@@ -110,7 +111,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     public async Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails for given request {Request}", _logPrefix, JsonConvert.SerializeObject(request));
-        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub";
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub_withdelay";
         var sqlParameters = request.ToProcParams();
 
         try
