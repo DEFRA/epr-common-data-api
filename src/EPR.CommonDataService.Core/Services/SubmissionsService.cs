@@ -62,7 +62,6 @@ public class SubmissionsService(IDbContextFactory<SynapseContext> dbFactory, /*S
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(_synapseContext, 120);
             var paginatedResponse = await _synapseContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
@@ -95,7 +94,6 @@ public class SubmissionsService(IDbContextFactory<SynapseContext> dbFactory, /*S
 
         try
         {
-            ///databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
             var dataset = await _synapseContext.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(sql, sqlParameters);
             var itemsCount = dataset.FirstOrDefault()?.TotalItems ?? 0;
 
