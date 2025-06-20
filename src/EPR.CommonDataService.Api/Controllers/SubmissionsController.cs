@@ -344,10 +344,14 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         [FromQuery] IDictionary<string, string> queryParams)
     {
         var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedQueryParams = queryParams?.ToDictionary(
+           kvp => kvp.Key.Replace("\r", string.Empty).Replace("\n", string.Empty),
+           kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
+
         logger.LogInformation(
             "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params" +
             "/{SubmissionId}?queryParams={QueryParams}'",
-            _logPrefix, sanitisedSubmissionId, queryParams);
+            _logPrefix, sanitisedSubmissionId, sanitisedQueryParams);
 
         try
         {

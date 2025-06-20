@@ -13,8 +13,9 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
     public IList<PaycalParametersResponse> UpdateLateFeeFlag(IDictionary<string, string> queryParams, IList<PaycalParametersResponse> paycalParametersResponses)
     {
         var queryParamsString = JsonConvert.SerializeObject(queryParams);
+        var sanitizedQueryParamsString = queryParamsString.Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation("{Logprefix}: LateFeeService - UpdateLateFeeFlag for the given request {QueryParams} & {PaycalParametersResponses}",
-            _logPrefix, queryParamsString, JsonConvert.SerializeObject(paycalParametersResponses));
+            _logPrefix, sanitizedQueryParamsString, JsonConvert.SerializeObject(paycalParametersResponses));
 
         var lateFeeSettingsRequest = JsonConvert.DeserializeObject<LateFeeSettingsRequest>(queryParamsString);
         foreach (var item in paycalParametersResponses)
