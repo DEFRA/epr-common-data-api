@@ -18,7 +18,7 @@ namespace EPR.CommonDataService.Core.UnitTests.Services;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
-public class SubmissionsServiceTests
+public partial class SubmissionsServiceTests
 {
     private Mock<SynapseContext> _mockSynapseContext = null!;
     private SubmissionsService _sut = null!;

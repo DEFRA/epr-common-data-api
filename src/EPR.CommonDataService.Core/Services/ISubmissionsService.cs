@@ -24,5 +24,5 @@ public interface ISubmissionsService
 
     Task<SubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid submissionId);
 
-    Task<SubmissionStatusResponse> GetOrganisationRegistrationSubmissionStatusPartAsync(Guid submissionId);
+    ////Task<SubmissionStatusResponse> GetOrganisationRegistrationSubmissionStatusPartAsync(Guid submissionId);
 }

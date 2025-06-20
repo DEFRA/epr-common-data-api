@@ -270,32 +270,32 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         }
     }
 
-    public async Task<SubmissionStatusResponse> GetOrganisationRegistrationSubmissionStatusPartAsync(Guid submissionId)
-    {
-        logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
-        var sql = "TODO::<ADD THE BACK END SP>";
-        var sqlParameters = new List<SqlParameter>();
-        var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
-        {
-            Value = submissionId.ToString("D")
-        };
-        sqlParameters.Add(sqlParameter);
+    ////public async Task<SubmissionStatusResponse> GetOrganisationRegistrationSubmissionStatusPartAsync(Guid submissionId)
+    ////{
+    ////    logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
+    ////    var sql = "TODO::<ADD THE BACK END SP>";
+    ////    var sqlParameters = new List<SqlParameter>();
+    ////    var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
+    ////    {
+    ////        Value = submissionId.ToString("D")
+    ////    };
+    ////    sqlParameters.Add(sqlParameter);
 
-        try
-        {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionStatusResponse>(sql, logger, _logPrefix, [..sqlParameters]);
-            return dbSet[0];
-        }
-        catch (SqlException ex) when (ex.Number == -2)
-        {
-            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
-            throw new TimeoutException("The request timed out while accessing the database.", ex);
-        }
-        catch (SqlException ex)
-        {
-            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync: Get GetOrganisationRegistrationSubmissionDetails: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
-            throw new DataException("An exception occurred when executing query.", ex);
-        }
-    }
+    ////    try
+    ////    {
+    ////        databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+    ////        var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionStatusResponse>(sql, logger, _logPrefix, [..sqlParameters]);
+    ////        return dbSet[0];
+    ////    }
+    ////    catch (SqlException ex) when (ex.Number == -2)
+    ////    {
+    ////        logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+    ////        throw new TimeoutException("The request timed out while accessing the database.", ex);
+    ////    }
+    ////    catch (SqlException ex)
+    ////    {
+    ////        logger.LogError(ex, "{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionStatusPartAsync: Get GetOrganisationRegistrationSubmissionDetails: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+    ////        throw new DataException("An exception occurred when executing query.", ex);
+    ////    }
+    ////}
 }
