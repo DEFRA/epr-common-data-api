@@ -57,5 +57,6 @@ public static class ServiceProviderExtensions
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
+        services.AddScoped<ILateFeeService, LateFeeService>();
     }
 }

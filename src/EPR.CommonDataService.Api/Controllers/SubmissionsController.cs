@@ -332,7 +332,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
     }
 
-    [HttpGet("organisation-registration-submission-paycal-params/{SubmissionId}")]
+    [HttpGet("organisation-registration-submission-paycal-params/{submissionId}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -340,7 +340,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetOrganisationRegistrationSubmissionPayCalParameters(
-        Guid submissionId,
+        [FromRoute] Guid submissionId,
         [FromQuery] IDictionary<string, string> queryParams)
     {
         var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
@@ -384,14 +384,14 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
     }
 
-    [HttpGet("organisation-registration-submission-details-part/{SubmissionId}")]
+    [HttpGet("organisation-registration-submission-details-part/{submissionId}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetailsPart(Guid submissionId)
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetailsPart([FromRoute]Guid submissionId)
     {
         var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation(
