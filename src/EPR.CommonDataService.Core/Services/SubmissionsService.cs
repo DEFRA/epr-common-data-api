@@ -216,18 +216,18 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetPaycalParametersAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
         var sql = "TODO::<ADD THE BACK END SP>";
-        var sqlParameters = new List<SqlParameter>();
-        var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
-        {
-            Value = submissionId.ToString("D")
-        };
-        sqlParameters.Add(sqlParameter);
+        SqlParameter[] sqlParameters =
+        [
+            new("@SubmissionId", SqlDbType.NVarChar,40)
+            {
+                Value = submissionId
+            }
+        ];
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSpCommandAsync<PaycalParametersResponse>(sql, logger, _logPrefix, [..sqlParameters]);
-            return dbSet;
+            var dbSet = await accountsDbContext.RunSpCommandAsync<PaycalParametersResponse>(sql, logger, _logPrefix, sqlParameters);            return dbSet;
         }
         catch (SqlException ex) when (ex.Number == -2)
         {
@@ -245,17 +245,18 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetailsPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
         var sql = "TODO::<ADD THE BACK END SP>";
-        var sqlParameters = new List<SqlParameter>();
-        var sqlParameter = new SqlParameter("@SubmissionId", SqlDbType.NVarChar, 40)
-        {
-            Value = submissionId.ToString("D")
-        };
-        sqlParameters.Add(sqlParameter);
+        SqlParameter[] sqlParameters =
+        [
+            new("@SubmissionId", SqlDbType.NVarChar,40)
+            {
+                Value = submissionId
+            }
+        ];
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionDetailsResponse>(sql, logger, _logPrefix, [..sqlParameters]);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionDetailsResponse>(sql, logger, _logPrefix, sqlParameters);
             return dbSet[0];
         }
         catch (SqlException ex) when (ex.Number == -2)

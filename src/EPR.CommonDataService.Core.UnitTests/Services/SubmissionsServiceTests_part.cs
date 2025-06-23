@@ -3,6 +3,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
 using Moq;
+using System.Data;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
 
@@ -29,6 +30,38 @@ public partial class SubmissionsServiceTests
     }
 
     [TestMethod]
+    public async Task GetPaycalParametersAsync_ThrowsTimeoutException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PaycalParametersResponse>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetPaycalParametersAsync(Guid.NewGuid()));
+    }
+
+    [TestMethod]
+    public async Task GetPaycalParametersAsync_ThrowsException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<PaycalParametersResponse>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-1));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetPaycalParametersAsync(Guid.NewGuid()));
+    }
+
+    [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetailsPartAsync_Calls_Stored_Procedure()
     {
         //Arrange
@@ -46,5 +79,37 @@ public partial class SubmissionsServiceTests
         //Assert
         result.Should().NotBeNull();
         result.As<SubmissionDetailsResponse>().Should().NotBeNull();
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionDetailsPartAsync_ThrowsTimeoutException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<SubmissionDetailsResponse>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid.NewGuid()));
+    }
+
+    [TestMethod]
+    public async Task GetOrganisationRegistrationSubmissionDetailsPartAsync_ThrowsException()
+    {
+        // Arrange
+        _mockSynapseContext
+            .Setup(db => db.RunSpCommandAsync<SubmissionDetailsResponse>(
+                It.IsAny<string>(),
+                It.IsAny<ILogger>(),
+                It.IsAny<string>(),
+                It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(BuildSqlException(-1));
+
+        // Act & Assert
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid.NewGuid()));
     }
 }
