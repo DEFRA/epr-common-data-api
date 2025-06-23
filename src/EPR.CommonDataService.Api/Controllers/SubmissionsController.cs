@@ -374,13 +374,11 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
         catch (TimeoutException ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
-            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionPayCalParameters","a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionPayCalParameters", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
         }
     }
 
@@ -419,13 +417,17 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
         catch (TimeoutException ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
-            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionDetailsPart", "a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
-            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionDetailsPart", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
         }
+    }
+
+    private ObjectResult LogAndReturn(Exception ex, string methodName, string exceptionType, int statusCode, string sanitisedSubmissionId)
+    {
+        logger.LogError(ex, "{LogPrefix}: SubmissionsController - {MethodName}: The SubmissionId caused {ExceptionType}. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, methodName, exceptionType, sanitisedSubmissionId, ex.Message);
+        return StatusCode(statusCode, ex.Message);
     }
 }
