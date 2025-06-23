@@ -51,7 +51,7 @@ public partial class SubmissionsControllerTests
              logger.Log(
                  LogLevel.Error,
                  It.IsAny<EventId>(),
-                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused a timeout exception.")),
+                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused a timeout exception.")),
                  It.IsAny<TimeoutException>(),
                  It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
              Times.Once);
@@ -78,7 +78,7 @@ public partial class SubmissionsControllerTests
              logger.Log(
                  LogLevel.Error,
                  It.IsAny<EventId>(),
-                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused an exception.")),
+                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: The SubmissionId caused an exception.")),
                  It.IsAny<Exception>(),
                  It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
              Times.Once);
@@ -126,7 +126,7 @@ public partial class SubmissionsControllerTests
     public async Task SubDetailsPart_Should_Log_And_Return_NoContent_When_Submission_IsNull()
     {
         // Arrange
-        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsPartAsync(It.IsAny<Guid>())).ReturnsAsync(default(SubmissionDetailsResponse));
+        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsPartAsync(It.IsAny<Guid>())).ReturnsAsync(default(SubmissionDetailsResponse)!);
 
         // Act
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetailsPart(Guid.NewGuid()) as NoContentResult;
@@ -138,7 +138,7 @@ public partial class SubmissionsControllerTests
               logger.Log(
                   LogLevel.Error,
                   It.IsAny<EventId>(),
-                  It.Is<It.IsAnyType>((v, t) => v.ToString().Contains("SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId provided did not return a submission.")),
+                  It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId provided did not return a submission.")),
                   It.IsAny<Exception>(),
                   It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
               Times.Once);
@@ -160,7 +160,7 @@ public partial class SubmissionsControllerTests
              logger.Log(
                  LogLevel.Error,
                  It.IsAny<EventId>(),
-                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused a timeout exception.")),
+                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused a timeout exception.")),
                  It.IsAny<TimeoutException>(),
                  It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
              Times.Once);
@@ -182,7 +182,7 @@ public partial class SubmissionsControllerTests
              logger.Log(
                  LogLevel.Error,
                  It.IsAny<EventId>(),
-                 It.Is<It.IsAnyType>((v, t) => v.ToString().Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused an exception.")),
+                 It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains(": SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId caused an exception.")),
                  It.IsAny<Exception>(),
                  It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
              Times.Once);
@@ -220,7 +220,7 @@ public partial class SubmissionsControllerTests
                logger.Log(
                    LogLevel.Error,
                    It.IsAny<EventId>(),
-                   It.Is<It.IsAnyType>((v, t) => v.ToString().Contains($": SubmissionsController - {loggingText}")),
+                   It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains($": SubmissionsController - {loggingText}")),
                    It.IsAny<Exception>(),
                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                Times.Once);

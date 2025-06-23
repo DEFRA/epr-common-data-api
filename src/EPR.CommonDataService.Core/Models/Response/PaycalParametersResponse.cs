@@ -29,7 +29,7 @@ public class PaycalParametersResponse
 
 public class ProducerDetailsResponse
 {
-    public string ProducerType { get; set; }
+    public string ProducerType { get; set; } = string.Empty;
 
     public int NoOfSubsidiariesOnlineMarketPlace { get; set; }
 
