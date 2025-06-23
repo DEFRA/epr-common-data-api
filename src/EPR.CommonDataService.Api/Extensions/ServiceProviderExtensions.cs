@@ -21,7 +21,10 @@ public static class ServiceProviderExtensions
 
     public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase")));
+        int timeoutInSeconds = configuration.GetValue<int?>("CommandTimeoutSeconds") ?? 4000;
+
+        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase"),
+                                                         sqloptions => sqloptions.CommandTimeout(timeoutInSeconds)));
         return services;
     }
 
