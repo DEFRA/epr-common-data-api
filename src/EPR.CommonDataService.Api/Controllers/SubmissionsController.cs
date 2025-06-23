@@ -155,8 +155,22 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         
         try
         {
-            Thread.Sleep(new TimeSpan(0, 30, 0));
-            return NoContent();
+            if (!SubmissionId.HasValue)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: Invalid SubmissionId provided; please make sure it's a valid Guid", _logPrefix);
+                ModelState.AddModelError(nameof(SubmissionId), "SubmissionId must be a valid Guid");
+                return ValidationProblem(ModelState);
+            }
+
+            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = SubmissionId.Value });
+
+            if (submissiondetails is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NoContent();
+            }
+
+            return Ok(submissiondetails);
         }
         catch (TimeoutException ex)
         {

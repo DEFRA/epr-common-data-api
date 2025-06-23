@@ -111,7 +111,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     public async Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails for given request {Request}", _logPrefix, JsonConvert.SerializeObject(request));
-        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub_withdelay";
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub";
         var sqlParameters = request.ToProcParams();
 
         try
