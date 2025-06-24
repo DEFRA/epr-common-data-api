@@ -64,8 +64,6 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.submissions', @cnt, @start_dt, getdate(), 'count-before',@batch_id;
 
-		truncate table apps.Submissions;
-
         -- Merge rpd.submissions into apps.submissions
         EXEC [apps].[sp_DynamicTableMerge]
             @sourceSchema = 'rpd',
