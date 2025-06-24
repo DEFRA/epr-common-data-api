@@ -235,7 +235,7 @@ public class SynapseContext : DbContext
 
     public virtual async Task<IList<TEntity>> RunSqlAsync<TEntity>(string sql, params object[] parameters) where TEntity : class
     {
-        int timeout = Database.GetCommandTimeout() ?? 4000;
+        int timeout = Database.GetCommandTimeout() ?? ManifestConstants.NOMINAL_MAX_CMD_TIMEOUT;
         Database.SetCommandTimeout(timeout);
         return await Set<TEntity>().FromSqlRaw(sql, parameters).AsAsyncEnumerable().ToListAsync();
     }
@@ -379,7 +379,7 @@ public class SynapseContext : DbContext
     private static DbCommand CreateCommand(DatabaseFacade database, DbConnection connection, string sql, SqlParameter[] parameters)
     {
         var command = connection.CreateCommand();
-        command.CommandTimeout = database.GetCommandTimeout() ?? 3600;
+        command.CommandTimeout = database.GetCommandTimeout() ?? ManifestConstants.NOMINAL_MAX_CMD_TIMEOUT;
 
         command.CommandText = sql;
         command.CommandType = CommandType.StoredProcedure;
