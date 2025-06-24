@@ -461,7 +461,7 @@ BEGIN
 				,csm.submissionperiod
             FROM
 				ComplianceSchemeMembersCTE csm
-				INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
+				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
             WHERE @IsComplianceScheme = 1
         ) 
