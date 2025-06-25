@@ -119,7 +119,7 @@ public class SubmissionsService(IDbContextFactory<SynapseContext> dbFactory, /*S
 
         try
         {
-            var dbSet = await _synapseContext.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
 
             return dbSet.FirstOrDefault();
         }
