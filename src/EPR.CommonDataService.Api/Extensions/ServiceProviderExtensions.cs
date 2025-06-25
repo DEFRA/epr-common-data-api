@@ -24,7 +24,7 @@ public static class ServiceProviderExtensions
     {
         int timeoutInSeconds = configuration.GetValue<int?>("CommandTimeoutSeconds") ?? ManifestConstants.NOMINAL_MAX_CMD_TIMEOUT;
 
-        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase"),
+        services.AddDbContextFactory<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase"),
                                                          sqloptions => sqloptions.CommandTimeout(timeoutInSeconds)));
         
         return services;
