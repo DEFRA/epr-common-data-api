@@ -22,7 +22,7 @@ RETURN (
 			FROM [rpd].[cosmos_file_metadata] c 
 				INNER JOIN rpd.organisations o ON c.organisationid = o.externalid
                 AND FileType = 'CompanyDetails'
-			AND (@OrganisationUUID IS NULL OR c.OrganisationId = @OrganisationUUID)
+			AND (@OrganisationUUID IS NULL OR o.ExternalId = @OrganisationUUID)
             AND 
                 (@SubmissionPeriod IS NULL OR c.SubmissionPeriod = @SubmissionPeriod)
             AND 
