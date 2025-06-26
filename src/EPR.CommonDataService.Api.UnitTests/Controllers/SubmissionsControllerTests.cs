@@ -16,12 +16,14 @@ namespace EPR.CommonDataService.Api.UnitTests.Controllers;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
-public class SubmissionsControllerTests
+public partial class SubmissionsControllerTests
 {
     private readonly Mock<ILogger<SubmissionsController>> _logger = new();
     private SubmissionsController _submissionsController = null!;
     private readonly Mock<ISubmissionsService> _mockSubmissionsService = new();
+    private readonly Mock<ILateFeeService> _mockLateFeeService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
+
     private Fixture _fixture = null!;
 
     [TestInitialize]
@@ -40,7 +42,7 @@ public class SubmissionsControllerTests
         var configurationMock = new Mock<IConfiguration>();
         configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
-        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
+        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _mockLateFeeService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -319,9 +321,12 @@ public class SubmissionsControllerTests
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetails_WhenSubmissionId_IsNull_Returns_ReturnsValidationProblem()
     {
-        Guid? request = null;
+        // Arrange
+        Guid? submissionId = null;
+        var lateFeeCutOffDay = 1;
+        var lateFeeCutOffMonth = 4;
 
-        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request);
+        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(submissionId, lateFeeCutOffDay, lateFeeCutOffMonth);
 
         var properResult = result as ObjectResult;
         properResult.Should().NotBeNull();
@@ -333,28 +338,53 @@ public class SubmissionsControllerTests
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetails_WillCall_ServiceServiceLayer()
     {
-        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
+        // Arrange
+        var request = new OrganisationRegistrationDetailRequest
+        {
+            SubmissionId = Guid.NewGuid(),
+            LateFeeCutOffDay = 1,
+            LateFeeCutOffMonth = 4
+        };
 
-        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Verifiable();
+        _mockSubmissionsService.Setup(x =>
+            x.GetOrganisationRegistrationSubmissionDetails(
+                It.IsAny<OrganisationRegistrationDetailRequest>()))
+            .Verifiable();
 
-        await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        // Act
+        await _submissionsController.GetOrganisationRegistrationSubmissionDetails(
+            request.SubmissionId,
+            request.LateFeeCutOffDay,
+            request.LateFeeCutOffMonth);
 
-        _mockSubmissionsService.Verify(
-                    x => x.GetOrganisationRegistrationSubmissionDetails(
-                        It.IsAny<OrganisationRegistrationDetailRequest>()
-                    ),
-                    Times.Once()
-                );
+        // Assert
+        _mockSubmissionsService.Verify(x =>
+            x.GetOrganisationRegistrationSubmissionDetails(
+                It.IsAny<OrganisationRegistrationDetailRequest>())
+            , Times.Once());
     }
 
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetails_WhenServiceThrowsTimeout_ReturnsGatewayTimeout()
     {
-        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
+        // Arrange
+        var request = new OrganisationRegistrationDetailRequest
+        {
+            SubmissionId = Guid.NewGuid(),
+            LateFeeCutOffDay = 1,
+            LateFeeCutOffMonth = 4
+        };
 
-        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<TimeoutException>();
+        _mockSubmissionsService.Setup(x =>
+            x.GetOrganisationRegistrationSubmissionDetails(
+                It.IsAny<OrganisationRegistrationDetailRequest>()))
+            .Throws<TimeoutException>();
 
-        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        // Act
+        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(
+            request.SubmissionId,
+            request.LateFeeCutOffDay,
+            request.LateFeeCutOffMonth);
 
         var properResult = result as ObjectResult;
         properResult.Should().NotBeNull();
@@ -364,11 +394,23 @@ public class SubmissionsControllerTests
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetails_WhenServiceThrowsException_Returns500Error()
     {
-        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
+        // Arrange
+        var request = new OrganisationRegistrationDetailRequest
+        {
+            SubmissionId = Guid.NewGuid(),
+            LateFeeCutOffDay = 1,
+            LateFeeCutOffMonth = 4
+        };
 
-        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).Throws<Exception>();
+        _mockSubmissionsService.Setup(x =>
+            x.GetOrganisationRegistrationSubmissionDetails(
+                It.IsAny<OrganisationRegistrationDetailRequest>()))
+            .Throws<Exception>();
 
-        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(
+            request.SubmissionId,
+            request.LateFeeCutOffDay,
+            request.LateFeeCutOffMonth);
 
         var properResult = result as ObjectResult;
         properResult.Should().NotBeNull();
@@ -378,17 +420,28 @@ public class SubmissionsControllerTests
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetails_WhenServiceReceivesResult_WillReturnOK()
     {
+        // Arrange
         OrganisationRegistrationDetailsDto? innerResult = new()
         {
             SubmissionId = Guid.NewGuid()
         };
+
         OrganisationRegistrationDetailRequest request = new()
         {
-            SubmissionId = Guid.NewGuid()
+            SubmissionId = Guid.NewGuid(),
+            LateFeeCutOffDay = 1,
+            LateFeeCutOffMonth = 4
         };
 
-        _mockSubmissionsService.Setup(x => x.GetOrganisationRegistrationSubmissionDetails(It.IsAny<OrganisationRegistrationDetailRequest>())).ReturnsAsync(innerResult);
-        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(request.SubmissionId);
+        _mockSubmissionsService.Setup(x =>
+            x.GetOrganisationRegistrationSubmissionDetails(
+                It.IsAny<OrganisationRegistrationDetailRequest>()))
+            .ReturnsAsync(innerResult);
+
+        var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetails(
+            request.SubmissionId,
+            request.LateFeeCutOffDay,
+            request.LateFeeCutOffMonth);
 
         var properResult = result as OkObjectResult;
         properResult.Should().NotBeNull();
