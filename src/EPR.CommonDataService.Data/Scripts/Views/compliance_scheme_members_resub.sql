@@ -5,7 +5,7 @@ WHERE object_id = OBJECT_ID(N'[dbo].[v_ComplianceSchemeMembers_resub]')
 ) DROP VIEW [dbo].[v_ComplianceSchemeMembers_resub];
 GO
 
-CREATE  VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS with base_data as 
+CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS with base_data as 
 (
 	select 
 		c.[OrganisationId] as CSOExternalId

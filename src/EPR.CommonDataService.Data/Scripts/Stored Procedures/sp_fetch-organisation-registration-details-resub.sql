@@ -298,7 +298,7 @@ BEGIN
 				,NumberOfSubsidiaries
 				,OnlineMarketPlaceSubsidiaries
 				FROM
-					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
+					[dbo].[t_ProducerPaycalParameters_resub] AS ppp
 				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
 		)
 		,SubmissionDetails AS (
