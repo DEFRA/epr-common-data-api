@@ -289,8 +289,7 @@ BEGIN
 				,org.PartnerBlobName
 			FROM
 				UploadedDataForOrganisationCTE org 
-				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)
-			) uploadeddata where RowNum = 1
+				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)			
 		)
 		,ProducerPaycalParametersCTE
 			AS
@@ -469,11 +468,9 @@ BEGIN
 				,csm.submissionperiod
             FROM
 				ComplianceSchemeMembersCTE csm
-				INNER JOIN dbo.v_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
+				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
-            WHERE @IsComplianceScheme = 1
-                AND csm.SubmissionPeriod = @SubmissionPeriod
-				AND csm.ComplianceSchemeId = @ComplianceSchemeId
+            WHERE @IsComplianceScheme = 1             
         ) 
 	   ,JsonifiedCompliancePaycalCTE
         AS
