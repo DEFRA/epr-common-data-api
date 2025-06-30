@@ -244,13 +244,12 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     public async Task<OrganisationRegistrationSubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsAsync(Guid submissionId)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetailsPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
-        ////TODO::UPDATE THE SP NAME
-        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_REFACTOR";
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_nopaycal";
         SqlParameter[] sqlParameters =
         [
-            new("@SubmissionId", SqlDbType.NVarChar,40)
+            new("@SubmissionId", SqlDbType.NVarChar, 36)
             {
-                Value = submissionId
+                Value = submissionId.ToString("D")
             }
         ];
 
