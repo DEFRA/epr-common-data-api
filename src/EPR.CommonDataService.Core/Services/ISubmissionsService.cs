@@ -22,5 +22,5 @@ public interface ISubmissionsService
 
     Task<IList<PaycalParametersResponse>> GetPaycalParametersAsync(Guid submissionId);
 
-    Task<SubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid submissionId);
+    Task<OrganisationRegistrationSubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsAsync(Guid submissionId);
 }

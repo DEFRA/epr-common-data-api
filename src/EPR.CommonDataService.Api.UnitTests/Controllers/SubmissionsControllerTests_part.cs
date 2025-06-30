@@ -126,7 +126,7 @@ public partial class SubmissionsControllerTests
     public async Task SubDetailsPart_Should_Log_And_Return_NoContent_When_Submission_IsNull()
     {
         // Arrange
-        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsPartAsync(It.IsAny<Guid>())).ReturnsAsync(default(SubmissionDetailsResponse)!);
+        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsAsync(It.IsAny<Guid>())).ReturnsAsync(default(OrganisationRegistrationSubmissionDetailsResponse)!);
 
         // Act
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetailsPart(Guid.NewGuid()) as NoContentResult;
@@ -148,7 +148,7 @@ public partial class SubmissionsControllerTests
     public async Task SubDetailsPart_Should_Log_And_Return_Status_On_Timeout_Exception()
     {
         // Arrange
-        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsPartAsync(It.IsAny<Guid>())).ThrowsAsync(new TimeoutException("Timeout"));
+        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsAsync(It.IsAny<Guid>())).ThrowsAsync(new TimeoutException("Timeout"));
 
         // Act
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetailsPart(Guid.NewGuid()) as ObjectResult;
@@ -170,7 +170,7 @@ public partial class SubmissionsControllerTests
     public async Task SubDetailsPart_Should_Log_And_Return_Status_On_Exception()
     {
         // Arrange
-        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsPartAsync(It.IsAny<Guid>())).ThrowsAsync(new Exception("Exception"));
+        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsAsync(It.IsAny<Guid>())).ThrowsAsync(new Exception("Exception"));
 
         // Act
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetailsPart(Guid.NewGuid()) as ObjectResult;
@@ -192,12 +192,12 @@ public partial class SubmissionsControllerTests
     public async Task SubDetailsPart_Should_Return_JsonResult_With_LateFee_Updated()
     {
         // Arrange
-        var response = new SubmissionDetailsResponse
+        var response = new OrganisationRegistrationSubmissionDetailsResponse
         {
             SubmissionId = Guid.NewGuid()
         };
 
-        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsPartAsync(It.IsAny<Guid>())).ReturnsAsync(response);
+        _mockSubmissionsService.Setup(r => r.GetOrganisationRegistrationSubmissionDetailsAsync(It.IsAny<Guid>())).ReturnsAsync(response);
 
         // Act
         var result = await _submissionsController.GetOrganisationRegistrationSubmissionDetailsPart(Guid.NewGuid()) as OkObjectResult;
@@ -205,7 +205,7 @@ public partial class SubmissionsControllerTests
         // Assert
         Assert.IsNotNull(result);
         result.Value.Should().NotBeNull();
-        result.Value.As<SubmissionDetailsResponse>().Should().NotBeNull();
+        result.Value.As<OrganisationRegistrationSubmissionDetailsResponse>().Should().NotBeNull();
     }
 
     private void AssertProblemDetails(ObjectResult? result, string errorKey, string errorValue, string loggingText)

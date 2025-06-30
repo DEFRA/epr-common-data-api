@@ -241,10 +241,11 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         }
     }
 
-    public async Task<SubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid submissionId)
+    public async Task<OrganisationRegistrationSubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsAsync(Guid submissionId)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetailsPartAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
-        var sql = "TODO::<ADD THE BACK END SP>";
+        ////TODO::UPDATE THE SP NAME
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_REFACTOR";
         SqlParameter[] sqlParameters =
         [
             new("@SubmissionId", SqlDbType.NVarChar,40)
@@ -256,7 +257,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSpCommandAsync<SubmissionDetailsResponse>(sql, logger, _logPrefix, sqlParameters);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<OrganisationRegistrationSubmissionDetailsResponse>(sql, logger, _logPrefix, sqlParameters);
             return dbSet[0];
         }
         catch (SqlException ex) when (ex.Number == -2)

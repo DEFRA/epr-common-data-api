@@ -62,31 +62,31 @@ public partial class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetOrganisationRegistrationSubmissionDetailsPartAsync_Calls_Stored_Procedure()
+    public async Task GetOrganisationRegistrationSubmissionDetailsAsync_Calls_Stored_Procedure()
     {
         //Arrange
         var paycalParametersResponse = _fixture
-            .Build<SubmissionDetailsResponse>()
+            .Build<OrganisationRegistrationSubmissionDetailsResponse>()
             .CreateMany(1).ToList();
 
         _mockSynapseContext
-            .Setup(x => x.RunSpCommandAsync<SubmissionDetailsResponse>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .Setup(x => x.RunSpCommandAsync<OrganisationRegistrationSubmissionDetailsResponse>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(paycalParametersResponse);
 
         //Act
-        var result = await _sut.GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid.NewGuid());
+        var result = await _sut.GetOrganisationRegistrationSubmissionDetailsAsync(Guid.NewGuid());
 
         //Assert
         result.Should().NotBeNull();
-        result.As<SubmissionDetailsResponse>().Should().NotBeNull();
+        result.As<OrganisationRegistrationSubmissionDetailsResponse>().Should().NotBeNull();
     }
 
     [TestMethod]
-    public async Task GetOrganisationRegistrationSubmissionDetailsPartAsync_ThrowsTimeoutException()
+    public async Task GetOrganisationRegistrationSubmissionDetailsAsync_ThrowsTimeoutException()
     {
         // Arrange
         _mockSynapseContext
-            .Setup(db => db.RunSpCommandAsync<SubmissionDetailsResponse>(
+            .Setup(db => db.RunSpCommandAsync<OrganisationRegistrationSubmissionDetailsResponse>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -94,15 +94,15 @@ public partial class SubmissionsServiceTests
             .ThrowsAsync(BuildSqlException(-2));
 
         // Act & Assert
-        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid.NewGuid()));
+        await Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetOrganisationRegistrationSubmissionDetailsAsync(Guid.NewGuid()));
     }
 
     [TestMethod]
-    public async Task GetOrganisationRegistrationSubmissionDetailsPartAsync_ThrowsException()
+    public async Task GetOrganisationRegistrationSubmissionDetailsAsync_ThrowsException()
     {
         // Arrange
         _mockSynapseContext
-            .Setup(db => db.RunSpCommandAsync<SubmissionDetailsResponse>(
+            .Setup(db => db.RunSpCommandAsync<OrganisationRegistrationSubmissionDetailsResponse>(
                 It.IsAny<string>(),
                 It.IsAny<ILogger>(),
                 It.IsAny<string>(),
@@ -110,6 +110,6 @@ public partial class SubmissionsServiceTests
             .ThrowsAsync(BuildSqlException(-1));
 
         // Act & Assert
-        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionDetailsPartAsync(Guid.NewGuid()));
+        await Assert.ThrowsExceptionAsync<DataException>(() => _sut.GetOrganisationRegistrationSubmissionDetailsAsync(Guid.NewGuid()));
     }
 }

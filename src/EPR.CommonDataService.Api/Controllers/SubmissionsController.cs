@@ -405,7 +405,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
                 return ValidationProblem(ModelState);
             }
 
-            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetailsPartAsync(submissionId);
+            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetailsAsync(submissionId);
 
             if (submissiondetails is null)
             {
