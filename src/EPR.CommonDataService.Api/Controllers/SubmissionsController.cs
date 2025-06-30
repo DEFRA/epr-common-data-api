@@ -382,7 +382,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
     }
 
-    [HttpGet("organisation-registration-submission-details-part/{submissionId}")]
+    [HttpGet("organisation-registration-submission-details/{submissionId}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -393,7 +393,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
     {
         var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation(
-            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-details-part/{SubmissionId}'",
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-details/{SubmissionId}'",
             _logPrefix, sanitisedSubmissionId);
 
         try
