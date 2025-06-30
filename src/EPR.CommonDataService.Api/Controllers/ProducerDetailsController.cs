@@ -1,5 +1,6 @@
 ﻿using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
+using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -15,7 +16,7 @@ public class ProducerDetailsController(
 {
     [HttpGet("get-updated-producers/", Name = nameof(GetUpdatedProducers))]
     [Produces("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<UpdatedProducersResponseModel>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> GetUpdatedProducers(DateTime from, DateTime to)

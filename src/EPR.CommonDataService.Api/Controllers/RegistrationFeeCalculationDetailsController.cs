@@ -1,5 +1,6 @@
 ﻿using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
+using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -15,7 +16,7 @@ public class RegistrationFeeCalculationDetailsController(
 {
     [HttpGet("get-registration-fee-calculation-details/{fileId:guid}", Name = nameof(GetRegistrationFeeCalculationDetails))]
     [Produces("application/json")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UpdatedProducersResponseModel[]), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     public async Task<IActionResult> GetRegistrationFeeCalculationDetails([FromRoute] Guid fileId)
