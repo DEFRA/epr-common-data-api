@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using Newtonsoft.Json;
+using System.Text.Json.Serialization;
 
 namespace EPR.CommonDataService.Core.Models.Response;
 
@@ -6,58 +7,56 @@ public class PaycalParametersResponse
 {
     public bool IsCso { get; set; }
 
+    public string SubmissionPeriod { get; set; } = string.Empty;
+
+    public int ReferenceNumber { get; set; }
+
+    public string ExternalId { get; set; } = string.Empty;
+
+    public string OrganisationName { get; set; } = string.Empty;
+
     public int RelevantYear { get; set; }
 
-    public string OrganisationSize { get; set; } = string.Empty;
+    public DateTime SubmittedDate { get; set; }
 
-    public string OrganisationType { get; set; } = string.Empty; 
+    public DateTime EarliestSubmissionDate { get; set; }
 
-    public bool IsLateFee { get; set; }
-
-    public DateTime FirstSubmittedDate { get; set; }
-
-    public DateTime? JoinerDate { get; set; }
-
-    public DateTime? LeaverDate { get; set; }
+    public char OrganisationSize { get; set; }
 
     public string? LeaverCode { get; set; }
 
-    public ProducerDetailsResponse? ProducerDetails { get; set; }
+    public DateTime? LeaverDate { get; set; }
 
-    public CsoMembershipDetailsResponse? CsoMembershipDetails { get; set; }
-}
+    public DateTime? JoinerDate { get; set; }
 
-public class ProducerDetailsResponse
-{
-    public string ProducerType { get; set; } = string.Empty;
+    public string OrganisationChangeReason { get; set; } = string.Empty; 
 
-    public int NoOfSubsidiariesOnlineMarketPlace { get; set; }
+    public bool IsOnlineMarketPlace { get; set; }
 
     public int NoOfSubsidiaries { get; set; }
 
-    public bool IsLateFeeApplicable { get; set; }
+    public int NoOfSubsidiariesBeingOnlineMarketPlace { get; set; }
+    
+    public Guid FileName { get; set; }
 
-    public bool IsProducerOnlineMarketplace { get; set; }
+    public Guid FileId { get; set; }
+
+    public bool IsLateFee { get; set; }    
 }
 
-public class CsoMembershipDetailsResponse
+public class ProducerPaycalParametersResponse : PaycalParametersResponse
+{    
+}
+
+public class CsoPaycalParametersResponse : PaycalParametersResponse
 {
-    public string MemberId { get; set; } = string.Empty;
-    
-    public string MemberType { get; set; } = string.Empty;
+    public string CsoReference { get; set; } = string.Empty;
 
-    public bool IsOnlineMarketPlace { get; set; }
-    
-    public bool IsLateFeeApplicable { get; set; }
-    
-    public int NumberOfSubsidiaries { get; set; }
+    public Guid CsoExternalId { get; set; }
 
-    [JsonPropertyName("NumberOfSubsidiariesOnlineMarketPlace")]
-    public int NoOfSubsidiariesOnlineMarketplace { get; set; }
-    
-    public int RelevantYear { get; set; }
-    
-    public DateTime SubmittedDate { get; set; }
-    
-    public string SubmissionPeriodDescription { get; set; } = string.Empty;
+    public Guid ComplianceSchemeId { get; set; }
+
+    public bool IsOriginal { get; set; }
+
+    public bool IsNewJoiner { get; set; }
 }

@@ -332,15 +332,16 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
     }
 
-    [HttpGet("organisation-registration-submission-paycal-params/{submissionId}")]
+    [HttpGet("organisation-registration-submission-paycal-params-producer/{submissionId}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetOrganisationRegistrationSubmissionPayCalParameters(
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionProducerPayCalParameters(
         [FromRoute] Guid submissionId,
+        [FromRoute] bool beforeProducerSubmits,
         [FromQuery] IDictionary<string, string> queryParams)
     {
         var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
@@ -349,7 +350,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
            kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
 
         logger.LogInformation(
-            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params" +
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params-producer" +
             "/{SubmissionId}?queryParams={QueryParams}'",
             _logPrefix, sanitisedSubmissionId, sanitisedQueryParams);
 
@@ -357,28 +358,79 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         {
             if (submissionId == Guid.Empty)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: Invalid SubmissionId provided", _logPrefix);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionProducerPayCalParameters: Invalid SubmissionId provided", _logPrefix);
                 ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
                 return ValidationProblem(ModelState);
             }
 
             if (queryParams is null)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionPayCalParameters: Invalid QueryParams provided", _logPrefix);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionProducerPayCalParameters: Invalid QueryParams provided", _logPrefix);
                 ModelState.AddModelError(nameof(queryParams), "Must have QueryParams");
                 return ValidationProblem(ModelState);
             }
 
-            var payCalParams = await submissionsService.GetPaycalParametersAsync(submissionId);
+            var payCalParams = await submissionsService.GetProducerPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
             return new JsonResult(lateFeeService.UpdateLateFeeFlag(queryParams, payCalParams));
         }
         catch (TimeoutException ex)
         {
-            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionPayCalParameters","a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionProducerPayCalParameters", "a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
         }
         catch (Exception ex)
         {
-            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionPayCalParameters", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionProducerPayCalParameters", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
+        }
+    }
+
+    [HttpGet("organisation-registration-submission-paycal-params-cso/{submissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionCsoPayCalParameters(
+        [FromRoute] Guid submissionId,
+        [FromRoute] bool beforeProducerSubmits,
+        [FromQuery] IDictionary<string, string> queryParams)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedQueryParams = queryParams?.ToDictionary(
+           kvp => kvp.Key.Replace("\r", string.Empty).Replace("\n", string.Empty),
+           kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
+
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params-cso" +
+            "/{SubmissionId}?queryParams={QueryParams}'",
+            _logPrefix, sanitisedSubmissionId, sanitisedQueryParams);
+
+        try
+        {
+            if (submissionId == Guid.Empty)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionCsoPayCalParameters: Invalid SubmissionId provided", _logPrefix);
+                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+                return ValidationProblem(ModelState);
+            }
+
+            if (queryParams is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionCsoPayCalParameters: Invalid QueryParams provided", _logPrefix);
+                ModelState.AddModelError(nameof(queryParams), "Must have QueryParams");
+                return ValidationProblem(ModelState);
+            }
+
+            var payCalParams = await submissionsService.GetCsoPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
+            return new JsonResult(lateFeeService.UpdateLateFeeFlag(queryParams, payCalParams));
+        }
+        catch (TimeoutException ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionCsoPayCalParameters", "a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
+        }
+        catch (Exception ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionCsoPayCalParameters", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
         }
     }
 

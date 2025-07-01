@@ -4,5 +4,7 @@ namespace EPR.CommonDataService.Core.Services;
 
 public interface ILateFeeService
 {
-    IList<PaycalParametersResponse> UpdateLateFeeFlag(IDictionary<string, string> queryParams, IList<PaycalParametersResponse> paycalParametersResponses);
+    ProducerPaycalParametersResponse UpdateLateFeeFlag(IDictionary<string, string> queryParams, ProducerPaycalParametersResponse producerPaycalParametersResponse);
+    
+    IList<CsoPaycalParametersResponse> UpdateLateFeeFlag(IDictionary<string, string> queryParams, IList<CsoPaycalParametersResponse> csoPaycalParametersResponses);
 }

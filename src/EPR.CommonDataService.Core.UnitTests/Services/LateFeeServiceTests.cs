@@ -25,7 +25,7 @@ public class LateFeeServiceTests
     public void UpdateLateFeeFlag_Should_Set_LateFee_To_False_When_RelevantYear_Is_Invalid()
     {
         // Arrange
-        var paycalParametersResponse = new List<PaycalParametersResponse>
+        var paycalParametersResponse = new List<CsoPaycalParametersResponse>
         {
             new() { RelevantYear = 2024 }
         };
@@ -46,7 +46,7 @@ public class LateFeeServiceTests
     [TestMethod]
     public void UpdateLateFeeFlag_Should_Set_LateFee_To_False_When_LateFeeSettings_Is_Null()
     {        
-        var paycalParametersResponse = new List<PaycalParametersResponse> 
+        var paycalParametersResponse = new List<CsoPaycalParametersResponse> 
         {
             new() { RelevantYear = 2025 }
         };
@@ -72,9 +72,9 @@ public class LateFeeServiceTests
             { "LateFeeCutOffDay_2025", "1" }
         };
         var firstSubmittedDate = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
-        var paycalParametersResponse = new List<PaycalParametersResponse>
+        var paycalParametersResponse = new List<CsoPaycalParametersResponse>
         {
-            new() { RelevantYear = 2025, FirstSubmittedDate = firstSubmittedDate }
+            new() { RelevantYear = 2025, EarliestSubmissionDate = firstSubmittedDate }
         };
 
         // Act
@@ -94,9 +94,9 @@ public class LateFeeServiceTests
             { "LateFeeCutOffMonth_SP", "10" },
             { "LateFeeCutOffDay_SP", "1" }
         };
-        var paycalParametersResponse = new List<PaycalParametersResponse>
+        var paycalParametersResponse = new List<CsoPaycalParametersResponse>
         {
-            new() { RelevantYear = 2026, FirstSubmittedDate = DateTime.UtcNow, OrganisationSize = "NONE" }
+            new() { RelevantYear = 2026, EarliestSubmissionDate = DateTime.UtcNow, OrganisationSize = 'N' }
         };
 
         // Act
@@ -108,17 +108,17 @@ public class LateFeeServiceTests
     }
 
     [TestMethod]
-    [DataRow(2026, 1, 1, true, "CS", 10, "Large")]
-    [DataRow(2025, 11, 1, true, "CS", 10, "Small")]
-    [DataRow(2025, 10, 2, true, "CS", 10, "Large")]
-    [DataRow(2026, 1, 1, false, "LP", 10, "LARGE")]
-    [DataRow(2025, 11, 1, false, "LP", 10, "LaRgE")]
-    [DataRow(2025, 10, 2, false, "LP", 10, "large")]
-    [DataRow(2027, 1, 1, false, "SP", 4, "SMALL")]
-    [DataRow(2025, 11, 1, false, "SP", 4, "SmAlL")]
-    [DataRow(2025, 10, 2, false, "SP", 4, "Small")]
+    [DataRow(2026, 1, 1, true, "CS", 10, 'L')]
+    [DataRow(2025, 11, 1, true, "CS", 10, 'S')]
+    [DataRow(2025, 10, 2, true, "CS", 10, 'L')]
+    [DataRow(2026, 1, 1, false, "LP", 10, 'L')]
+    [DataRow(2025, 11, 1, false, "LP", 10, 'L')]
+    [DataRow(2025, 10, 2, false, "LP", 10, 'L')]
+    [DataRow(2027, 1, 1, false, "SP", 4, 'S')]
+    [DataRow(2025, 11, 1, false, "SP", 4, 'S')]
+    [DataRow(2025, 10, 2, false, "SP", 4, 'S')]
     public void Should_Set_LateFee_To_True_When_RelYear_Is_Greater_Than_2025_But_Date_NotInRange(
-        int year, int month, int day, bool isCso, string type, int cutOffMonth, string orgSize)
+        int year, int month, int day, bool isCso, string type, int cutOffMonth, char orgSize)
     {
         // Arrange
         var request = new Dictionary<string, string>
@@ -127,9 +127,9 @@ public class LateFeeServiceTests
             { $"LateFeeCutOffDay_{type}", "1" }
         };
         var firstSubmittedDate = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
-        var paycalParametersResponse = new List<PaycalParametersResponse>
+        var paycalParametersResponse = new List<CsoPaycalParametersResponse>
         {
-            new() { RelevantYear = 2026, IsCso = isCso, FirstSubmittedDate = firstSubmittedDate, OrganisationSize = orgSize }
+            new() { RelevantYear = 2026, IsCso = isCso, EarliestSubmissionDate = firstSubmittedDate, OrganisationSize = orgSize }
         };
 
         // Act

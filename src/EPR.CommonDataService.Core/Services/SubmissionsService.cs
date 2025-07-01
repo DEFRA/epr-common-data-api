@@ -212,31 +212,77 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         }
     }
 
-    public async Task<IList<PaycalParametersResponse>> GetPaycalParametersAsync(Guid submissionId)
+    public async Task<ProducerPaycalParametersResponse> GetProducerPaycalParametersAsync(Guid submissionId, bool beforeProducerSubmits, Guid fileId)
     {
-        logger.LogInformation("{Logprefix}: SubmissionsService - GetPaycalParametersAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
-        var sql = "TODO::<ADD THE BACK END SP>";
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetProducerPaycalParametersAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmission_Paycal_Metadata";
         SqlParameter[] sqlParameters =
         [
-            new("@SubmissionId", SqlDbType.NVarChar,40)
+            new("@BeforeProducerSubmits", SqlDbType.Bit)
             {
-                Value = submissionId
+                Value = beforeProducerSubmits
+            },
+            new("@SubmissionId", SqlDbType.NVarChar, 50)
+            {
+                Value = submissionId.ToString("D")
+            },
+            new("@FileId", SqlDbType.NVarChar, 50)
+            {
+                Value = fileId == Guid.Empty ? null : fileId.ToString("D")
             }
         ];
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
-            var dbSet = await accountsDbContext.RunSpCommandAsync<PaycalParametersResponse>(sql, logger, _logPrefix, sqlParameters);            return dbSet;
+            var dbSet = await accountsDbContext.RunSpCommandAsync<ProducerPaycalParametersResponse>(sql, logger, _logPrefix, sqlParameters);
+            return dbSet[0];
         }
         catch (SqlException ex) when (ex.Number == -2)
         {
-            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetPaycalParametersAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetProducerPaycalParametersAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetProducerPaycalParametersAsync: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
+
+    public async Task<IList<CsoPaycalParametersResponse>> GetCsoPaycalParametersAsync(Guid submissionId, bool beforeProducerSubmits, Guid fileId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetCsoPaycalParametersAsync for given submission id {SubmissionId}", _logPrefix, JsonConvert.SerializeObject(submissionId));
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmission_Paycal_Metadata";
+        SqlParameter[] sqlParameters =
+        [
+            new("@BeforeProducerSubmits", SqlDbType.Bit)
+            {
+                Value = beforeProducerSubmits
+            },
+            new("@SubmissionId", SqlDbType.NVarChar, 50)
+            {
+                Value = submissionId.ToString("D")
+            },
+            new("@FileId", SqlDbType.NVarChar, 50)
+            {
+                Value = fileId.ToString("D")
+            }
+        ];
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
+            var dbSet = await accountsDbContext.RunSpCommandAsync<CsoPaycalParametersResponse>(sql, logger, _logPrefix, sqlParameters); return dbSet;
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetCsoPaycalParametersAsync: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new TimeoutException("The request timed out while accessing the database.", ex);
         }
         catch (SqlException ex)
         {
-            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetPaycalParametersAsync: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - GetCsoPaycalParametersAsync: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new DataException("An exception occurred when executing query.", ex);
         }
     }

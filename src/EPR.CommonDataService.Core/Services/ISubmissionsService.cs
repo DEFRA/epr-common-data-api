@@ -20,7 +20,9 @@ public interface ISubmissionsService
     
     Task<bool?> IsCosmosDataAvailable(string? sanitisedSubmissionId, string? sanitisedFileId);
 
-    Task<IList<PaycalParametersResponse>> GetPaycalParametersAsync(Guid submissionId);
+    Task<ProducerPaycalParametersResponse> GetProducerPaycalParametersAsync(Guid submissionId, bool beforeProducerSubmits, Guid fileId);
+
+    Task<IList<CsoPaycalParametersResponse>> GetCsoPaycalParametersAsync(Guid submissionId, bool beforeProducerSubmits, Guid fileId);
 
     Task<OrganisationRegistrationSubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsAsync(Guid submissionId);
 }

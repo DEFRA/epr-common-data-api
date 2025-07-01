@@ -10,20 +10,29 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
 {
     private readonly string? _logPrefix = string.IsNullOrWhiteSpace(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
 
-    public IList<PaycalParametersResponse> UpdateLateFeeFlag(IDictionary<string, string> queryParams, IList<PaycalParametersResponse> paycalParametersResponses)
+    public ProducerPaycalParametersResponse UpdateLateFeeFlag(IDictionary<string, string> queryParams, ProducerPaycalParametersResponse producerPaycalParametersResponse)
     {
-        var queryParamsString = JsonConvert.SerializeObject(queryParams);
-        var sanitizedQueryParamsString = queryParamsString.Replace("\r", string.Empty).Replace("\n", string.Empty);
-        logger.LogInformation("{Logprefix}: LateFeeService - UpdateLateFeeFlag for the given request {QueryParams} & {PaycalParametersResponses}",
-            _logPrefix, sanitizedQueryParamsString, JsonConvert.SerializeObject(paycalParametersResponses));
+        var lateFeeSettingsRequest = GetLateFeeSettingsRequest(queryParams, producerPaycalParametersResponse);
+        producerPaycalParametersResponse.IsLateFee = DetermineLateFee(producerPaycalParametersResponse, lateFeeSettingsRequest);
+        return producerPaycalParametersResponse;
+    }
 
-        var lateFeeSettingsRequest = JsonConvert.DeserializeObject<LateFeeSettingsRequest>(queryParamsString);
-        foreach (var item in paycalParametersResponses)
+    public IList<CsoPaycalParametersResponse> UpdateLateFeeFlag(IDictionary<string, string> queryParams, IList<CsoPaycalParametersResponse> csoPaycalParametersResponses)    {
+        var lateFeeSettingsRequest = GetLateFeeSettingsRequest(queryParams, csoPaycalParametersResponses);
+        foreach (var item in csoPaycalParametersResponses)
         {
             item.IsLateFee = DetermineLateFee(item, lateFeeSettingsRequest);
         }
+        return csoPaycalParametersResponses;
+    }
 
-        return paycalParametersResponses;
+    private LateFeeSettingsRequest? GetLateFeeSettingsRequest<T>(IDictionary<string, string> queryParams, T paycalParametersResponse)
+    {
+        var queryParamsString = JsonConvert.SerializeObject(queryParams);
+        var sanitizedQueryParamsString = queryParamsString.Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation("{Logprefix}: LateFeeService - UpdateLateFeeFlag ({Type}) for the given request {QueryParams} & {PaycalParametersResponse}",
+            _logPrefix, typeof(T) , sanitizedQueryParamsString, JsonConvert.SerializeObject(paycalParametersResponse));
+        return JsonConvert.DeserializeObject<LateFeeSettingsRequest>(queryParamsString);
     }
 
     private static bool DetermineLateFee(PaycalParametersResponse paycalParametersResponse, LateFeeSettingsRequest? lateFeeSettingsRequest)
@@ -47,13 +56,13 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
             }
             else
             {
-                if (paycalParametersResponse.OrganisationSize.Equals("Large", StringComparison.OrdinalIgnoreCase))
+                if (paycalParametersResponse.OrganisationSize.Equals('L'))
                 {
                     var cutoffYear = paycalParametersResponse.RelevantYear - 1;
                     return DetermineLateFee(paycalParametersResponse, cutoffYear, lateFeeSettingsRequest.LateFeeCutOffMonth_LP, lateFeeSettingsRequest.LateFeeCutOffDay_LP);
                 }
 
-                if (paycalParametersResponse.OrganisationSize.Equals("Small", StringComparison.OrdinalIgnoreCase))
+                if (paycalParametersResponse.OrganisationSize.Equals('S'))
                 {
                     return DetermineLateFee(paycalParametersResponse, paycalParametersResponse.RelevantYear, lateFeeSettingsRequest.LateFeeCutOffMonth_SP, lateFeeSettingsRequest.LateFeeCutOffDay_SP);
                 }
@@ -65,7 +74,7 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
 
     private static bool DetermineLateFee(PaycalParametersResponse paycalParametersResponse, int year, int month, int day)
     {
-        var submittedDate = paycalParametersResponse.FirstSubmittedDate;
+        var submittedDate = paycalParametersResponse.EarliestSubmissionDate;
         return submittedDate.Year > year
             || submittedDate.Month > month
             || (submittedDate.Month == month && submittedDate.Day > day);
