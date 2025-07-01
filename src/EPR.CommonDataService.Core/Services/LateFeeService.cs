@@ -56,13 +56,13 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
             }
             else
             {
-                if (paycalParametersResponse.OrganisationSize.Equals('L'))
+                if (paycalParametersResponse.OrganisationSize.Equals("L", StringComparison.OrdinalIgnoreCase))
                 {
                     var cutoffYear = paycalParametersResponse.RelevantYear - 1;
                     return DetermineLateFee(paycalParametersResponse, cutoffYear, lateFeeSettingsRequest.LateFeeCutOffMonth_LP, lateFeeSettingsRequest.LateFeeCutOffDay_LP);
                 }
 
-                if (paycalParametersResponse.OrganisationSize.Equals('S'))
+                if (paycalParametersResponse.OrganisationSize.Equals("S", StringComparison.OrdinalIgnoreCase))
                 {
                     return DetermineLateFee(paycalParametersResponse, paycalParametersResponse.RelevantYear, lateFeeSettingsRequest.LateFeeCutOffMonth_SP, lateFeeSettingsRequest.LateFeeCutOffDay_SP);
                 }

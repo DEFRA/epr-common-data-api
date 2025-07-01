@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace EPR.CommonDataService.Core.Models.Response;
@@ -21,7 +22,7 @@ public class PaycalParametersResponse
 
     public DateTime EarliestSubmissionDate { get; set; }
 
-    public char OrganisationSize { get; set; }
+    public string OrganisationSize { get; set; } = string.Empty;
 
     public string? LeaverCode { get; set; }
 

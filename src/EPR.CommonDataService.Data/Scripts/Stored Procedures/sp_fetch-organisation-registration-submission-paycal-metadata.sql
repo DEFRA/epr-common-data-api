@@ -42,7 +42,7 @@ BEGIN
         RelevantYear INT,
         SubmittedDate DATETIME2(7),
         EarliestSubmissionDate DATETIME2(7),
-        OrganisationSize CHAR,
+        OrganisationSize VARCHAR(1),
         LeaverCode NVARCHAR(20),
         LeaverDate NVARCHAR(20),
         JoinerDate NVARCHAR(20),
@@ -276,7 +276,7 @@ BEGIN
                         CAST(0 AS BIT) AS IsCSO, NULL AS CSOReference, NULL AS CSOExternalId, NULL AS ComplianceSchemeId, @SubmissionPeriod AS SubmissionPeriod,
                         OrgRefNum AS ReferenceNumber, OrganisationExternalId AS ExternalId,
                         CAST(OrgName AS NVARCHAR(250)) AS OrganisationName, CONVERT(INT, RIGHT(RTRIM(@SubmissionPeriod), 4)) AS RelevantYear, CAST(@SubmittedOn AS DATETIME2(7)) AS SubmittedDate, CAST(@FirstSubmittedOn AS DATETIME2(7)) AS EarliestSubmissionDate,
-                        CAST(OrganisationSize AS CHAR) AS OrganisationSize, NULL AS LeaverCode, NULL AS LeaverDate, NULL AS JoinerDate, NULL AS OrganisationChangeReason,
+                        CAST(OrganisationSize AS VARCHAR(1)) AS OrganisationSize, NULL AS LeaverCode, NULL AS LeaverDate, NULL AS JoinerDate, NULL AS OrganisationChangeReason,
                         CAST(IsOnlineMarketplace AS BIT) AS IsOnlineMarketplace, CAST(NumberOfSubsidiaries AS INT) AS NumberOfSubsidiaries, CAST(OnlineMarketPlaceSubsidiaries AS INT) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
                         CAST(FileName AS UNIQUEIDENTIFIER) AS FileName, CAST(FileId AS UNIQUEIDENTIFIER) AS FileId
                 FROM ProducerPaycalParametersCTE
