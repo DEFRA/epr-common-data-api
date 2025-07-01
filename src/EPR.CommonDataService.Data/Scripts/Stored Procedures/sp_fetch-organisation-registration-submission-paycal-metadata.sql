@@ -143,8 +143,6 @@ BEGIN
             )
         ORDER BY upload.Created DESC;
 
-    SELECT @targetFileId AS TargetFileId, @FirstSubmittedOn AS FirstSubmittedOn, @SubmittedOn AS SubmittedOn, @CancelledOn AS CancelledOn, @RegistrationDecisionDate AS RegistrationDecisionDate;
-
         -- Get Submission Meta-data - registrationdates, ComplianceScheme status etc
         SELECT
             @OrganisationUUIDForSubmission = O.ExternalId 
@@ -156,13 +154,6 @@ BEGIN
             [rpd].[Submissions] AS S
             INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
         WHERE S.SubmissionId = @targetSubmissionId;
-
-        SELECT
-            @OrganisationUUIDForSubmission AS SubmittedOrgExternalId 
-            ,@CSOReferenceNumber AS CSOOrgRefNum
-            ,@IsComplianceScheme
-            ,@ComplianceSchemeId AS CompSchemeId
-            ,@SubmissionPeriod AS SubmissionPeriod
 
         IF (@targetFileId IS NOT NULL) 
         BEGIN
