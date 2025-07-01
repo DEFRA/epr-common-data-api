@@ -266,7 +266,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             },
             new("@FileId", SqlDbType.NVarChar, 50)
             {
-                Value = fileId.ToString("D")
+                Value = fileId == Guid.Empty ? null : fileId.ToString("D")
             }
         ];
 
