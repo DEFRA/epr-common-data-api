@@ -346,30 +346,12 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         [FromRoute] bool beforeProducerSubmits,
         [FromQuery] IDictionary<string, string> queryParams)
     {
-        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
-        var sanitisedQueryParams = queryParams?.ToDictionary(
-           kvp => kvp.Key.Replace("\r", string.Empty).Replace("\n", string.Empty),
-           kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
-
-        logger.LogInformation(
-            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params-producer" +
-            "/{SubmissionId}?queryParams={QueryParams}'",
-            _logPrefix, sanitisedSubmissionId, sanitisedQueryParams);
-
+        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("producer", submissionId, queryParams);
         try
         {
-            if (submissionId == Guid.Empty)
+            if (!IsValid("Producer", submissionId, queryParams, out ActionResult result))
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionProducerPayCalParameters: Invalid SubmissionId provided", _logPrefix);
-                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
-                return ValidationProblem(ModelState);
-            }
-
-            if (queryParams is null)
-            {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionProducerPayCalParameters: Invalid QueryParams provided", _logPrefix);
-                ModelState.AddModelError(nameof(queryParams), "Must have QueryParams");
-                return ValidationProblem(ModelState);
+                return result;
             }
 
             var payCalParams = await submissionsService.GetProducerPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
@@ -397,30 +379,12 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         [FromRoute] bool beforeProducerSubmits,
         [FromQuery] IDictionary<string, string> queryParams)
     {
-        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
-        var sanitisedQueryParams = queryParams?.ToDictionary(
-           kvp => kvp.Key.Replace("\r", string.Empty).Replace("\n", string.Empty),
-           kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
-
-        logger.LogInformation(
-            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params-cso" +
-            "/{SubmissionId}?queryParams={QueryParams}'",
-            _logPrefix, sanitisedSubmissionId, sanitisedQueryParams);
-
+        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("cso", submissionId, queryParams);
         try
         {
-            if (submissionId == Guid.Empty)
+            if (!IsValid("Cso", submissionId, queryParams, out ActionResult result))
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionCsoPayCalParameters: Invalid SubmissionId provided", _logPrefix);
-                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
-                return ValidationProblem(ModelState);
-            }
-
-            if (queryParams is null)
-            {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionCsoPayCalParameters: Invalid QueryParams provided", _logPrefix);
-                ModelState.AddModelError(nameof(queryParams), "Must have QueryParams");
-                return ValidationProblem(ModelState);
+                return result;
             }
 
             var payCalParams = await submissionsService.GetCsoPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
@@ -483,5 +447,41 @@ public class SubmissionsController(ISubmissionsService submissionsService,
     {
         logger.LogError(ex, "{LogPrefix}: SubmissionsController - {MethodName}: The SubmissionId caused {ExceptionType}. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, methodName, exceptionType, sanitisedSubmissionId, ex.Message);
         return StatusCode(statusCode, ex.Message);
+    }
+
+    private string LogInformationAndGetSanitisedSubmissionId(string type, Guid submissionId, IDictionary<string, string> queryParams)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedQueryParams = queryParams?.ToDictionary(
+           kvp => kvp.Key.Replace("\r", string.Empty).Replace("\n", string.Empty),
+           kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
+
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params-{Type}" +
+            "/{SubmissionId}?queryParams={QueryParams}'",
+            _logPrefix, type, sanitisedSubmissionId, sanitisedQueryParams);
+
+        return sanitisedSubmissionId;
+    }
+
+    private bool IsValid(string type, Guid submissionId, IDictionary<string, string> queryParams, out ActionResult validationProblem)
+    {
+        if (submissionId == Guid.Empty)
+        {
+            logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmission{Type}PayCalParameters: Invalid SubmissionId provided", _logPrefix, type);
+            ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+            validationProblem = ValidationProblem(ModelState);
+            return false;
+        }
+
+        if (queryParams is null)
+        {
+            logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmission{Type}PayCalParameters: Invalid QueryParams provided", _logPrefix, type);
+            ModelState.AddModelError(nameof(queryParams), "Must have QueryParams");
+            validationProblem = ValidationProblem(ModelState);
+            return false;
+        }
+        validationProblem = null!;
+        return true;
     }
 }
