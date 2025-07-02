@@ -18,7 +18,7 @@ public class OrganisationRegistrationSubmissionDetailsResponse
 
     public DateTime? StatusPendingDate { get; set; }
 
-    public string SubmittedDateTime { get; set; } = string.Empty;
+    public DateTime SubmittedDateTime { get; set; }
 
     public bool IsResubmission { get; set; }
 
