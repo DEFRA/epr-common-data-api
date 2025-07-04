@@ -1,15 +1,14 @@
-﻿IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[dbo].[v_OrganisationRegistrationSummaries]'))
-DROP VIEW [dbo].[v_OrganisationRegistrationSummaries];
+﻿IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_OrganisationRegistrationSummaries]'))
+DROP VIEW [apps].[v_OrganisationRegistrationSummaries];
 GO
 
-/****** Object:  View [dbo].[v_OrganisationRegistrationSummaries]    Script Date: 06/01/2025 17:29:13 ******/
 SET ANSI_NULLS ON
 GO
 
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE VIEW [dbo].[v_OrganisationRegistrationSummaries] AS 
+CREATE VIEW [apps].[v_OrganisationRegistrationSummaries] AS 
 WITH
 	SubmissionEventsCTE as (
 		select * from (
