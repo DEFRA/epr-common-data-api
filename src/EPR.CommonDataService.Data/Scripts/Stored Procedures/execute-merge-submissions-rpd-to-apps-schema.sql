@@ -1,6 +1,6 @@
 ﻿-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_MergeSubmissionsSummaries]'))
-DROP PROCEDURE [apps].[sp_MergeSubmissionsSummaries];
+	DROP PROCEDURE [apps].[sp_MergeSubmissionsSummaries];
 GO
 
 CREATE PROC [apps].[sp_MergeSubmissionsSummaries] AS
@@ -14,10 +14,38 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
     BEGIN TRY
 
 
-
+	
 		set @start_dt = getdate()
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge Submissions', NULL, @start_dt, getdate(), 'Started',@batch_id
+
+
+		--New changes for the table = apps.OrgRegistrationsSummaries  from view = [apps].[v_OrganisationRegistrationSummaries]
+		set @start_dt = getdate()
+		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'apps.OrgRegistrationsSummaries') AND type in (N'U'))
+		BEGIN
+			select * into apps.OrgRegistrationsSummaries from [apps].[v_OrganisationRegistrationSummaries];
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
+		END;	
+		ELSE
+		BEGIN
+			set @start_dt = getdate()
+			truncate table apps.OrgRegistrationsSummaries;
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','truncate apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+
+			insert into apps.OrgRegistrationsSummaries
+			select * from [apps].[v_OrganisationRegistrationSummaries];
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','generate apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+		END;	
+
+		select @cnt =count(1) from apps.OrgRegistrationsSummaries;
+		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.OrgRegistrationsSummaries', @cnt, @start_dt, getdate(), 'count',@batch_id;
 
 
 
@@ -64,6 +92,8 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.submissions', @cnt, @start_dt, getdate(), 'count-before',@batch_id;
 
+		truncate table apps.Submissions;
+
         -- Merge rpd.submissions into apps.submissions
         EXEC [apps].[sp_DynamicTableMerge]
             @sourceSchema = 'rpd',
@@ -98,6 +128,8 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		select @cnt =count(1) from apps.submissionEvents;
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.submissionEvents', @cnt, @start_dt, getdate(), 'count-before',@batch_id;
+
+		truncate table apps.SubmissionEvents;
 
         -- Merge rpd.submissionEvents into apps.submissionEvents
         EXEC [apps].[sp_DynamicTableMerge]
@@ -187,5 +219,6 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		throw 60000, @msg, 1
 
     END CATCH
+
 END;
 GO
