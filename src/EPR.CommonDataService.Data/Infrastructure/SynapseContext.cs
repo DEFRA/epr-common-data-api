@@ -2,6 +2,7 @@ using EPR.CommonDataService.Data.Converters;
 using EPR.CommonDataService.Data.Entities;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Logging;
 using System.Collections.ObjectModel;
 using System.Data;
@@ -248,7 +249,7 @@ public class SynapseContext : DbContext
 
             if (connection.State == ConnectionState.Open)
             {
-                var command = CreateCommand(connection, storedProcName, parameters);
+                var command = CreateCommand(Database, connection, storedProcName, parameters);
                 command.CommandTimeout = Database.GetCommandTimeout() ?? 120;
 
                 var readerResult = await command.ExecuteReaderAsync();
@@ -373,9 +374,10 @@ public class SynapseContext : DbContext
         (dataType == typeof(string) || dataType == typeof(DateTime)) &&
         (propType == typeof(DateTime) || propType == typeof(DateTime?));
 
-    private static DbCommand CreateCommand(DbConnection connection, string sql, params SqlParameter[] parameters)
+    private static DbCommand CreateCommand(DatabaseFacade database, DbConnection connection, string sql, params SqlParameter[] parameters)
     {
         var command = connection.CreateCommand();
+        command.CommandTimeout = database.GetCommandTimeout() ?? ManifestConstants.NOMINAL_MAX_CMD_TIMEOUT;
         command.CommandText = sql;
         command.CommandType = CommandType.StoredProcedure;
         foreach (var parameter in parameters)
