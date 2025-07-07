@@ -217,7 +217,6 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         var (sqlParameters, spName) = GetSqlDetails(nameof(GetProducerPaycalParametersAsync), submissionId, beforeProducerSubmits, fileId);
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
             var dbSet = await accountsDbContext.RunSpCommandAsync<ProducerPaycalParametersResponse>(spName, logger, _logPrefix, sqlParameters);
             return dbSet[0];
         }
@@ -238,7 +237,6 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         var (sqlParameters, spName) = GetSqlDetails(nameof(GetCsoPaycalParametersAsync), submissionId, beforeProducerSubmits, fileId);
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 3600);
             var dbSet = await accountsDbContext.RunSpCommandAsync<CsoPaycalParametersResponse>(spName, logger, _logPrefix, sqlParameters); 
             return dbSet;
         }

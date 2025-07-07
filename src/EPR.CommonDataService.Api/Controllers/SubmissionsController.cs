@@ -344,18 +344,18 @@ public class SubmissionsController(ISubmissionsService submissionsService,
     public async Task<IActionResult> GetOrganisationRegistrationSubmissionProducerPayCalParameters(
         [FromRoute] Guid submissionId,
         [FromRoute] bool beforeProducerSubmits,
-        [FromQuery] IDictionary<string, string> queryParams)
+        [FromQuery] IDictionary<string, string> lateFeeRules)
     {
-        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("producer", submissionId, queryParams);
+        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("producer", submissionId, lateFeeRules);
         try
         {
-            if (!IsValid("Producer", submissionId, queryParams, out ActionResult result))
+            if (!IsValid("Producer", submissionId, lateFeeRules, out ActionResult result))
             {
                 return result;
             }
 
             var payCalParams = await submissionsService.GetProducerPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
-            return new JsonResult(lateFeeService.UpdateLateFeeFlag(queryParams, payCalParams));
+            return new JsonResult(lateFeeService.UpdateLateFeeFlag(lateFeeRules, payCalParams));
         }
         catch (TimeoutException ex)
         {
@@ -377,18 +377,18 @@ public class SubmissionsController(ISubmissionsService submissionsService,
     public async Task<IActionResult> GetOrganisationRegistrationSubmissionCsoPayCalParameters(
         [FromRoute] Guid submissionId,
         [FromRoute] bool beforeProducerSubmits,
-        [FromQuery] IDictionary<string, string> queryParams)
+        [FromQuery] IDictionary<string, string> lateFeeRules)
     {
-        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("cso", submissionId, queryParams);
+        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("cso", submissionId, lateFeeRules);
         try
         {
-            if (!IsValid("Cso", submissionId, queryParams, out ActionResult result))
+            if (!IsValid("Cso", submissionId, lateFeeRules, out ActionResult result))
             {
                 return result;
             }
 
             var payCalParams = await submissionsService.GetCsoPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
-            return new JsonResult(lateFeeService.UpdateLateFeeFlag(queryParams, payCalParams));
+            return new JsonResult(lateFeeService.UpdateLateFeeFlag(lateFeeRules, payCalParams));
         }
         catch (TimeoutException ex)
         {
