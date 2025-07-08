@@ -40,11 +40,15 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
 
     private LateFeeSettingsRequest? GetLateFeeSettingsRequest<T>(IDictionary<string, string> lateFeeRules, T paycalParametersResponse)
     {
-        var queryParamsString = JsonConvert.SerializeObject(lateFeeRules);
-        var sanitizedQueryParamsString = queryParamsString.Replace("\r", string.Empty).Replace("\n", string.Empty);
-        logger.LogInformation("{Logprefix}: LateFeeService - UpdateLateFeeFlag ({Type}) for the given request {QueryParams} & {PaycalParametersResponse}",
-            _logPrefix, typeof(T) , sanitizedQueryParamsString, JsonConvert.SerializeObject(paycalParametersResponse));
-        return JsonConvert.DeserializeObject<LateFeeSettingsRequest>(queryParamsString);
+        logger.LogInformation(
+            "{Logprefix}: LateFeeService - UpdateLateFeeFlag ({Type}) for the given request {@QueryParams} & {@PaycalParametersResponse}",
+            _logPrefix,
+            typeof(T),
+            lateFeeRules,
+            paycalParametersResponse
+);
+        var lateFeeRulesString = JsonConvert.SerializeObject(lateFeeRules);
+        return JsonConvert.DeserializeObject<LateFeeSettingsRequest>(lateFeeRulesString);
     }
 
     private static bool DetermineLateFee(PaycalParametersResponse paycalParametersResponse, LateFeeSettingsRequest? lateFeeSettingsRequest)
