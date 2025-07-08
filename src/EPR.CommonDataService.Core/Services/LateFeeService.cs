@@ -19,9 +19,17 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
 
     public IList<CsoPaycalParametersResponse> UpdateLateFeeFlag(IDictionary<string, string> queryParams, IList<CsoPaycalParametersResponse> csoPaycalParametersResponses)    {
         var lateFeeSettingsRequest = GetLateFeeSettingsRequest(queryParams, csoPaycalParametersResponses);
+        
         foreach (var item in csoPaycalParametersResponses)
         {
-            item.IsLateFee = DetermineLateFee(item, lateFeeSettingsRequest);
+            int year = item.RelevantYear == 2025 ? 2025 : item.RelevantYear - 1;
+            int month = item.RelevantYear == 2025 ? lateFeeSettingsRequest.LateFeeCutOffMonth_2025 : lateFeeSettingsRequest.LateFeeCutOffMonth_CS;
+            int day = item.RelevantYear == 2025 ? lateFeeSettingsRequest.LateFeeCutOffDay_2025 : lateFeeSettingsRequest.LateFeeCutOffDay_CS;
+
+            var isLateByDate = DetermineLateFee(item, lateFeeSettingsRequest);
+            var firstSubmittedLateByDate = DetermineLateFeeByCutoffDate(item.FirstSubmittedOn, year, month, day);
+
+            item.IsLateFee = item.IsNewJoiner ? isLateByDate : firstSubmittedLateByDate;
         }
         return csoPaycalParametersResponses;
     }
@@ -44,7 +52,7 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
 
         if (paycalParametersResponse.RelevantYear == 2025)
         {
-            return DetermineLateFee(paycalParametersResponse,
+            return DetermineLateFeeByCutoffDate(paycalParametersResponse.EarliestSubmissionDate,
                 2025, lateFeeSettingsRequest.LateFeeCutOffMonth_2025, lateFeeSettingsRequest.LateFeeCutOffDay_2025);
         }
         if (paycalParametersResponse.RelevantYear > 2025)
@@ -52,19 +60,19 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
             if (paycalParametersResponse.IsCso)
             {
                 var cutoffYear = paycalParametersResponse.RelevantYear - 1;
-                return DetermineLateFee(paycalParametersResponse, cutoffYear, lateFeeSettingsRequest.LateFeeCutOffMonth_CS, lateFeeSettingsRequest.LateFeeCutOffDay_CS);
+                return DetermineLateFeeByCutoffDate(paycalParametersResponse.EarliestSubmissionDate, cutoffYear, lateFeeSettingsRequest.LateFeeCutOffMonth_CS, lateFeeSettingsRequest.LateFeeCutOffDay_CS);
             }
             else
             {
                 if (paycalParametersResponse.OrganisationSize.Equals("L", StringComparison.OrdinalIgnoreCase))
                 {
                     var cutoffYear = paycalParametersResponse.RelevantYear - 1;
-                    return DetermineLateFee(paycalParametersResponse, cutoffYear, lateFeeSettingsRequest.LateFeeCutOffMonth_LP, lateFeeSettingsRequest.LateFeeCutOffDay_LP);
+                    return DetermineLateFeeByCutoffDate(paycalParametersResponse.EarliestSubmissionDate, cutoffYear, lateFeeSettingsRequest.LateFeeCutOffMonth_LP, lateFeeSettingsRequest.LateFeeCutOffDay_LP);
                 }
 
                 if (paycalParametersResponse.OrganisationSize.Equals("S", StringComparison.OrdinalIgnoreCase))
                 {
-                    return DetermineLateFee(paycalParametersResponse, paycalParametersResponse.RelevantYear, lateFeeSettingsRequest.LateFeeCutOffMonth_SP, lateFeeSettingsRequest.LateFeeCutOffDay_SP);
+                    return DetermineLateFeeByCutoffDate(paycalParametersResponse.EarliestSubmissionDate, paycalParametersResponse.RelevantYear, lateFeeSettingsRequest.LateFeeCutOffMonth_SP, lateFeeSettingsRequest.LateFeeCutOffDay_SP);
                 }
             }
         }
@@ -72,9 +80,9 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
         return false;
     }
 
-    private static bool DetermineLateFee(PaycalParametersResponse paycalParametersResponse, int year, int month, int day)
+    private static bool DetermineLateFeeByCutoffDate(DateTime submittedDate, int year, int month, int day)
     {
-        var submittedDate = paycalParametersResponse.EarliestSubmissionDate;
+//        var submittedDate = paycalParametersResponse.EarliestSubmissionDate;
         return submittedDate.Year > year
             || submittedDate.Month > month
             || (submittedDate.Month == month && submittedDate.Day > day);

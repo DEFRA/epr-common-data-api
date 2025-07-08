@@ -6,6 +6,8 @@ public class PaycalParametersResponse
 
     public string SubmissionPeriod { get; set; } = string.Empty;
 
+    public DateTime FirstSubmittedOn { get; set; }
+
     public int ReferenceNumber { get; set; }
 
     public string ExternalId { get; set; } = string.Empty;
