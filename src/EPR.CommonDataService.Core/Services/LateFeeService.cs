@@ -22,6 +22,11 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
         
         foreach (var item in csoPaycalParametersResponses)
         {
+            if ( lateFeeSettingsRequest is null)
+            {
+                item.IsLateFee = false;
+                continue;
+            }
             int year = item.RelevantYear == 2025 ? 2025 : item.RelevantYear - 1;
             int month = item.RelevantYear == 2025 ? lateFeeSettingsRequest.LateFeeCutOffMonth_2025 : lateFeeSettingsRequest.LateFeeCutOffMonth_CS;
             int day = item.RelevantYear == 2025 ? lateFeeSettingsRequest.LateFeeCutOffDay_2025 : lateFeeSettingsRequest.LateFeeCutOffDay_CS;
@@ -82,6 +87,8 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
 
     private static bool DetermineLateFeeByCutoffDate(DateTime submittedDate, int year, int month, int day)
     {
+        if (submittedDate == DateTime.MinValue) return false;
+
 //        var submittedDate = paycalParametersResponse.EarliestSubmissionDate;
         return submittedDate.Year > year
             || submittedDate.Month > month
