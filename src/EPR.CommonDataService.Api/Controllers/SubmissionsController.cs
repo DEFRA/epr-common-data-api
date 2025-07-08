@@ -334,7 +334,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
     }
 
-    [HttpGet("organisation-registration-submission-paycal-params-producer/{submissionId}")]
+    [HttpGet("organisation-registration-submission-paycal-params-producer/{submissionId}/{beforeProducerSubmits}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -367,7 +367,7 @@ public class SubmissionsController(ISubmissionsService submissionsService,
         }
     }
 
-    [HttpGet("organisation-registration-submission-paycal-params-cso/{submissionId}")]
+    [HttpGet("organisation-registration-submission-paycal-params-cso/{submissionId}/{beforeProducerSubmits}")]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
