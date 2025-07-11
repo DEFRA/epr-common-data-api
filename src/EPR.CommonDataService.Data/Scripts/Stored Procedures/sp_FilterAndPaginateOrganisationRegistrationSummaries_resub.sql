@@ -5,46 +5,10 @@ GO
 CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100),@ResubmissionStatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
 BEGIN
     SET NOCOUNT ON;
-    IF EXISTS (
-		SELECT 1
-		FROM sys.columns
-		WHERE [name] = 'AppReferenceNumber' AND [object_id] = OBJECT_ID('rpd.Submissions')
-	)
+
+    IF OBJECT_ID('apps.OrgRegistrationsSummaries') IS NOT NULL
 	BEGIN
-		IF OBJECT_ID('tempdb..#TempTable') IS NOT NULL
-			DROP TABLE #TempTable;
-
         DECLARE @CleanedOrgName NVARCHAR(4000) = REPLACE(LTRIM(RTRIM(@OrganisationNameCommaSeparated)), ',', ' ');
-
-		CREATE TABLE #TempTable (
-			SubmissionId NVARCHAR(150) NULL,
-			OrganisationId NVARCHAR(150) NULL,
-			OrganisationInternalId INT NULL,
-			OrganisationName NVARCHAR(500) NULL,
-			UploadedOrganisationName NVARCHAR(500) NULL,
-			OrganisationReference NVARCHAR(25) NULL,
-			SubmittedUserId NVARCHAR(150) NULL,
-			IsComplianceScheme BIT,
-			OrganisationType NVARCHAR(50) NULL,
-			ProducerSize NVARCHAR(50) NULL,
-			ApplicationReferenceNumber NVARCHAR(50) NULL,
-			RegistrationReferenceNumber NVARCHAR(50) NULL,
-			SubmittedDateTime NVARCHAR(50) NULL,
-			RegistrationDate NVARCHAR(50) NULL, --NEW
-			IsResubmission BIT, --NEW
-			ResubmissionDate NVARCHAR(50) NULL, --NEW
-			RelevantYear INT NULL,
-			SubmissionPeriod NVARCHAR(500) NULL,
-			IsLateSubmission BIT,
-			SubmissionStatus NVARCHAR(20) NULL,
-			ResubmissionStatus NVARCHAR(50) NULL, --NEW
-			RegulatorDecisionDate NVARCHAR(50) NULL, --NEW
-			StatusPendingDate NVARCHAR(50) NULL,
-			NationId INT NULL,
-			NationCode NVARCHAR(10) NULL
-		);
-
-		exec dbo.sp_OrganisationRegistrationSummaries_resub;
 
 		WITH
             NormalFilterCTE
@@ -59,7 +23,7 @@ BEGIN
 					OrganisationType,
 					ProducerSize,
 					SubmissionStatus,
-                    IsResubmission,
+                    CONVERT(bit, IsResubmission) AS IsResubmission,
 					ResubmissionStatus,
 					ResubmissionDate,
 					StatusPendingDate,
@@ -71,7 +35,7 @@ BEGIN
 					RegulatorDecisionDate,
 					NationId,
 					NationCode
-				FROM #TempTable i
+				FROM apps.OrgRegistrationsSummaries i
 				WHERE ( ( NationId = @NationId OR @NationId = 0 )
 					OR ( 
 						EXISTS (
@@ -294,5 +258,4 @@ BEGIN
         WHERE 1=0
     END;
 END;
-
 GO
