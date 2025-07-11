@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Api.Extensions;
+using EPR.CommonDataService.Api.Filters;
 using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
 
@@ -17,7 +18,7 @@ public static class Program
             .RegisterWebComponents(builder.Configuration)
             .RegisterDataComponents(builder.Configuration)
             .AddEndpointsApiExplorer()
-            .AddSwaggerGen()
+            .AddSwaggerGen(options => { options.OperationFilter<ExampleRequestsFilter>(); })
             .AddHealthChecks()
             .AddDbContextCheck<SynapseContext>();
 

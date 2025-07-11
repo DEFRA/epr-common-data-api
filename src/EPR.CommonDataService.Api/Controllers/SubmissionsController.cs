@@ -3,17 +3,19 @@ using EPR.CommonDataService.Core.Models.Requests;
 using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Newtonsoft.Json;
 using System.Globalization;
 
 namespace EPR.CommonDataService.Api.Controllers;
 
 [ApiController]
 [Route("api/submissions")]
-public class SubmissionsController(ISubmissionsService submissionsService, IOptions<ApiConfig> apiConfig, ILogger<SubmissionsController> logger, IConfiguration config) : ApiControllerBase(apiConfig)
+public class SubmissionsController(ISubmissionsService submissionsService,
+    ILateFeeService lateFeeService,
+    IOptions<ApiConfig> apiConfig, 
+    ILogger<SubmissionsController> logger, 
+    IConfiguration config) : ApiControllerBase(apiConfig)
 {
     private readonly string? _logPrefix = string.IsNullOrEmpty(config["LogPrefix"]) ? "[EPR.CommonDataService]" : config["LogPrefix"];
     private readonly ApiConfig apiConfig = apiConfig.Value;
@@ -147,11 +149,17 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetails([FromRoute] Guid? SubmissionId)
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetails(
+        Guid? SubmissionId,
+        [FromQuery] int LateFeeCutOffDay,
+        [FromQuery] int LateFeeCutOffMonth)
     {
         var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
-        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
-        
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission" +
+            "/{SubmissionId}?lateFeeCutOffDay={LateFeeCutOffDay}&lateFeeCutOffMonth={LateFeeCutOffMonth}'",
+            _logPrefix, sanitisedSubmissionId, LateFeeCutOffDay, LateFeeCutOffMonth);
+
         try
         {
             if (!SubmissionId.HasValue)
@@ -161,7 +169,13 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 return ValidationProblem(ModelState);
             }
 
-            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetails(new OrganisationRegistrationDetailRequest { SubmissionId = SubmissionId.Value });
+            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetails(
+                new OrganisationRegistrationDetailRequest
+                {
+                    SubmissionId = SubmissionId.Value,
+                    LateFeeCutOffDay = LateFeeCutOffDay,
+                    LateFeeCutOffMonth = LateFeeCutOffMonth
+                });
 
             if (submissiondetails is null)
             {
@@ -181,7 +195,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetails: The SubmissionId caused an exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
-    }
+    }    
 
     [HttpGet("pom-resubmission-paycal-parameters/{SubmissionId}")]
     [Produces("application/json")]
@@ -222,7 +236,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
                 return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
             }
-            
+
             if (string.IsNullOrWhiteSpace(dbResult.Reference))
             {
                 logger.LogError("The data for POM Resubmissions {SubmissionId} doesn't have a required reference number.", sanitisedSubmissionId);
@@ -318,5 +332,156 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsSubmissionSynchronised: The SubmissionId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedSubmissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
+    }
+
+    [HttpGet("organisation-registration-submission-paycal-params-producer/{submissionId}/{beforeProducerSubmits}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionProducerPayCalParameters(
+        [FromRoute] Guid submissionId,
+        [FromRoute] bool beforeProducerSubmits,
+        [FromQuery] IDictionary<string, string> lateFeeRules)
+    {
+        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("producer", submissionId, lateFeeRules);
+        try
+        {
+            if (!IsValid("Producer", submissionId, lateFeeRules, out ActionResult result))
+            {
+                return result;
+            }
+
+            var payCalParams = await submissionsService.GetProducerPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
+            return new JsonResult(lateFeeService.UpdateLateFeeFlag(lateFeeRules, payCalParams));
+        }
+        catch (TimeoutException ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionProducerPayCalParameters", "a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
+        }
+        catch (Exception ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionProducerPayCalParameters", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
+        }
+    }
+
+    [HttpGet("organisation-registration-submission-paycal-params-cso/{submissionId}/{beforeProducerSubmits}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionCsoPayCalParameters(
+        [FromRoute] Guid submissionId,
+        [FromRoute] bool beforeProducerSubmits,
+        [FromQuery] IDictionary<string, string> lateFeeRules)
+    {
+        var sanitisedSubmissionId = LogInformationAndGetSanitisedSubmissionId("cso", submissionId, lateFeeRules);
+        try
+        {
+            if (!IsValid("Cso", submissionId, lateFeeRules, out ActionResult result))
+            {
+                return result;
+            }
+
+            var payCalParams = await submissionsService.GetCsoPaycalParametersAsync(submissionId, beforeProducerSubmits, Guid.Empty);
+            return new JsonResult(lateFeeService.UpdateLateFeeFlag(lateFeeRules, payCalParams));
+        }
+        catch (TimeoutException ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionCsoPayCalParameters", "a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
+        }
+        catch (Exception ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionCsoPayCalParameters", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
+        }
+    }
+
+    [HttpGet("organisation-registration-submission-details/{submissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetOrganisationRegistrationSubmissionDetailsPart([FromRoute]Guid submissionId)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-details/{SubmissionId}'",
+            _logPrefix, sanitisedSubmissionId);
+
+        try
+        {
+            if (submissionId == Guid.Empty)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: Invalid SubmissionId provided; please make sure it's a valid Guid", _logPrefix);
+                ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+                return ValidationProblem(ModelState);
+            }
+
+            var submissiondetails = await submissionsService.GetOrganisationRegistrationSubmissionDetailsAsync(submissionId);
+
+            if (submissiondetails is null)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmissionDetailsPart: The SubmissionId provided did not return a submission. {SubmissionId}", _logPrefix, sanitisedSubmissionId);
+                return NoContent();
+            }
+
+            return Ok(submissiondetails);
+        }
+        catch (TimeoutException ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionDetailsPart", "a timeout exception", StatusCodes.Status504GatewayTimeout, sanitisedSubmissionId);
+        }
+        catch (Exception ex)
+        {
+            return LogAndReturn(ex, "GetOrganisationRegistrationSubmissionDetailsPart", "an exception", StatusCodes.Status500InternalServerError, sanitisedSubmissionId);
+        }
+    }
+
+    private ObjectResult LogAndReturn(Exception ex, string methodName, string exceptionType, int statusCode, string sanitisedSubmissionId)
+    {
+        logger.LogError(ex, "{LogPrefix}: SubmissionsController - {MethodName}: The SubmissionId caused {ExceptionType}. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, methodName, exceptionType, sanitisedSubmissionId, ex.Message);
+        return StatusCode(statusCode, ex.Message);
+    }
+
+    private string LogInformationAndGetSanitisedSubmissionId(string type, Guid submissionId, IDictionary<string, string> queryParams)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        var sanitisedQueryParams = queryParams?.ToDictionary(
+           kvp => kvp.Key.Replace("\r", string.Empty).Replace("\n", string.Empty),
+           kvp => kvp.Value.Replace("\r", string.Empty).Replace("\n", string.Empty));
+
+        logger.LogInformation(
+            "{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission-paycal-params-{Type}" +
+            "/{SubmissionId}?queryParams={QueryParams}'",
+            _logPrefix, type, sanitisedSubmissionId, sanitisedQueryParams);
+
+        return sanitisedSubmissionId;
+    }
+
+    private bool IsValid(string type, Guid submissionId, IDictionary<string, string> queryParams, out ActionResult validationProblem)
+    {
+        if (submissionId == Guid.Empty)
+        {
+            logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmission{Type}PayCalParameters: Invalid SubmissionId provided", _logPrefix, type);
+            ModelState.AddModelError(nameof(submissionId), "SubmissionId must be a valid Guid");
+            validationProblem = ValidationProblem(ModelState);
+            return false;
+        }
+
+        if (queryParams is null)
+        {
+            logger.LogError("{LogPrefix}: SubmissionsController - GetOrganisationRegistrationSubmission{Type}PayCalParameters: Invalid QueryParams provided", _logPrefix, type);
+            ModelState.AddModelError(nameof(queryParams), "Must have QueryParams");
+            validationProblem = ValidationProblem(ModelState);
+            return false;
+        }
+        validationProblem = null!;
+        return true;
     }
 }

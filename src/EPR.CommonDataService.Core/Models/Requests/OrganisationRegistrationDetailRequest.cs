@@ -8,5 +8,11 @@ namespace EPR.CommonDataService.Core.Models.Requests
     {
         [Required]
         public Guid SubmissionId { get; set; }
+
+        [Required]
+        public int LateFeeCutOffDay { get; set; }
+
+        [Required]
+        public int LateFeeCutOffMonth { get; set; }
     }
 }

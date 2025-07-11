@@ -15,8 +15,14 @@ public interface ISubmissionsService
     Task<PaginatedResponse<OrganisationRegistrationSummaryDto>?> GetOrganisationRegistrationSubmissionSummaries(int NationId, OrganisationRegistrationFilterRequest filter);
 
     Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request);
-
+    
     Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId);
     
     Task<bool?> IsCosmosDataAvailable(string? sanitisedSubmissionId, string? sanitisedFileId);
+
+    Task<ProducerPaycalParametersResponse> GetProducerPaycalParametersAsync(Guid submissionId, bool beforeProducerSubmits, Guid fileId);
+
+    Task<IList<CsoPaycalParametersResponse>> GetCsoPaycalParametersAsync(Guid submissionId, bool beforeProducerSubmits, Guid fileId);
+
+    Task<OrganisationRegistrationSubmissionDetailsResponse> GetOrganisationRegistrationSubmissionDetailsAsync(Guid submissionId);
 }

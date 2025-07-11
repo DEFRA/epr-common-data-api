@@ -1,5 +1,6 @@
 ﻿using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
+using EPR.CommonDataService.Data;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
@@ -21,7 +22,10 @@ public static class ServiceProviderExtensions
 
     public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase")));
+        int timeoutInSeconds = configuration.GetValue<int?>("CommandTimeoutSeconds") ?? ManifestConstants.NOMINAL_MAX_CMD_TIMEOUT;
+
+        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase"),
+                                                         sqloptions => sqloptions.CommandTimeout(timeoutInSeconds))); 
         return services;
     }
 
@@ -57,5 +61,6 @@ public static class ServiceProviderExtensions
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
+        services.AddScoped<ILateFeeService, LateFeeService>();
     }
 }
