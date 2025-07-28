@@ -273,12 +273,6 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 // verify that the file id is in CompanyDetails and the app schema has a packaging reference number
                 dbRet = await submissionsService.IsPOMResubmissionDataSynchronised(sanitisedFileId);
 
-                if (!dbRet.HasValue)
-                {
-                    logger.LogError("{LogPrefix}: SubmissionsController - IsPOMResubmissionSynchronised: The FileId provided did not return a value for Apps Schema Sync. {SubmissionId}", _logPrefix, sanitisedFileId);
-                    return Ok(false);
-                }
-
                 return Ok(dbRet);
             }
 

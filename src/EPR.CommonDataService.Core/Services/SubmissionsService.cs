@@ -231,7 +231,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
             if (dbSet.Count > 0)
             {
-                return dbSet[0].IsSynced.HasValue ? dbSet[0].IsSynced.Value : false;
+                return dbSet[0].IsSynced ?? false;
             }
 
             return false;
