@@ -37,7 +37,7 @@ BEGIN
 
         SET @sql = N'
             SELECT TOP 1 @Reference = PackagingResubmissionReferenceNumber
-            FROM rpd.SubmissionEvents
+            FROM apps.SubmissionEvents
             WHERE [Type] = ''PackagingResubmissionReferenceNumberCreated''
               AND SubmissionId = @SubmissionId
             ORDER BY Created DESC;
