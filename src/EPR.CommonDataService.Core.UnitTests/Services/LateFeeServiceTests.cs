@@ -205,6 +205,36 @@ public class LateFeeServiceTests
     }
 
     [TestMethod]
+    [DataRow(2025, 07, 13)]
+    [DataRow(2025, 4, 5)]
+    [DataRow(2025, 3, 2)]
+    public void Small_Producer_Should_Set_LateFee_To_False_When_RelYear_Is_2026_And_Month_And_Date_InRange(int year, int month, int day)
+    {
+        // Arrange
+        var request = new Dictionary<string, string>
+        {
+            { "LateFeeCutOffMonth_2025", "4" },
+            { "LateFeeCutOffDay_2025", "1" },
+            { "LateFeeCutOffMonth_SP", "4" },
+            { "LateFeeCutOffDay_SP", "1" }
+        };
+        var firstSubmittedDate = new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+        var producerPaycalParametersResponse = new ProducerPaycalParametersResponse
+        {
+            RelevantYear = 2026,
+            EarliestSubmissionDate = firstSubmittedDate,
+            OrganisationSize = "S"
+        };
+
+        // Act
+        var result = _sut.UpdateLateFeeFlag(request, producerPaycalParametersResponse);
+
+        // Assert
+        Assert.IsNotNull(result);
+        result.IsLateFee.Should().BeFalse();
+    }
+
+    [TestMethod]
     public void Cso_Should_Set_LateFee_To_False_When_RelYear_Is_Greater_Than_2025_But_Invalid_Response()
     {
         // Arrange
@@ -280,8 +310,6 @@ public class LateFeeServiceTests
     [DataRow(2025, 11, 1, false, "LP", 10, "L")]
     [DataRow(2025, 10, 2, false, "LP", 10, "L")]
     [DataRow(2027, 1, 1, false, "SP", 4, "S")]
-    [DataRow(2025, 11, 1, false, "SP", 4, "S")]
-    [DataRow(2025, 10, 2, false, "SP", 4, "S")]
     public void Producer_Should_Set_LateFee_To_True_When_RelYear_Is_Greater_Than_2025_But_Date_NotInRange(
         int year, int month, int day, bool isCso, string type, int cutOffMonth, string organisationSize)
     {

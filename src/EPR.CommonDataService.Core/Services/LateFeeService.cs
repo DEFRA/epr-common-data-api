@@ -92,9 +92,6 @@ public class LateFeeService(ILogger<LateFeeService> logger, IConfiguration confi
     {
         if (submittedDate == DateTime.MinValue) return false;
 
-//        var submittedDate = paycalParametersResponse.EarliestSubmissionDate;
-        return submittedDate.Year > year
-            || submittedDate.Month > month
-            || (submittedDate.Month == month && submittedDate.Day > day);
+        return submittedDate > new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
     }
 }
