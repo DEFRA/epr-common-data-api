@@ -266,9 +266,8 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 80);
             var dbSet = await accountsDbContext.RunSpCommandAsync<OrganisationRegistrationSubmissionDetailsResponse>(sql, logger, _logPrefix, sqlParameters);
-            return dbSet[0];
+            return dbSet.FirstOrDefault()!;
         }
         catch (SqlException ex) when (ex.Number == -2)
         {
