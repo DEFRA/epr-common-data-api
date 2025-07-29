@@ -1,7 +1,6 @@
 ﻿using EPR.CommonDataService.Api.Controllers;
 using Microsoft.OpenApi.Any;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Diagnostics.CodeAnalysis;
 
@@ -59,7 +58,7 @@ namespace EPR.CommonDataService.Api.Filters
 
             if (name == nameof(SubmissionsController.GetOrganisationRegistrationSubmissionProducerPayCalParameters))
             {
-                subIdParam.Example = null;
+                subIdParam!.Example = null;
                 // add two named examples
                 subIdParam.Examples.Clear();
                 subIdParam.Examples.Add("LargeProducer", new OpenApiExample
@@ -76,7 +75,7 @@ namespace EPR.CommonDataService.Api.Filters
             else if (name == nameof(SubmissionsController.GetOrganisationRegistrationSubmissionCsoPayCalParameters))
             {
                 // Single example for the CSO endpoint
-                subIdParam.Example = new OpenApiString("c8b7d333-ce94-46fb-8855-e335c4b135f2");
+                subIdParam!.Example = new OpenApiString("c8b7d333-ce94-46fb-8855-e335c4b135f2");
             }
         }
     }

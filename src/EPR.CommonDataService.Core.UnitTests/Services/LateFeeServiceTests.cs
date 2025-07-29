@@ -240,12 +240,12 @@ public class LateFeeServiceTests
         // Arrange
         var request = new Dictionary<string, string>
         {
-            { "LateFeeCutOffMonth_SP", "10" },
-            { "LateFeeCutOffDay_SP", "1" }
+            { "LateFeeCutOffMonth_CS", "10" },
+            { "LateFeeCutOffDay_CS", "1" }
         };
         var paycalParametersResponse = new List<CsoPaycalParametersResponse>
         {
-            new() { RelevantYear = 2026, EarliestSubmissionDate = DateTime.UtcNow, OrganisationSize = "N" }
+            new() { RelevantYear = 2026, EarliestSubmissionDate = DateTime.UtcNow, OrganisationSize = "N" , FirstSubmittedOn = DateTime.UtcNow}
         };
 
         // Act
