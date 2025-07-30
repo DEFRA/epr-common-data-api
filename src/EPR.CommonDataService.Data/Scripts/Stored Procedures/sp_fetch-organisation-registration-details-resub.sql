@@ -8,6 +8,10 @@ CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @Sub
 BEGIN
 	SET NOCOUNT ON;
 
+	DECLARE @start_dt datetime;
+	DECLARE @batch_id INT;
+	DECLARE @cnt int;
+
 	DECLARE @OrganisationIDForSubmission INT;
 	DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
 	DECLARE @SubmissionPeriod nvarchar(100);
@@ -15,7 +19,13 @@ BEGIN
 	DECLARE @ComplianceSchemeId nvarchar(50);
 	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
-    DECLARE @LateFeeCutoffDate DATE; 
+    --DECLARE @LateFeeCutoffDate DATE; 
+
+	DECLARE @SmallLateFeeCutoffDate DATE; 
+	DECLARE @CSLLateFeeCutoffDate DATE; 
+
+	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
+	set @start_dt = getdate()
 
     SELECT
         @OrganisationIDForSubmission = O.Id 
@@ -30,11 +40,18 @@ BEGIN
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE S.SubmissionId = @SubmissionId;
 
-	SET @LateFeeCutoffDate = DATEFROMPARTS(CONVERT( int, SUBSTRING(
-                                @SubmissionPeriod,
-                                PATINDEX('%[0-9][0-9][0-9][0-9]', @SubmissionPeriod),
-                                4
-                            )),4, 1);
+	DECLARE @RelYear INT = CAST(RIGHT(@SubmissionPeriod, 4) AS INT);	
+	
+	IF @RelYear < 2026
+	BEGIN
+		SET @SmallLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
+		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
+	END
+	ELSE
+	BEGIN
+		SET @SmallLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
+		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 1);
+	END;
 
     WITH
 		SubmissionEventsCTE as (
@@ -195,12 +212,12 @@ BEGIN
 				,s.Comment as SubmissionComment
 				,s.DecisionDate as SubmissionDate
 				,fs.DecisionDate as FirstSubmissionDate
-				,CAST(
-                    CASE
-                        WHEN fs.DecisionDate > @LateFeeCutoffDate THEN 1
-                        ELSE 0
-                    END AS BIT
-                ) AS IsLateSubmission
+				--,CAST(
+    --                CASE
+    --                    WHEN fs.DecisionDate > @LateFeeCutoffDate THEN 1
+    --                    ELSE 0
+    --                END AS BIT
+    --            ) AS IsLateSubmission
 				,s.FileId as SubmittedFileId
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
 				,COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) as RegulatorDecisionDate
@@ -254,11 +271,6 @@ BEGIN
 					ResubmissionDate
 			FROM SubmissionStatusCTE
 		)
-		,AppropriateSubmissionDateCTE as (
-			SELECT S.SubmissionDate, P.ResubmissionDate 
-			FROM SubmittedCTE S LEFT JOIN ResubmissionDetailsCTE P
-			ON P.SubmissionId = S.SubmissionId
-		)
 		,UploadedDataForOrganisationCTE as (
 			select distinct org.*
 			FROM
@@ -289,7 +301,6 @@ BEGIN
 				,org.PartnerBlobName
 			FROM
 				UploadedDataForOrganisationCTE org 
-				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)			
 		)
 		,ProducerPaycalParametersCTE
 			AS
@@ -305,7 +316,7 @@ BEGIN
 				,NumberOfSubsidiaries
 				,OnlineMarketPlaceSubsidiaries
 				FROM
-					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
+					[dbo].[t_ProducerPaycalParameters_resub] AS ppp
 				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
 		)
 		,SubmissionDetails AS (
@@ -378,7 +389,13 @@ BEGIN
 							4
 						) AS INT
 					) AS RelevantYear
-					,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
+					--,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
+					,CASE WHEN org.IsComplianceScheme = 1
+						  OR UPPER(TRIM(org.organisationsize)) = 'L' THEN 
+							CASE WHEN ss.FirstSubmissionDate > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
+						  ELSE
+						  	CASE WHEN ss.FirstSubmissionDate > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
+					 END as IsLateSubmission						
 					,CASE UPPER(TRIM(org.organisationsize))
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'
@@ -428,14 +445,14 @@ BEGIN
 				   ,ss.IsLateSubmission
 				   ,ss.FileId as SubmittedFileId
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
-						 WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
+						 WHEN csm.EarliestSubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
 						 WHEN csm.joiner_date is null THEN 1
 						 ELSE 0 END
 					AS IsOriginal
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 0
-						 WHEN csm.SubmittedDate <= ss.RegistrationDecisionDate THEN 0
-					     WHEN ( csm.SubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
-					     WHEN ( csm.SubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
+						 WHEN csm.EarliestSubmittedDate <= ss.RegistrationDecisionDate THEN 0
+					     WHEN ( csm.EarliestSubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
+					     WHEN ( csm.EarliestSubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
 					END as IsNewJoiner
 			from dbo.v_ComplianceSchemeMembers_resub csm
 				,SubmissionStatusCTE ss
@@ -470,7 +487,7 @@ BEGIN
 				ComplianceSchemeMembersCTE csm
 				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
-            WHERE @IsComplianceScheme = 1             
+            WHERE @IsComplianceScheme = 1
         ) 
 	   ,JsonifiedCompliancePaycalCTE
         AS
@@ -571,5 +588,8 @@ BEGIN
         INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
+
+	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub',@SubmissionId, NULL, @start_dt, getdate(), '',@batch_id
 END;
 GO
