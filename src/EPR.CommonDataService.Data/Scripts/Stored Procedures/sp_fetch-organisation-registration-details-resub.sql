@@ -6,6 +6,7 @@ GO
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
 
 BEGIN
+
 	SET NOCOUNT ON;
 
 	DECLARE @start_dt datetime;
@@ -160,8 +161,10 @@ BEGIN
 			where IsProducerSubmission = 1 or IsProducerResubmission = 1 or IsRegulatorDecision = 1	or IsRegulatorResubmissionDecision = 1
 		)
 		,InitialSubmissionCTE AS (
-			SELECT TOP 1 *
-			FROM ReconciledSubmissionEvents
+			SELECT TOP 1 rse.*, cd.organisation_size
+			FROM ReconciledSubmissionEvents rse
+			inner join rpd.cosmos_file_metadata cfm on cfm.FileId = rse.FileId
+			inner join rpd.companydetails cd on cd.filename = cfm.filename
 			WHERE IsProducerSubmission = 1 AND IsProducerResubmission = 0
 			ORDER BY RowNum asc
 		)
@@ -212,12 +215,19 @@ BEGIN
 				,s.Comment as SubmissionComment
 				,s.DecisionDate as SubmissionDate
 				,fs.DecisionDate as FirstSubmissionDate
-				--,CAST(
-    --                CASE
-    --                    WHEN fs.DecisionDate > @LateFeeCutoffDate THEN 1
-    --                    ELSE 0
-    --                END AS BIT
-    --            ) AS IsLateSubmission
+				,CASE WHEN @IsComplianceScheme = 1 THEN 'C' ELSE s.organisation_size END as OrganisationType
+				,CAST(CASE WHEN @IsComplianceScheme = 1 OR s.organisation_size = 'L' THEN
+						CASE
+							WHEN fs.DecisionDate > @CSLLateFeeCutoffDate THEN 1
+							ELSE 0
+						END
+				      ELSE
+						CASE
+							WHEN fs.DecisionDate > @SmallLateFeeCutoffDate THEN 1
+							ELSE 0
+						END
+				 END AS BIT
+                ) AS IsLateSubmission
 				,s.FileId as SubmittedFileId
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
 				,COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) as RegulatorDecisionDate
@@ -389,13 +399,7 @@ BEGIN
 							4
 						) AS INT
 					) AS RelevantYear
-					--,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
-					,CASE WHEN org.IsComplianceScheme = 1
-						  OR UPPER(TRIM(org.organisationsize)) = 'L' THEN 
-							CASE WHEN ss.FirstSubmissionDate > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
-						  ELSE
-						  	CASE WHEN ss.FirstSubmissionDate > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
-					 END as IsLateSubmission						
+					,CAST(ss.IsLateSubmission AS BIT) AS IsLateSubmission
 					,CASE UPPER(TRIM(org.organisationsize))
 						WHEN 'S' THEN 'Small'
 						WHEN 'L' THEN 'Large'
@@ -445,14 +449,14 @@ BEGIN
 				   ,ss.IsLateSubmission
 				   ,ss.FileId as SubmittedFileId
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
-						 WHEN csm.EarliestSubmittedDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
+						 WHEN csm.EarliestSubmissionDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
 						 WHEN csm.joiner_date is null THEN 1
 						 ELSE 0 END
 					AS IsOriginal
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 0
-						 WHEN csm.EarliestSubmittedDate <= ss.RegistrationDecisionDate THEN 0
-					     WHEN ( csm.EarliestSubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
-					     WHEN ( csm.EarliestSubmittedDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
+						 WHEN csm.EarliestSubmissionDate <= ss.RegistrationDecisionDate THEN 0
+					     WHEN ( csm.EarliestSubmissionDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
+					     WHEN ( csm.EarliestSubmissionDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
 					END as IsNewJoiner
 			from dbo.v_ComplianceSchemeMembers_resub csm
 				,SubmissionStatusCTE ss
