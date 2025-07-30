@@ -264,7 +264,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             if (!dbRet.HasValue)
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedFileId);
+                logger.LogError("{LogPrefix}: SubmissionsController - IsPOMResubmissionSynchronised: The FileId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedFileId);
                 return Ok(false);
             }
 
@@ -280,12 +280,12 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
         catch (TimeoutException ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsPOMResubmissionSynchronised: The FileId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
             return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsPOMResubmissionSynchronised: The FileId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
