@@ -210,4 +210,41 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             throw new DataException("An exception occurred when executing query.", ex);
         }
     }
+
+    public async Task<bool> IsPOMResubmissionDataSynchronised(string sanitisedFileId)
+    {
+        logger.LogInformation("{Logprefix}: SubmissionsService - IsPOMResubmissionDataSynchronised: Get sp_IsPOMResubmissionDataSynchronised for given file {FileId}", _logPrefix, sanitisedFileId);
+        var sql = "[dbo].[sp_IsPOMResubmissionSynchronised]";
+
+        SqlParameter[] sqlParameters =
+        [
+            new ("@FileId", SqlDbType.NVarChar, 40)
+            {
+                Value = sanitisedFileId
+            }
+        ];
+
+        try
+        {
+            var dbSet = await accountsDbContext.RunSpCommandAsync<CosmosSyncInfo>(sql, logger, _logPrefix, sqlParameters);
+            logger.LogInformation("{Logprefix}: SubmissionsService - IsPOMResubmissionDataSynchronised: Get sp_IsPOMResubmissionSynchronised Query Response {Dataset}", _logPrefix, JsonConvert.SerializeObject(dbSet));
+
+            if (dbSet.Count > 0)
+            {
+                return dbSet[0].IsSynced ?? false;
+            }
+
+            return false;
+        }
+        catch (SqlException ex) when (ex.Number == -2)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - IsPOMResubmissionDataSynchronised: A Timeout error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new TimeoutException("The request timed out while accessing the database.", ex);
+        }
+        catch (SqlException ex)
+        {
+            logger.LogError(ex, "{Logprefix}: SubmissionsService - IsPOMResubmissionDataSynchronised: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An exception occurred when executing query.", ex);
+        }
+    }
 }

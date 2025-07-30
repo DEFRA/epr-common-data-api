@@ -859,4 +859,89 @@ public class SubmissionsServiceTests
         await act.Should().ThrowAsync<DataException>()
             .WithMessage("An exception occurred when executing query.");
     }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionDataSynchronised_ReturnsTrue_WhenIsSyncedIsTrue()
+    {
+        // Arrange
+        var fileId = "test-file-id";
+        var result = new List<CosmosSyncInfo> { new CosmosSyncInfo { IsSynced = true } };
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(result);
+
+        // Act
+        var isSynced = await _sut.IsPOMResubmissionDataSynchronised(fileId);
+
+        // Assert
+        Assert.IsTrue(isSynced);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionDataSynchronised_ReturnsFalse_WhenIsSyncedIsFalse()
+    {
+        var fileId = "test-file-id";
+        var result = new List<CosmosSyncInfo> { new CosmosSyncInfo { IsSynced = false } };
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(result);
+
+        var isSynced = await _sut.IsPOMResubmissionDataSynchronised(fileId);
+
+        Assert.IsFalse(isSynced);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionDataSynchronised_ReturnsFalse_WhenNoDataReturned()
+    {
+        var fileId = "test-file-id";
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(new List<CosmosSyncInfo>());
+
+        var isSynced = await _sut.IsPOMResubmissionDataSynchronised(fileId);
+
+        Assert.IsFalse(isSynced);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionDataSynchronised_ThrowsTimeoutException_OnSqlTimeout()
+    {
+        var fileId = "test-file-id";
+
+        var sqlTimeout = BuildSqlException(-2);
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(sqlTimeout);
+
+        // Act
+        Func<Task> act = async () => await _sut.IsPOMResubmissionDataSynchronised(fileId);
+        
+        // Assert
+        await act.Should().ThrowAsync<TimeoutException>()
+            .WithMessage("The request timed out while accessing the database.");
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionDataSynchronised_ThrowsDataException_OnOtherSqlException()
+    {
+        var fileId = "test-file-id";
+
+        var sqlError = BuildSqlException(50000);
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<CosmosSyncInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ThrowsAsync(sqlError);
+
+        // Act
+        Func<Task> act = async () => await _sut.IsPOMResubmissionDataSynchronised(fileId);
+
+        // Assert
+        await act.Should().ThrowAsync<DataException>()
+            .WithMessage("An exception occurred when executing query.");
+    }
 }

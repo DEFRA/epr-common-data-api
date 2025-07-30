@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Moq;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -681,5 +682,89 @@ public class SubmissionsControllerTests
         // Assert
         result.Result.Should().BeOfType<ObjectResult>()
             .Which.StatusCode.Should().Be(500);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionSynchronised_ReturnsFalse_WhenIsCosmosDataAvailableIsNull()
+    {
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService.Setup(s => s.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync((bool?)null);
+
+        var result = await _submissionsController.IsPOMResubmissionSynchronised(fileId);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        Assert.AreEqual(false, ((OkObjectResult)result.Result!).Value);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionSynchronised_ReturnsTrue_WhenBothChecksPass()
+    {
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService.Setup(s => s.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync(true);
+        _mockSubmissionsService.Setup(s => s.IsPOMResubmissionDataSynchronised(It.IsAny<string>()))
+            .ReturnsAsync(true);
+
+        var result = await _submissionsController.IsPOMResubmissionSynchronised(fileId);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        Assert.AreEqual(true, ((OkObjectResult)result.Result!).Value);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionSynchronised_ReturnsFalse_WhenSecondCheckFails()
+    {
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService.Setup(s => s.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync(true);
+        _mockSubmissionsService.Setup(s => s.IsPOMResubmissionDataSynchronised(It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        var result = await _submissionsController.IsPOMResubmissionSynchronised(fileId);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        Assert.AreEqual(false, ((OkObjectResult)result.Result!).Value);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionSynchronised_ReturnsFalse_WhenFirstCheckIsFalse()
+    {
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService.Setup(s => s.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ReturnsAsync(false);
+
+        var result = await _submissionsController.IsPOMResubmissionSynchronised(fileId);
+
+        Assert.IsInstanceOfType(result.Result, typeof(OkObjectResult));
+        Assert.AreEqual(false, ((OkObjectResult)result.Result!).Value);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionSynchronised_Returns504_WhenTimeoutOccurs()
+    {
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService.Setup(s => s.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ThrowsAsync(new TimeoutException("Timeout occurred."));
+
+        var result = await _submissionsController.IsPOMResubmissionSynchronised(fileId);
+
+        var statusResult = result.Result as ObjectResult;
+        Assert.IsNotNull(statusResult);
+        Assert.AreEqual(504, statusResult.StatusCode);
+    }
+
+    [TestMethod]
+    public async Task IsPOMResubmissionSynchronised_Returns500_WhenUnhandledExceptionOccurs()
+    {
+        var fileId = Guid.NewGuid();
+        _mockSubmissionsService.Setup(s => s.IsCosmosDataAvailable(null, It.IsAny<string>()))
+            .ThrowsAsync(new Exception("Unhandled error"));
+
+        var result = await _submissionsController.IsPOMResubmissionSynchronised(fileId);
+
+        var statusResult = result.Result as ObjectResult;
+        Assert.IsNotNull(statusResult);
+        Assert.AreEqual(500, statusResult.StatusCode);
     }
 }

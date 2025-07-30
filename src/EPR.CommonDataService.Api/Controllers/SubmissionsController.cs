@@ -244,6 +244,52 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
     }
 
+    [HttpGet("is_pom_resubmission_synchronised/{FileId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<bool>> IsPOMResubmissionSynchronised([FromRoute] Guid FileId)
+    {
+        var sanitisedFileId = FileId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/is_pom_resubmission_synchronised/{FileId}'", _logPrefix, sanitisedFileId);
+
+        try
+        {
+            bool? dbRet = await submissionsService.IsCosmosDataAvailable(null, sanitisedFileId);
+
+            if (!dbRet.HasValue)
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId provided did not return a value. {SubmissionId}", _logPrefix, sanitisedFileId);
+                return Ok(false);
+            }
+
+            if (dbRet.GetValueOrDefault(false))
+            {
+                // verify that the file id is in CompanyDetails and the app schema has a packaging reference number
+                dbRet = await submissionsService.IsPOMResubmissionDataSynchronised(sanitisedFileId);
+
+                return Ok(dbRet);
+            }
+
+            return Ok(dbRet);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused a timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
     [HttpGet("is_file_synced_with_cosmos/{FileId}")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
