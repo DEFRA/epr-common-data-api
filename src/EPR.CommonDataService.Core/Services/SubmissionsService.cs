@@ -91,7 +91,6 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            ///databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
             var dataset = await accountsDbContext.RunSqlAsync<OrganisationRegistrationSummaryDataRow>(sql, sqlParameters);
             var itemsCount = dataset.FirstOrDefault()?.TotalItems ?? 0;
 
