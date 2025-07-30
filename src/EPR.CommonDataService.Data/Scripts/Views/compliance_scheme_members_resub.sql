@@ -22,6 +22,7 @@ CREATE VIEW [dbo].[v_ComplianceSchemeMembers_resub] AS with base_data as
 		,cd.leaver_code
 		,cd.leaver_date
 		,cd.joiner_date
+		,cd.organisation_size
 		,cd.organisation_change_reason		
 		,c.[FileName]
 		,c.FileId
@@ -49,10 +50,18 @@ base_data_with_latefee_and_earlySubmittedDate as
 				END
 			  ELSE 
 				CASE 
-					WHEN e.EarliestSubmissionDate > DATEFROMPARTS(RelevantYear - 1, 10, 1) THEN 1
-					ELSE 0
-				END
-			  END IsLateFeeApplicable
+					WHEN b.organisation_size = 'L' THEN
+						CASE 
+							WHEN e.EarliestSubmissionDate > DATEFROMPARTS(RelevantYear - 1, 10, 1) THEN 1
+							ELSE 0
+						END
+					WHEN b.organisation_size = 'S' THEN
+						CASE 
+							WHEN e.EarliestSubmissionDate > DATEFROMPARTS(RelevantYear, 4, 1) THEN 1
+							ELSE 0
+						END
+			    END 
+			 END as IsLateFeeApplicable
 			, e.EarliestSubmissionDate
 	from base_data b
 	left join earliest_submission_by_cs_for_an_org_for_submissionperiod e
@@ -64,7 +73,9 @@ select distinct
 	CSOExternalId,	CSOReference,	ComplianceSchemeId,	
 	ReferenceNumber,	OrganisationId as ExternalId,	OrganisationName,	SubmissionPeriod,	RelevantYear,	SubmittedDate,	
 	CONVERT(varchar, EarliestSubmissionDate, 126) as EarliestSubmissionDate,
-	IsLateFeeApplicable,	leaver_code,	leaver_date,	joiner_date,	organisation_change_reason,	FileName,	FileId
+	IsLateFeeApplicable,	
+	organisation_size,
+	leaver_code,	leaver_date,	joiner_date,	organisation_change_reason,	FileName,	FileId
 From base_data_with_latefee_and_earlySubmittedDate 
 where IsComplianceScheme = 0;
 GO
