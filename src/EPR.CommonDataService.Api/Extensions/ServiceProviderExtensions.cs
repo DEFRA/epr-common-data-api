@@ -22,6 +22,7 @@ public static class ServiceProviderExtensions
     public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase")));
+
         return services;
     }
 
