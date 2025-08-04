@@ -476,6 +476,7 @@ BEGIN
 				,ppp.ProducerSize
 				,csm.SubmittedDate
 				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
+					  WHEN csm.IsOriginal = 1 THEN csm.IsLateFeeApplicable
 					  ELSE csm.IsLateSubmission END 
 			     AS IsLateFeeApplicable
 				,csm.OrganisationName
