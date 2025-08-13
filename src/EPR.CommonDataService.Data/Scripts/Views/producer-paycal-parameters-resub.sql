@@ -48,7 +48,7 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS
             ,COUNT(CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries
         FROM
             rpd.companydetails cd
-        WHERE cd.Subsidiary_Id IS NOT NULL and leaver_date is null
+        WHERE cd.Subsidiary_Id IS NOT NULL -- and leaver_date is null
         GROUP BY cd.FileName, cd.organisation_id
     )
 	,OrganisationPaycalDetailsCTE AS (
