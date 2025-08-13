@@ -254,11 +254,6 @@ BEGIN
 					ResubmissionDate
 			FROM SubmissionStatusCTE
 		)
-		,AppropriateSubmissionDateCTE as (
-			SELECT S.SubmissionDate, P.ResubmissionDate 
-			FROM SubmittedCTE S LEFT JOIN ResubmissionDetailsCTE P
-			ON P.SubmissionId = S.SubmissionId
-		)
 		,UploadedDataForOrganisationCTE as (
 			select distinct org.*
 			FROM
@@ -289,7 +284,6 @@ BEGIN
 				,org.PartnerBlobName
 			FROM
 				UploadedDataForOrganisationCTE org 
-				WHERE org.UploadDate <= (SELECT ISNULL(ResubmissionDate, SubmissionDate) FROM AppropriateSubmissionDateCTE)			
 		)
 		,ProducerPaycalParametersCTE
 			AS
@@ -305,7 +299,7 @@ BEGIN
 				,NumberOfSubsidiaries
 				,OnlineMarketPlaceSubsidiaries
 				FROM
-					[dbo].[v_ProducerPaycalParameters_resub] AS ppp
+					[dbo].[t_ProducerPaycalParameters_resub] AS ppp
 				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
 		)
 		,SubmissionDetails AS (
@@ -470,7 +464,7 @@ BEGIN
 				ComplianceSchemeMembersCTE csm
 				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
 				  			AND ppp.FileName = csm.FileName
-            WHERE @IsComplianceScheme = 1             
+            WHERE @IsComplianceScheme = 1
         ) 
 	   ,JsonifiedCompliancePaycalCTE
         AS
