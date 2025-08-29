@@ -476,13 +476,16 @@ BEGIN
 				,ppp.ProducerSize
 				,csm.SubmittedDate
 				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
-				ELSE CASE WHEN csm.organisation_size = 'S' THEN
-  						   CASE WHEN csm.SubmittedOn > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
-								WHEN csm.organisation_size = 'L' THEN
-									CASE WHEN csm.SubmittedOn > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
-								ELSE csm.IsLateSubmission 
-						   END
-				 END AS IsLateFeeApplicable				,csm.OrganisationName
+				    -- this commented code is applicable for when late fees will be applied in a Query state
+				    --  ELSE CASE WHEN csm.organisation_size = 'S' THEN
+  						--   CASE WHEN csm.SubmittedOn > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
+								--WHEN csm.organisation_size = 'L' THEN
+								--	CASE WHEN csm.SubmittedOn > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
+								--ELSE csm.IsLateSubmission 
+					   --END
+					   ELSE csm.IsLateSubmission
+				  END AS IsLateFeeApplicable
+				 ,csm.OrganisationName
 				,csm.leaver_code
 				,csm.leaver_date
 				,csm.joiner_date
