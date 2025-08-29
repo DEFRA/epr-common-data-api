@@ -20,7 +20,6 @@ BEGIN
 	DECLARE @ComplianceSchemeId nvarchar(50);
 	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
-    --DECLARE @LateFeeCutoffDate DATE; 
 
 	DECLARE @SmallLateFeeCutoffDate DATE; 
 	DECLARE @CSLLateFeeCutoffDate DATE; 
@@ -134,7 +133,7 @@ BEGIN
 				where UploadEvent = 1
 			) x
 		)
-		,ReconciledSubmissionEvents as (		-- applies fileId to corresponding events
+		,ReconciledSubmissionEvents as (
 			select
 				SubmissionId
 				,SubmissionEventId
@@ -476,13 +475,9 @@ BEGIN
 				,ppp.ProducerSize
 				,csm.SubmittedDate
 				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
-				ELSE CASE WHEN csm.organisation_size = 'S' THEN
-  						   CASE WHEN csm.SubmittedOn > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
-								WHEN csm.organisation_size = 'L' THEN
-									CASE WHEN csm.SubmittedOn > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
-								ELSE csm.IsLateSubmission 
-						   END
-				 END AS IsLateFeeApplicable				,csm.OrganisationName
+   				      ELSE csm.IsLateSubmission
+				  END AS IsLateFeeApplicable
+				 ,csm.OrganisationName
 				,csm.leaver_code
 				,csm.leaver_date
 				,csm.joiner_date
