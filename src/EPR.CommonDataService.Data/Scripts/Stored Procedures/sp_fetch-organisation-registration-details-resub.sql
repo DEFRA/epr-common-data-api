@@ -476,7 +476,12 @@ BEGIN
 				,ppp.ProducerSize
 				,csm.SubmittedDate
 				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
-					  ELSE csm.IsLateSubmission
+				ELSE CASE WHEN csm.organisation_size = 'S' THEN
+					 CASE WHEN csm.EarliestSubmissionDate > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
+						  WHEN csm.organisation_size = 'L' THEN
+							CASE WHEN csm.EarliestSubmissionDate > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
+						  ELSE csm.IsLateSubmission
+					END
 				 END AS IsLateFeeApplicable
 				,csm.OrganisationName
 				,csm.leaver_code
