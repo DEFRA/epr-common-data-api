@@ -15,6 +15,13 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
+		DECLARE @start_dt datetime;
+	DECLARE @batch_id INT;
+	DECLARE @cnt int;
+
+	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
+	set @start_dt = getdate();
+
 -- Check if there are any approved submissions after the specified date
     IF EXISTS (
         SELECT 1
@@ -45,8 +52,8 @@ BEGIN
         IF OBJECT_ID('tempdb..#IncludeOrganisationSizeTable') IS NOT NULL DROP TABLE #IncludeOrganisationSizeTable;
         IF OBJECT_ID('tempdb..#ValidOrganisations') IS NOT NULL DROP TABLE #ValidOrganisations;
 
-        -- Get start date for the current year
-        DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
+        -- Get start date based on reporting packaging data rules
+        DECLARE @StartDate DATETIME2 = DATEADD(MONTH, -7, DATEFROMPARTS(YEAR(GETDATE()), 1, 1));
 
         -- Declare parent type
         DECLARE @DirectRegistrantType NVARCHAR(50) = 'DirectRegistrant';
@@ -399,5 +406,8 @@ BEGIN
             CAST(NULL AS VARCHAR(50)) AS SubmitterType
         WHERE 1 = 0; -- Ensures no rows are returned
     END
+
+	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
 GO
