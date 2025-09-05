@@ -266,7 +266,7 @@ BEGIN
 			LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 			order by resubmissiondecisiondate desc
 		)
-	,SubmittedCTE as (
+		,SubmittedCTE as (
 			SELECT SubmissionId, 
 					SubmissionEventId, 
 					SubmissionComment, 
