@@ -454,14 +454,18 @@ BEGIN
 				   ,ss.IsResubmissionLate
 				   ,ss.FileId as SubmittedFileId
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
-						 WHEN csm.EarliestSubmissionDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
-						 WHEN csm.joiner_date is null THEN 1
-						 ELSE 0 END
-					AS IsOriginal
+						 WHEN ss.ResubmissionDate is not null THEN
+							  CASE WHEN csm.joiner_date is not null then 0
+								   ELSE 1
+							  END
+						 ELSE 1 
+					END AS IsOriginal				   
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 0
-						 WHEN csm.EarliestSubmissionDate <= ss.RegistrationDecisionDate THEN 0
-					     WHEN ( csm.EarliestSubmissionDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
-					     WHEN ( csm.EarliestSubmissionDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
+						 WHEN ss.ResubmissionDate is not null THEN
+							  CASE WHEN csm.joiner_date is not null then 1
+								   ELSE 0
+							  END
+						  ELSE 0
 					END as IsNewJoiner
 			from dbo.v_ComplianceSchemeMembers_resub csm
 				,SubmissionStatusCTE ss
