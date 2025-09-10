@@ -8,6 +8,7 @@ using System.Data;
 using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using IntToBoolConverter = EPR.CommonDataService.Data.Converters.IntToBoolConverter;
 using StringToGuidConverter = EPR.CommonDataService.Data.Converters.StringToGuidConverter;
 using StringToIntConverter = EPR.CommonDataService.Data.Converters.StringToIntConverter;
@@ -158,78 +159,18 @@ public class SynapseContext : DbContext
             entity.HasNoKey();
         });
 
-        modelBuilder.Entity<SubmissionEvent>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.SubmissionEventId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        modelBuilder.Entity<SubmissionEvent>(AddSubmissionEventIdKeyIfApplicable);
 
 
-        modelBuilder.Entity<PomSubmissionSummaryRow>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.FileId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        modelBuilder.Entity<PomSubmissionSummaryRow>(AddFileIdKeyIfApplicable);
 
-        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.CompanyDetailsFileId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        modelBuilder.Entity<RegistrationsSubmissionSummaryRow>(AddCompanyDetailsFileIdKeyIfApplicable);
 
-        modelBuilder.Entity<ApprovedSubmissionEntity>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.OrganisationId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        modelBuilder.Entity<ApprovedSubmissionEntity>(AddOrganisationIdKeyIfApplicable);
 
-        modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.SubmissionId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>(AddSubmissionIdKeyIfApplicable);
 
-        modelBuilder.Entity<OrganisationRegistrationDetailsDto>(entity =>
-        {
-            if (Database.ProviderName == InMemoryProvider)
-            {
-                entity.HasKey(e => e.SubmissionId);
-            }
-            else
-            {
-                entity.HasNoKey();
-            }
-        });
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>(AddSubmissionIdKeyToDtoIfApplicable);
     }
 
     public virtual async Task<IList<TEntity>> RunSqlAsync<TEntity>(string sql, params object[] parameters) where TEntity : class
@@ -384,6 +325,78 @@ public class SynapseContext : DbContext
         }
 
         return command;
+    }
+
+    private void AddSubmissionIdKeyToDtoIfApplicable(EntityTypeBuilder<OrganisationRegistrationDetailsDto> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.SubmissionId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
+    }
+
+    private void AddSubmissionIdKeyIfApplicable(EntityTypeBuilder<OrganisationRegistrationSummaryDataRow> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.SubmissionId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
+    }
+
+    private void AddOrganisationIdKeyIfApplicable(EntityTypeBuilder<ApprovedSubmissionEntity> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.OrganisationId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
+    }
+
+    private void AddCompanyDetailsFileIdKeyIfApplicable(EntityTypeBuilder<RegistrationsSubmissionSummaryRow> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.CompanyDetailsFileId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
+    }
+
+    private void AddFileIdKeyIfApplicable(EntityTypeBuilder<PomSubmissionSummaryRow> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.FileId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
+    }
+
+    private void AddSubmissionEventIdKeyIfApplicable(EntityTypeBuilder<SubmissionEvent> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.SubmissionEventId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
     }
 }
 
