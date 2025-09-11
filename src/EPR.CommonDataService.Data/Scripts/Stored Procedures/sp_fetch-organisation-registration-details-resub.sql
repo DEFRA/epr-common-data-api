@@ -208,7 +208,7 @@ BEGIN
 				,s.DecisionDate as SubmissionDate
 				,fs.DecisionDate as FirstSubmissionDate
 				,CASE WHEN @IsComplianceScheme = 1 THEN 'C' ELSE s.organisation_size END as OrganisationType
-				,CAST(CASE WHEN @IsComplianceScheme = 1 OR s.organisation_size = 'L' THEN
+				,CAST(CASE WHEN @IsComplianceScheme = 1 OR UPPER(TRIM(s.organisation_size)) = 'L' THEN
 						CASE
 							WHEN fs.DecisionDate > @CSLLateFeeCutoffDate THEN 1
 							ELSE 0
@@ -484,14 +484,33 @@ BEGIN
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
-				ELSE CASE WHEN csm.organisation_size = 'S' THEN
-					 CASE WHEN csm.EarliestSubmissionDate > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
-						  WHEN csm.organisation_size = 'L' THEN
-							CASE WHEN csm.EarliestSubmissionDate > @CSLLateFeeCutoffDate THEN 1 ELSE 0 END
-						  ELSE csm.IsLateSubmission
-					END
-				 END AS IsLateFeeApplicable
+				,CASE 
+					-- Check if the organization is a new joiner
+					WHEN csm.IsNewJoiner = 1 THEN 
+						-- If they are a new joiner, return the IsLateFeeApplicable value directly
+						csm.IsResubmissionLate
+					ELSE 
+						-- If they are not a new joiner, check their organization size
+						CASE 
+							-- If the organization size is 'S' (Small)
+							WHEN UPPER(TRIM(csm.organisation_size)) = 'S' THEN 
+								-- Check if the earliest submission date exceeds the small late fee cutoff date
+								CASE 
+									WHEN csm.EarliestSubmissionDate > @SmallLateFeeCutoffDate THEN 1  -- Late submission
+									ELSE 0  -- Not late
+								END
+							-- If the organization size is 'L' (Large)
+							WHEN UPPER(TRIM(csm.organisation_size)) = 'L' THEN 
+								-- Check if the earliest submission date exceeds the compliance scheme late fee cutoff date
+								CASE 
+									WHEN csm.EarliestSubmissionDate > @CSLLateFeeCutoffDate THEN 1  -- Late submission
+									ELSE 0  -- Not late
+								END
+							-- If the organization size is neither 'S' nor 'L', return the existing late submission status
+							ELSE 
+								csm.IsLateSubmission
+						END
+				END AS IsLateFeeApplicable
 				,csm.OrganisationName
 				,csm.leaver_code
 				,csm.leaver_date
