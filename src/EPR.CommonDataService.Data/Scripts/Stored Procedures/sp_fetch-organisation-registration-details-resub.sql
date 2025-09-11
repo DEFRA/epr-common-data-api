@@ -9,10 +9,6 @@ BEGIN
 
 	SET NOCOUNT ON;
 
-	DECLARE @start_dt datetime;
-	DECLARE @batch_id INT;
-	DECLARE @cnt int;
-
 	DECLARE @OrganisationIDForSubmission INT;
 	DECLARE @OrganisationUUIDForSubmission UNIQUEIDENTIFIER;
 	DECLARE @SubmissionPeriod nvarchar(100);
@@ -20,13 +16,9 @@ BEGIN
 	DECLARE @ComplianceSchemeId nvarchar(50);
 	DECLARE @ApplicationReferenceNumber nvarchar(4000);
 	DECLARE @IsComplianceScheme bit;
-    --DECLARE @LateFeeCutoffDate DATE; 
 
 	DECLARE @SmallLateFeeCutoffDate DATE; 
 	DECLARE @CSLLateFeeCutoffDate DATE; 
-
-	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
-	set @start_dt = getdate()
 
     SELECT
         @OrganisationIDForSubmission = O.Id 
@@ -134,7 +126,7 @@ BEGIN
 				where UploadEvent = 1
 			) x
 		)
-		,ReconciledSubmissionEvents as (		-- applies fileId to corresponding events
+		,ReconciledSubmissionEvents as (
 			select
 				SubmissionId
 				,SubmissionEventId
@@ -243,6 +235,18 @@ BEGIN
 				,r.Comment as ResubmissionComment
 				,r.SubmissionEventId as ResubmissionEventId
 				,r.DecisionDate as ResubmissionDate
+				,CAST(CASE WHEN @IsComplianceScheme = 1 OR s.organisation_size = 'L' THEN
+						CASE
+							WHEN r.DecisionDate > @CSLLateFeeCutoffDate THEN 1
+							ELSE 0
+						END
+						ELSE
+						CASE
+							WHEN r.DecisionDate > @SmallLateFeeCutoffDate THEN 1
+							ELSE 0
+						END
+				 END AS BIT
+                ) AS IsResubmissionLate
 				,r.UserId as ResubmittedUserId
 				,rd.DecisionDate AS ResubmissionDecisionDate
 				,rd.SubmissionEventId AS ResubmissionDecisionEventId
@@ -262,7 +266,7 @@ BEGIN
 			LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId AND rd.FileId = r.FileId
 			order by resubmissiondecisiondate desc
 		)
-	,SubmittedCTE as (
+		,SubmittedCTE as (
 			SELECT SubmissionId, 
 					SubmissionEventId, 
 					SubmissionComment, 
@@ -447,16 +451,21 @@ BEGIN
 			select csm.*
 				   ,ss.SubmissionDate as SubmittedOn
 				   ,ss.IsLateSubmission
+				   ,ss.IsResubmissionLate
 				   ,ss.FileId as SubmittedFileId
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
-						 WHEN csm.EarliestSubmissionDate <= ss.RegistrationDecisionDate AND csm.joiner_date is null THEN 1
-						 WHEN csm.joiner_date is null THEN 1
-						 ELSE 0 END
-					AS IsOriginal
+						 WHEN ss.ResubmissionDate is not null THEN
+							  CASE WHEN csm.joiner_date is not null then 0
+								   ELSE 1
+							  END
+						 ELSE 1 
+					END AS IsOriginal				   
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 0
-						 WHEN csm.EarliestSubmissionDate <= ss.RegistrationDecisionDate THEN 0
-					     WHEN ( csm.EarliestSubmissionDate > ss.RegistrationDecisionDate and csm.joiner_date is not null) THEN 1
-					     WHEN ( csm.EarliestSubmissionDate > ss.RegistrationDecisionDate and csm.joiner_date is null) THEN 0
+						 WHEN ss.ResubmissionDate is not null THEN
+							  CASE WHEN csm.joiner_date is not null then 1
+								   ELSE 0
+							  END
+						  ELSE 0
 					END as IsNewJoiner
 			from dbo.v_ComplianceSchemeMembers_resub csm
 				,SubmissionStatusCTE ss
@@ -475,7 +484,7 @@ BEGIN
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsLateFeeApplicable
+				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
 				ELSE CASE WHEN csm.organisation_size = 'S' THEN
 					 CASE WHEN csm.EarliestSubmissionDate > @SmallLateFeeCutoffDate THEN 1 ELSE 0 END
 						  WHEN csm.organisation_size = 'L' THEN
@@ -597,8 +606,5 @@ BEGIN
         INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
-
-	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
-	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub',@SubmissionId, NULL, @start_dt, getdate(), '',@batch_id
 END;
 GO
