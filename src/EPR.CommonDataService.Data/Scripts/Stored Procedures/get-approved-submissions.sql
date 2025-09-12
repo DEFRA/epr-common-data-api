@@ -26,7 +26,7 @@ BEGIN
     IF EXISTS (
         SELECT 1
         FROM [rpd].[SubmissionEvents]
-        WHERE TRY_CAST([Created] AS datetime2) > @ApprovedAfter
+        WHERE TRY_CAST([Created] AS datetime2) >= @ApprovedAfter
         AND Decision = 'Accepted'
     )
     BEGIN
@@ -131,7 +131,7 @@ BEGIN
                 SubmissionId, 
                 MAX(Created) AS Created
             FROM CleanedSubmissionEvents
-            WHERE Created > @StartDate
+            WHERE Created >= @StartDate
             AND Decision = 'Accepted'
             GROUP BY SubmissionId
         ),
@@ -338,7 +338,7 @@ BEGIN
         INTO #ValidOrganisations
         FROM #FileIdss f
         INNER JOIN [rpd].[Pom] p ON p.FileName = f.FileName
-        WHERE TRY_CAST(f.Created AS datetime2) > @ApprovedAfter;
+        WHERE TRY_CAST(f.Created AS datetime2) >= @ApprovedAfter;
 
         -- Step 14: Build final aggregation
         SELECT DISTINCT
@@ -413,4 +413,3 @@ BEGIN
 	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
 GO
-
