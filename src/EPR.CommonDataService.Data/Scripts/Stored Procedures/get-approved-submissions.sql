@@ -15,7 +15,7 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
-		DECLARE @start_dt datetime;
+	DECLARE @start_dt datetime;
 	DECLARE @batch_id INT;
 	DECLARE @cnt int;
 
@@ -215,7 +215,7 @@ BEGIN
             ON NULLIF(TRIM(p.subsidiary_id), '') = o2.ReferenceNumber;
 
 
-        -- Step 7: Identify eligible organisations per period group
+     -- Step 7: Identify eligible organisations per period group
         WITH 
         PeriodGroup1 AS (
             SELECT OrganisationId
@@ -246,6 +246,28 @@ BEGIN
             SELECT OrganisationId FROM PeriodGroup3
         ),
 
+        -- rank submitters per organisation and pick the latest one
+        RankedSubmitters AS (
+            SELECT 
+                f.OrganisationId,
+                f.SubmitterId,
+                MAX(f.Created) AS LatestCreated
+            FROM #FilteredByApproveAfterYear f
+            INNER JOIN AllQualifiedOrgs q
+                ON f.OrganisationId = q.OrganisationId
+            GROUP BY f.OrganisationId, f.SubmitterId
+        ),
+        PreferredSubmitter AS (
+            SELECT OrganisationId, SubmitterId
+            FROM (
+                SELECT 
+                    rs.*,
+                    ROW_NUMBER() OVER (PARTITION BY rs.OrganisationId ORDER BY rs.LatestCreated DESC) AS rn
+                FROM RankedSubmitters rs
+            ) x
+            WHERE rn = 1   
+        ),
+
         -- Step 8: Apply packaging material/type filters
         FilteredApprovedSubmissions AS (
             SELECT 
@@ -260,7 +282,9 @@ BEGIN
                 f.SubmitterId,
                 f.SubmitterType
             FROM #FilteredByApproveAfterYear f
-            INNER JOIN AllQualifiedOrgs q ON f.OrganisationId = q.OrganisationId
+            INNER JOIN PreferredSubmitter ps  
+                ON f.OrganisationId = ps.OrganisationId
+               AND f.SubmitterId    = ps.SubmitterId
             WHERE f.PackagingMaterial IN (SELECT * FROM #IncludePackagingMaterialsTable)
             AND f.PackType IN (SELECT * FROM #IncludePackagingTypesTable)
         )
