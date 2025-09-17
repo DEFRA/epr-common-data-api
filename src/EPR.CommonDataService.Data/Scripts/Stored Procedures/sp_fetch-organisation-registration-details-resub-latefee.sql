@@ -3,7 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
-CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee] @SubmissionId [nvarchar](36) AS
 
 BEGIN
 
