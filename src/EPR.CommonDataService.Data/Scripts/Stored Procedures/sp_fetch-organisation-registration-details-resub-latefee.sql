@@ -1,6 +1,6 @@
-﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 24/04/2025 10:26:16 ******/
+﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee]    Script Date: 24/04/2025 10:26:16 ******/
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee]'))
-DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
+DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee];
 GO
 
 CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee] @SubmissionId [nvarchar](36) AS
