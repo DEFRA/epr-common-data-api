@@ -6,19 +6,6 @@ trigger:
     include:
       - 'src/'
 
-parameters:
-  - name: runTests
-    displayName: Run tests and generate test coverage. Adds >10 minutes processing time.
-    type: boolean
-    default: true
-  - name: sonarqubeInstance
-    displayName: 'Select SonarQube for v9.9 or SonarQubeLatest for 10.4'
-    type: string
-    default: 'SonarQubeLatest'
-    values:
-    - 'SonarQube'
-    - 'SonarQubeLatest'
-
 pool: DEFRA-COMMON-ubuntu2004-SSV3
 
 variables:
@@ -35,6 +22,8 @@ variables:
     value: epr-common-data-api
   - name: runNugetTasks
     value: false
+  - name: runTests
+    value: true
   - name: NUGET_PACKAGES
     value: $(Pipeline.Workspace)/.nuget/packages
   - name: dotnetVersion
@@ -55,12 +44,11 @@ extends:
     testProjectFolder: ${{ variables.testProjectFolder }}
     sonarQubeProjectKey: ${{ variables.sonarQubeProjectKey }}
     sonarQubeProjectName: ${{ variables.sonarQubeProjectName }}
-    runTests: ${{ parameters.runTests }}
+    runTests: ${{ variables.runTests }}
     azureSubscription: $(azureSubscription)
     acrAzureContainerRegistryName: $(acr.azureContainerRegistryName)
     acrRepositoryName: $(acr.repositoryName)
     branchName: ${{ replace(replace(variables['Build.SourceBranch'], 'refs/heads/', ''), '/', '_') }}
     runNugetTasks: ${{ variables.runNugetTasks }}
     serviceName: $(serviceName)
-    sonarqubeInstance: ${{ parameters.sonarqubeInstance }}
     dotnetVersion: ${{ variables.dotnetVersion }}
