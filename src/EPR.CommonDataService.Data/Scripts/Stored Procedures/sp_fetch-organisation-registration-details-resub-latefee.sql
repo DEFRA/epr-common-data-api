@@ -447,6 +447,17 @@ BEGIN
 			) as a
 			WHERE a.RowNum = 1
 		)
+		,CSSchemeDetailsCTE as (
+			select csm.*,
+				   re.DecisionDate as FirstApplicationSubmittedDate
+			from dbo.v_ComplianceSchemeMembers_resub_latefee csm
+				,ReconciledSubmissionEvents re
+			where @IsComplianceScheme = 1
+				  and csm.CSOReference = @CSOReferenceNumber
+				  and csm.SubmissionPeriod = @SubmissionPeriod
+				  and csm.ComplianceSchemeId = @ComplianceSchemeId
+				  and csm.EarliestFileId = re.FileId and re.Type = 'RegistrationApplicationSubmitted'
+		) 
 		,ComplianceSchemeMembersCTE as (
 			select csm.*
 				   ,ss.SubmissionDate as SubmittedOn
@@ -467,7 +478,7 @@ BEGIN
 							  END
 						  ELSE 0
 					END as IsNewJoiner
-			from dbo.v_ComplianceSchemeMembers_resub csm
+			from CSSchemeDetailsCTE csm
 				,SubmissionStatusCTE ss
 			where @IsComplianceScheme = 1
 				  and csm.CSOReference = @CSOReferenceNumber
@@ -489,14 +500,14 @@ BEGIN
 				WHEN UPPER(TRIM(csm.organisation_size)) = 'S' THEN 
 					-- Check if the earliest submission date exceeds the small late fee cutoff date
 					CASE 
-						WHEN csm.EarliestSubmissionDate > @SmallLateFeeCutoffDate THEN 1  -- Late submission
+						WHEN csm.FirstApplicationSubmittedDate > @SmallLateFeeCutoffDate THEN 1  -- Late submission
 						ELSE 0  -- Not late
 					END
 				-- If the organization size is 'L' (Large)
 				WHEN UPPER(TRIM(csm.organisation_size)) = 'L' THEN 
 					-- Check if the earliest submission date exceeds the compliance scheme late fee cutoff date
 					CASE 
-						WHEN csm.EarliestSubmissionDate > @CSLLateFeeCutoffDate THEN 1  -- Late submission
+						WHEN csm.FirstApplicationSubmittedDate > @CSLLateFeeCutoffDate THEN 1  -- Late submission
 						ELSE 0  -- Not late
 					END							
 				ELSE 99
