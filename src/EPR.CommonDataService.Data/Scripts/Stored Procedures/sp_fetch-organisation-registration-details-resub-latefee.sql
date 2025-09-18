@@ -1,9 +1,9 @@
-﻿﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 24/04/2025 10:26:16 ******/
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
-DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
+﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee]    Script Date: 24/04/2025 10:26:16 ******/
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee]'))
+DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee];
 GO
 
-CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee] @SubmissionId [nvarchar](36) AS
 
 BEGIN
 
@@ -208,7 +208,7 @@ BEGIN
 				,s.DecisionDate as SubmissionDate
 				,fs.DecisionDate as FirstSubmissionDate
 				,CASE WHEN @IsComplianceScheme = 1 THEN 'C' ELSE s.organisation_size END as OrganisationType
-				,CAST(CASE WHEN @IsComplianceScheme = 1 OR s.organisation_size = 'L' THEN
+				,CAST(CASE WHEN @IsComplianceScheme = 1 OR UPPER(TRIM(s.organisation_size)) = 'L' THEN
 						CASE
 							WHEN fs.DecisionDate > @CSLLateFeeCutoffDate THEN 1
 							ELSE 0
@@ -447,6 +447,17 @@ BEGIN
 			) as a
 			WHERE a.RowNum = 1
 		)
+		,CSSchemeDetailsCTE as (
+			select csm.*,
+				   re.DecisionDate as FirstApplicationSubmittedDate
+			from dbo.v_ComplianceSchemeMembers_resub_latefee csm
+				,ReconciledSubmissionEvents re
+			where @IsComplianceScheme = 1
+				  and csm.CSOReference = @CSOReferenceNumber
+				  and csm.SubmissionPeriod = @SubmissionPeriod
+				  and csm.ComplianceSchemeId = @ComplianceSchemeId
+				  and csm.EarliestFileId = re.FileId and re.Type = 'RegistrationApplicationSubmitted'
+		) 
 		,ComplianceSchemeMembersCTE as (
 			select csm.*
 				   ,ss.SubmissionDate as SubmittedOn
@@ -467,7 +478,7 @@ BEGIN
 							  END
 						  ELSE 0
 					END as IsNewJoiner
-			from dbo.v_ComplianceSchemeMembers_resub csm
+			from CSSchemeDetailsCTE csm
 				,SubmissionStatusCTE ss
 			where @IsComplianceScheme = 1
 				  and csm.CSOReference = @CSOReferenceNumber
@@ -484,10 +495,24 @@ BEGIN
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
-   				      ELSE csm.IsLateSubmission
-				  END AS IsLateFeeApplicable
-				 ,csm.OrganisationName
+				,CASE 
+				-- If the organization size is 'S' (Small)
+				WHEN UPPER(TRIM(csm.organisation_size)) = 'S' THEN 
+					-- Check if the earliest submission date exceeds the small late fee cutoff date
+					CASE 
+						WHEN csm.FirstApplicationSubmittedDate > @SmallLateFeeCutoffDate THEN 1  -- Late submission
+						ELSE 0  -- Not late
+					END
+				-- If the organization size is 'L' (Large)
+				WHEN UPPER(TRIM(csm.organisation_size)) = 'L' THEN 
+					-- Check if the earliest submission date exceeds the compliance scheme late fee cutoff date
+					CASE 
+						WHEN csm.FirstApplicationSubmittedDate > @CSLLateFeeCutoffDate THEN 1  -- Late submission
+						ELSE 0  -- Not late
+					END							
+				ELSE 99
+				END AS IsLateFeeApplicable
+				,csm.OrganisationName
 				,csm.leaver_code
 				,csm.leaver_date
 				,csm.joiner_date

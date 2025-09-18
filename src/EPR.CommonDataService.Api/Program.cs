@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Api.Extensions;
 using EPR.CommonDataService.Api.HealthChecks;
 using EPR.CommonDataService.Data.Infrastructure;
+using Microsoft.FeatureManagement;
 
 namespace EPR.CommonDataService.Api;
 
@@ -11,6 +12,9 @@ public static class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
+
+        builder.Services
+            .AddFeatureManagement();
 
         builder.Services
             .AddApplicationInsightsTelemetry()

@@ -50,12 +50,12 @@ base_data_with_latefee_and_earlySubmittedDate as
 				END
 			  ELSE 
 				CASE 
-					WHEN b.organisation_size = 'L' THEN
+					WHEN UPPER(TRIM(b.organisation_size)) = 'L' THEN
 						CASE 
 							WHEN e.EarliestSubmissionDate > DATEFROMPARTS(RelevantYear - 1, 10, 1) THEN 1
 							ELSE 0
 						END
-					WHEN b.organisation_size = 'S' THEN
+					WHEN UPPER(TRIM(b.organisation_size)) = 'S' THEN
 						CASE 
 							WHEN e.EarliestSubmissionDate > DATEFROMPARTS(RelevantYear, 4, 1) THEN 1
 							ELSE 0
