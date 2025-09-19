@@ -15,7 +15,7 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
-	DECLARE @start_dt datetime;
+		DECLARE @start_dt datetime;
 	DECLARE @batch_id INT;
 	DECLARE @cnt int;
 
@@ -246,12 +246,12 @@ BEGIN
             SELECT OrganisationId FROM PeriodGroup3
         ),
 
-        -- rank submitters per organisation and pick the latest one
+        -- rank submitters per organisation and prefer the one that has both periods
         RankedSubmitters AS (
             SELECT 
                 f.OrganisationId,
                 f.SubmitterId,
-                MAX(f.Created) AS LatestCreated
+                COUNT(DISTINCT f.SubmissionPeriod) AS PeriodCount
             FROM #FilteredByApproveAfterYear f
             INNER JOIN AllQualifiedOrgs q
                 ON f.OrganisationId = q.OrganisationId
@@ -259,13 +259,8 @@ BEGIN
         ),
         PreferredSubmitter AS (
             SELECT OrganisationId, SubmitterId
-            FROM (
-                SELECT 
-                    rs.*,
-                    ROW_NUMBER() OVER (PARTITION BY rs.OrganisationId ORDER BY rs.LatestCreated DESC) AS rn
-                FROM RankedSubmitters rs
-            ) x
-            WHERE rn = 1   
+            FROM RankedSubmitters
+            WHERE PeriodCount = 2  
         ),
 
         -- Step 8: Apply packaging material/type filters
@@ -437,3 +432,4 @@ BEGIN
 	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
 GO
+
