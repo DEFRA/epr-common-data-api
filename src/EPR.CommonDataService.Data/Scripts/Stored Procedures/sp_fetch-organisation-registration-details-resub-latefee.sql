@@ -45,7 +45,7 @@ BEGIN
 		SET @SmallLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
 		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 1);
 	END;
-
+	
     WITH
 		SubmissionEventsCTE as (
 			select subevents.*
@@ -464,6 +464,7 @@ BEGIN
 				   ,ss.IsLateSubmission
 				   ,ss.IsResubmissionLate
 				   ,ss.FileId as SubmittedFileId
+				   ,ss.FirstSubmissionDate as FirstApplicationSubmissionDate
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
 						 WHEN ss.ResubmissionDate is not null THEN
 							  CASE WHEN csm.joiner_date is not null then 0
@@ -496,21 +497,45 @@ BEGIN
 				,ppp.ProducerSize
 				,csm.SubmittedDate
 				,CASE 
-				-- If the organization size is 'S' (Small)
-				WHEN UPPER(TRIM(csm.organisation_size)) = 'S' THEN 
-					-- Check if the earliest submission date exceeds the small late fee cutoff date
-					CASE 
-						WHEN csm.FirstApplicationSubmittedDate > @SmallLateFeeCutoffDate THEN 1  -- Late submission
-						ELSE 0  -- Not late
-					END
-				-- If the organization size is 'L' (Large)
-				WHEN UPPER(TRIM(csm.organisation_size)) = 'L' THEN 
-					-- Check if the earliest submission date exceeds the compliance scheme late fee cutoff date
-					CASE 
-						WHEN csm.FirstApplicationSubmittedDate > @CSLLateFeeCutoffDate THEN 1  -- Late submission
-						ELSE 0  -- Not late
-					END							
-				ELSE 99
+					-- Check if the first application submission date is later than the first application submitted date
+					-- and if the joiner date is null
+					WHEN csm.FirstApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
+						 AND csm.joiner_date IS NULL 
+					THEN 
+						-- If true, set the result to 0 (no late fee applicable)
+						0 
+					ELSE 				
+						CASE	
+							-- Check the organization size
+							WHEN UPPER(TRIM(csm.organisation_size)) = 'S' 
+							THEN
+								CASE 
+									-- Check if the first application submitted date is after the small late fee cutoff date
+									WHEN csm.FirstApplicationSubmittedDate > @SmallLateFeeCutoffDate 
+									THEN
+										-- If true, set the result to 1 (late fee applicable)
+										1
+									ELSE
+										-- If false, set the result to 0 (no late fee applicable)
+										0 
+								END
+							-- For large organizations
+							WHEN UPPER(TRIM(csm.organisation_size)) = 'L' 
+							THEN
+								CASE 
+									-- Check if the first application submitted date is after the CSL late fee cutoff date
+									WHEN csm.FirstApplicationSubmittedDate > @CSLLateFeeCutoffDate 
+									THEN 
+										-- If true, set the result to 1 (late fee applicable)
+										1
+									ELSE 
+										-- If false, set the result to 0 (no late fee applicable)
+										0 
+								END
+							-- Fall Back to IsLateSubmission
+							ELSE 
+								 csm.IsLateSubmission
+						END
 				END AS IsLateFeeApplicable
 				,csm.OrganisationName
 				,csm.leaver_code
