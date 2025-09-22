@@ -45,7 +45,7 @@ BEGIN
 		SET @SmallLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
 		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 1);
 	END;
-	
+
     WITH
 		SubmissionEventsCTE as (
 			select subevents.*
@@ -536,7 +536,10 @@ BEGIN
 							ELSE 
 								 csm.IsLateSubmission
 						END
-				END AS IsLateFeeApplicable
+				END AS IsLateFeeApplicable_Post2025
+				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
+   				      ELSE csm.IsLateSubmission
+				  END AS IsLateFeeApplicable
 				,csm.OrganisationName
 				,csm.leaver_code
 				,csm.leaver_date
@@ -563,10 +566,20 @@ BEGIN
             ELSE 'false'
         END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(
             NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)
-        ) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
-            WHEN IsLateFeeApplicable = 1 THEN 'true'
-            ELSE 'false'
-        END + ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
+        ) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + 
+		CASE
+            WHEN @RelYear < 2026 THEN
+				CASE
+					WHEN IsLateFeeApplicable = 1 THEN 'true'
+					ELSE 'false'
+				END
+            ELSE 
+				CASE
+					WHEN IsLateFeeApplicable_Post2025 = 1 THEN 'true'
+					ELSE 'false'
+				END
+        END
+		+ ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
             FROM
                 CompliancePaycalCTE
         )
