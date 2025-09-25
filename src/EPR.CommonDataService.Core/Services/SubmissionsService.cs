@@ -116,7 +116,9 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
+#pragma warning disable S125
             //databaseTimeoutService.SetCommandTimeout(accountsDbContext, 120);
+#pragma warning restore S125
             var dbSet = await accountsDbContext.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(sql, logger, _logPrefix, sqlParameters);
 
             return dbSet.FirstOrDefault();
