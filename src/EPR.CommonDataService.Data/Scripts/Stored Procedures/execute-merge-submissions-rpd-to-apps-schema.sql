@@ -20,7 +20,13 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge Submissions', NULL, @start_dt, getdate(), 'Started',@batch_id
 
 
+
 		--New changes for the table = apps.OrgRegistrationsSummaries  from view = [apps].[v_OrganisationRegistrationSummaries]
+		IF OBJECT_ID('tempdb..#OrgRegistrationsSummaries') IS NOT NULL
+			DROP TABLE #OrgRegistrationsSummaries;
+
+
+		
 		set @start_dt = getdate()
 		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'apps.OrgRegistrationsSummaries') AND type in (N'U'))
 		BEGIN
@@ -31,15 +37,135 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		ELSE
 		BEGIN
 			set @start_dt = getdate()
-			truncate table apps.OrgRegistrationsSummaries;
-			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
-			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','truncate apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			--truncate table apps.OrgRegistrationsSummaries;  *** removed as part of 596708
+			--INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			--select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','truncate apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
 			
+			--***Added as part of 596708 to Merge instead of truncate and insert
+	
+			select * INTO #OrgRegistrationsSummaries from [apps].[v_OrganisationRegistrationSummaries] ;
 
-			insert into apps.OrgRegistrationsSummaries
-			select * from [apps].[v_OrganisationRegistrationSummaries];
-			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
-			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','generate apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			MERGE INTO apps.OrgRegistrationsSummaries AS Target
+				USING #OrgRegistrationsSummaries AS Source
+			 	ON Target.SubmissionID = Source.SubmissionID and Target.OrganisationID = Source.OrganisationID
+			WHEN MATCHED THEN
+        		UPDATE SET
+					Target.[SubmissionId] = Source.SubmissionId
+					,Target.[OrganisationId] = Source.OrganisationId
+					,Target.[OrganisationInternalId] = Source.OrganisationInternalId
+					,Target.[OrganisationName] = Source.OrganisationName
+					,Target.[UploadedOrganisationName] = Source.UploadedOrganisationName
+					,Target.[OrganisationReference] = Source.OrganisationReference
+					,Target.[SubmittedUserId] = Source.SubmittedUserId
+					,Target.[IsComplianceScheme] = Source.IsComplianceScheme
+					,Target.[OrganisationType] = Source.OrganisationType
+					,Target.[ProducerSize] = Source.ProducerSize
+					,Target.[ApplicationReferenceNumber] = Source.ApplicationReferenceNumber
+					,Target.[RegistrationReferenceNumber] = Source.RegistrationReferenceNumber
+					,Target.[SubmittedDateTime] = Source.SubmittedDateTime
+					,Target.[FirstSubmissionDate] = Source.FirstSubmissionDate
+					,Target.[RegistrationDate] = Source.RegistrationDate
+					,Target.[IsResubmission] = Source.IsResubmission
+					,Target.[ResubmissionDate] = Source.ResubmissionDate
+					,Target.[RelevantYear] = Source.RelevantYear
+					,Target.[SubmissionPeriod] = Source.SubmissionPeriod
+					,Target.[IsLateSubmission] = Source.IsLateSubmission
+					,Target.[SubmissionStatus] = Source.SubmissionStatus
+					,Target.[ResubmissionStatus] = Source.ResubmissionStatus
+					,Target.[ResubmissionDecisionDate] = Source.ResubmissionDecisionDate
+					,Target.[RegulatorDecisionDate] = Source.RegulatorDecisionDate
+					,Target.[StatusPendingDate] = Source.StatusPendingDate
+					,Target.[NationId] = Source.NationId
+					,Target.[NationCode] = Source.NationCode
+					,Target.[ComplianceSchemeId] = Source.ComplianceSchemeId
+					,Target.[ProducerComment] = Source.ProducerComment
+					,Target.[RegulatorComment] = Source.RegulatorComment
+					,Target.[FileId] = Source.FileId
+					,Target.[ResubmissionComment] = Source.ResubmissionComment
+					,Target.[ResubmittedUserId] = Source.ResubmittedUserId
+					,Target.[ProducerUserId] = Source.ProducerUserId
+					,Target.[RegulatorUserId] = Source.RegulatorUserId
+        	WHEN NOT MATCHED BY TARGET THEN
+        		INSERT (
+					[SubmissionId]
+					,[OrganisationId]
+					,[OrganisationInternalId]
+					,[OrganisationName]
+					,[UploadedOrganisationName]
+					,[OrganisationReference]
+					,[SubmittedUserId]
+					,[IsComplianceScheme]
+					,[OrganisationType]
+					,[ProducerSize]
+					,[ApplicationReferenceNumber]
+					,[RegistrationReferenceNumber]
+					,[SubmittedDateTime]
+					,[FirstSubmissionDate]
+					,[RegistrationDate]
+					,[IsResubmission]
+					,[ResubmissionDate]
+					,[RelevantYear]
+					,[SubmissionPeriod]
+					,[IsLateSubmission]
+					,[SubmissionStatus]
+					,[ResubmissionStatus]
+					,[ResubmissionDecisionDate]
+					,[RegulatorDecisionDate]
+					,[StatusPendingDate]
+					,[NationId]
+					,[NationCode]
+					,[ComplianceSchemeId]
+					,[ProducerComment]
+					,[RegulatorComment]
+					,[FileId]
+					,[ResubmissionComment]
+					,[ResubmittedUserId]
+					,[ProducerUserId]
+					,[RegulatorUserId]
+				)
+				VALUES (
+					Source.[SubmissionId]
+					,Source.[OrganisationId]
+					,Source.[OrganisationInternalId]
+					,Source.[OrganisationName]
+					,Source.[UploadedOrganisationName]
+					,Source.[OrganisationReference]
+					,Source.[SubmittedUserId]
+					,Source.[IsComplianceScheme]
+					,Source.[OrganisationType]
+					,Source.[ProducerSize]
+					,Source.[ApplicationReferenceNumber]
+					,Source.[RegistrationReferenceNumber]
+					,Source.[SubmittedDateTime]
+					,Source.[FirstSubmissionDate]
+					,Source.[RegistrationDate]
+					,Source.[IsResubmission]
+					,Source.[ResubmissionDate]
+					,Source.[RelevantYear]
+					,Source.[SubmissionPeriod]
+					,Source.[IsLateSubmission]
+					,Source.[SubmissionStatus]
+					,Source.[ResubmissionStatus]
+					,Source.[ResubmissionDecisionDate]
+					,Source.[RegulatorDecisionDate]
+					,Source.[StatusPendingDate]
+					,Source.[NationId]
+					,Source.[NationCode]
+					,Source.[ComplianceSchemeId]
+					,Source.[ProducerComment]
+					,Source.[RegulatorComment]
+					,Source.[FileId]
+					,Source.[ResubmissionComment]
+					,Source.[ResubmittedUserId]
+					,Source.[ProducerUserId]
+					,Source.[RegulatorUserId]
+				)
+	    	WHEN NOT MATCHED BY SOURCE THEN
+            	DELETE; -- delete from table when no longer in source
+
+    	DROP TABLE #OrgRegistrationsSummaries;
+        INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+           select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
 			
 		END;	
 
@@ -77,8 +203,6 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		select @cnt =count(1) from dbo.t_ProducerPayCalParameters_resub;
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dbo.t_ProducerPayCalParameters_resub', @cnt, @start_dt, getdate(), 'count',@batch_id;
-
-
 
 
 
