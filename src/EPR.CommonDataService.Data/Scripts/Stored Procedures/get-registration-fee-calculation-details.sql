@@ -7,7 +7,7 @@ CREATE PROC [dbo].[sp_GetRegistrationFeeCalculationDetails] @fileId [varchar](40
 BEGIN
 SET NOCOUNT ON;
 
-       DECLARE @fileName as varchar(40);
+    DECLARE @fileName as varchar(40);
     
     SELECT 
         @fileName = [FileName]
@@ -16,8 +16,21 @@ SET NOCOUNT ON;
     WHERE 
         FileId = @fileId;
 
-    ;WITH
-	OrganisationDetails AS (
+    ;WITH SubsidiaryDetails AS (
+        SELECT 
+            cd.Organisation_Id AS OrganisationId,
+            COUNT(*) AS TotalSubsidiaries,
+            COUNT(CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries,
+            COUNT(CASE WHEN cd.joiner_date IS NOT NULL THEN 1 ELSE 0 END) AS NumberOfLateSubsidiaries
+        FROM
+            [rpd].[CompanyDetails] cd
+        WHERE
+            TRIM(cd.FileName) = @fileName
+            AND cd.Subsidiary_Id IS NOT NULL
+        GROUP BY 
+            cd.Organisation_Id
+    )
+    , OrganisationDetails AS (
         SELECT 
             cd.Organisation_Id AS OrganisationId,
             CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
@@ -29,27 +42,27 @@ SET NOCOUNT ON;
                 WHEN 'WS' THEN 4
                 WHEN 'WA' THEN 4
             END AS NationId,
-            CASE WHEN cd.joiner_date IS NOT NULL THEN 1 ELSE 0 END AS IsNewJoiner, 
-			cd.subsidiary_id  as SubsidiaryId, 
-			cd.Packaging_Activity_OM as Packaging_Activity_OM
+            CASE WHEN cd.joiner_date IS NOT NULL THEN 1 ELSE 0 END AS IsNewJoiner
         FROM
             [rpd].[CompanyDetails] cd
         WHERE
             TRIM(cd.FileName) = @fileName
- 
+            AND cd.Subsidiary_Id IS NULL
     )
     SELECT
         od.OrganisationId AS OrganisationId,
         od.OrganisationSize AS OrganisationSize,
-		(select count(*) from OrganisationDetails where SubsidiaryId IS NOT NULL) as NumberOfSubsidiaries,
-		(select COUNT(CASE WHEN Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END)from OrganisationDetails where SubsidiaryId IS NOT NULL) as NumberOfSubsidiariesBeingOnlineMarketPlace,     
-	    CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
+        ISNULL(sd.TotalSubsidiaries, 0) AS NumberOfSubsidiaries,
+        ISNULL(sd.OnlineMarketPlaceSubsidiaries, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+        ISNULL(sd.NumberOfLateSubsidiaries, 0) AS NumberOfLateSubsidiaries,
+        CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
         CAST(od.IsNewJoiner AS BIT) AS IsNewJoiner,
         NationId
     FROM
-        OrganisationDetails od 
-		where SubsidiaryId is null
-        
+        OrganisationDetails od
+    LEFT JOIN
+        SubsidiaryDetails sd ON sd.OrganisationId = od.OrganisationId
+
 END;
 
 GO

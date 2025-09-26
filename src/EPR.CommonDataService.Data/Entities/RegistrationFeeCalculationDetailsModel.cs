@@ -10,7 +10,9 @@ public class RegistrationFeeCalculationDetailsModel
     public int NumberOfSubsidiaries { get; set; }
     
     public int NumberOfSubsidiariesBeingOnlineMarketPlace { get; set; }
-    
+
+    public int NumberOfLateSubsidiaries { get; set; }
+
     public string OrganisationSize { get; set; }
     
     public bool IsOnlineMarketplace  { get; set; }
