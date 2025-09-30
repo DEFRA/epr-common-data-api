@@ -1,4 +1,4 @@
--- Dropping stored procedure if it exists
+﻿-- Dropping stored procedure if it exists
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetApprovedSubmissions]'))
 DROP PROCEDURE [dbo].[sp_GetApprovedSubmissions];
 GO
@@ -427,9 +427,6 @@ BEGIN
             CAST(NULL AS VARCHAR(50)) AS SubmitterType
         WHERE 1 = 0; -- Ensures no rows are returned
     END
-
-	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
-	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
 GO
 
