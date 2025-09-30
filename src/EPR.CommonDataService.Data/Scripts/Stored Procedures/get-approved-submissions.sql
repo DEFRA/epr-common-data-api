@@ -15,18 +15,11 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
-		DECLARE @start_dt datetime;
-	DECLARE @batch_id INT;
-	DECLARE @cnt int;
-
-	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
-	set @start_dt = getdate();
-
 -- Check if there are any approved submissions after the specified date
     IF EXISTS (
         SELECT 1
         FROM [rpd].[SubmissionEvents]
-        WHERE TRY_CAST([Created] AS datetime2) >= @ApprovedAfter
+        WHERE TRY_CAST([Created] AS datetime2) > @ApprovedAfter
         AND Decision = 'Accepted'
     )
     BEGIN
@@ -52,8 +45,8 @@ BEGIN
         IF OBJECT_ID('tempdb..#IncludeOrganisationSizeTable') IS NOT NULL DROP TABLE #IncludeOrganisationSizeTable;
         IF OBJECT_ID('tempdb..#ValidOrganisations') IS NOT NULL DROP TABLE #ValidOrganisations;
 
-        -- Get start date based on reporting packaging data rules
-        DECLARE @StartDate DATETIME2 = DATEADD(MONTH, -7, DATEFROMPARTS(YEAR(GETDATE()), 1, 1));
+        -- Get start date for the current year
+        DECLARE @StartDate DATETIME2 = DATEFROMPARTS(YEAR(GETDATE()), 1, 1);
 
         -- Declare parent type
         DECLARE @DirectRegistrantType NVARCHAR(50) = 'DirectRegistrant';
@@ -131,7 +124,7 @@ BEGIN
                 SubmissionId, 
                 MAX(Created) AS Created
             FROM CleanedSubmissionEvents
-            WHERE Created >= @StartDate
+            WHERE Created > @StartDate
             AND Decision = 'Accepted'
             GROUP BY SubmissionId
         ),
@@ -189,7 +182,7 @@ BEGIN
             p.submission_period AS SubmissionPeriod,
             p.packaging_material AS PackagingMaterial,
             CASE
-                WHEN NULLIF(TRIM(p.subsidiary_id), '') IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
+                WHEN p.subsidiary_id IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
                 ELSE CAST(o2.ExternalId AS UNIQUEIDENTIFIER)
             END AS OrganisationId,
             f.Created AS Created,
@@ -198,24 +191,22 @@ BEGIN
             p.organisation_id AS SixDigitOrgId,
             p.packaging_type AS PackType,
             CASE
-                WHEN NULLIF(TRIM(f.ComplianceSchemeId), '') IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
+                WHEN f.ComplianceSchemeId IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
                 ELSE f.ComplianceSchemeId
             END AS SubmitterId,
             CASE
-                WHEN NULLIF(TRIM(f.ComplianceSchemeId), '') IS NULL THEN @DirectRegistrantType
+                WHEN f.ComplianceSchemeId IS NULL THEN @DirectRegistrantType
                 ELSE @ComplianceSchemeType
             END AS SubmitterType
         INTO #FilteredByApproveAfterYear
         FROM #FileIdss f
-        INNER JOIN FilteredPom p 
-            ON f.FileName = p.FileName
-        INNER JOIN [rpd].[Organisations] o 
-            ON p.organisation_id = o.ReferenceNumber
-        LEFT JOIN [rpd].[Organisations] o2 
-            ON NULLIF(TRIM(p.subsidiary_id), '') = o2.ReferenceNumber;
+        INNER JOIN FilteredPom p ON f.FileName = p.FileName
+        INNER JOIN [rpd].[Organisations] o ON p.organisation_id = o.ReferenceNumber
+        LEFT JOIN [rpd].[Organisations] o2 ON p.subsidiary_id = o2.ReferenceNumber;
 
 
-     -- Step 7: Identify eligible organisations per period group
+
+        -- Step 7: Identify eligible organisations per period group
         WITH 
         PeriodGroup1 AS (
             SELECT OrganisationId
@@ -246,23 +237,6 @@ BEGIN
             SELECT OrganisationId FROM PeriodGroup3
         ),
 
-        -- rank submitters per organisation and prefer the one that has both periods
-        RankedSubmitters AS (
-            SELECT 
-                f.OrganisationId,
-                f.SubmitterId,
-                COUNT(DISTINCT f.SubmissionPeriod) AS PeriodCount
-            FROM #FilteredByApproveAfterYear f
-            INNER JOIN AllQualifiedOrgs q
-                ON f.OrganisationId = q.OrganisationId
-            GROUP BY f.OrganisationId, f.SubmitterId
-        ),
-        PreferredSubmitter AS (
-            SELECT OrganisationId, SubmitterId
-            FROM RankedSubmitters
-            WHERE PeriodCount = 2  
-        ),
-
         -- Step 8: Apply packaging material/type filters
         FilteredApprovedSubmissions AS (
             SELECT 
@@ -277,9 +251,7 @@ BEGIN
                 f.SubmitterId,
                 f.SubmitterType
             FROM #FilteredByApproveAfterYear f
-            INNER JOIN PreferredSubmitter ps  
-                ON f.OrganisationId = ps.OrganisationId
-               AND f.SubmitterId    = ps.SubmitterId
+            INNER JOIN AllQualifiedOrgs q ON f.OrganisationId = q.OrganisationId
             WHERE f.PackagingMaterial IN (SELECT * FROM #IncludePackagingMaterialsTable)
             AND f.PackType IN (SELECT * FROM #IncludePackagingTypesTable)
         )
@@ -357,7 +329,7 @@ BEGIN
         INTO #ValidOrganisations
         FROM #FileIdss f
         INNER JOIN [rpd].[Pom] p ON p.FileName = f.FileName
-        WHERE TRY_CAST(f.Created AS datetime2) >= @ApprovedAfter;
+        WHERE TRY_CAST(f.Created AS datetime2) > @ApprovedAfter;
 
         -- Step 14: Build final aggregation
         SELECT DISTINCT
@@ -429,4 +401,3 @@ BEGIN
     END
 END
 GO
-
