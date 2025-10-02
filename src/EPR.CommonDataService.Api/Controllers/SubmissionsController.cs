@@ -329,13 +329,13 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
     }
 
-    [HttpGet("get_actual_submission_period/{submissionId}/{submissionPeriod}")]
+    [HttpGet("get_actual_submission_period/{submissionId}")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PoMActualSubmissionPeriod), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<ActionResult<PoMActualSubmissionPeriod>> GetActualSubmissionPeriod([FromRoute] Guid submissionId, [FromRoute] string submissionPeriod)
+    public async Task<ActionResult<PoMActualSubmissionPeriod>> GetActualSubmissionPeriod([FromRoute] Guid submissionId, [FromQuery] string submissionPeriod)
     {
         var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
 
