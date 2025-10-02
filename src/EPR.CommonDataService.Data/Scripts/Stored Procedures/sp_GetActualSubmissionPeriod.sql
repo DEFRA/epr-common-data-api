@@ -7,7 +7,7 @@ CREATE PROCEDURE [apps].[sp_GetActualSubmissionPeriod]
     @SubmissionPeriod   NVARCHAR(50)
 AS
 BEGIN
-	SELECT TOP 10 ActualSubmissionPeriod 
+	SELECT TOP 1 ActualSubmissionPeriod 
 	FROM apps.SubmissionsSummaries 
 	WHERE SubmissionId=@SubmissionId AND SubmissionPeriod=@SubmissionPeriod
 END
