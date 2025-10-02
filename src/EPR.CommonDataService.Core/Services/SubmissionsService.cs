@@ -66,7 +66,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                 new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value },
                 new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize ?? (object)DBNull.Value });
 
-            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Response received from stored procedure", _logPrefix);
             return paginatedResponse;
         }
         catch (Exception ex)
