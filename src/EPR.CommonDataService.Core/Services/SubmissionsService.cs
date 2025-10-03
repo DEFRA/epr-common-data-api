@@ -66,7 +66,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                 new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value },
                 new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize ?? (object)DBNull.Value });
 
-            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Sql query response {Sql}", _logPrefix, JsonConvert.SerializeObject(paginatedResponse));
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Response received from stored procedure", _logPrefix);
             return paginatedResponse;
         }
         catch (Exception ex)
@@ -253,5 +253,26 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
             logger.LogError(ex, "{Logprefix}: SubmissionsService - IsPOMResubmissionDataSynchronised: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new DataException("An exception occurred when executing query.", ex);
         }
+    }
+    
+    public async Task<string> GetActualSubmissionPeriod(string sanitisedSubmissionId, string submissionPeriod)
+    {
+        var sql = "[apps].[sp_GetActualSubmissionPeriod]";
+
+        SqlParameter[] sqlParameters =
+         [
+             new ("@SubmissionId", SqlDbType.NVarChar, 50) { Value = sanitisedSubmissionId },
+             new ("@SubmissionPeriod", SqlDbType.NVarChar, 50) { Value = submissionPeriod },
+
+         ];
+        logger.LogInformation("{LogPrefix}: SubmissionsService - {MethodName}: query {Query} parameters {Parameters}", _logPrefix, nameof(GetActualSubmissionPeriod), sql, JsonConvert.SerializeObject(sqlParameters));
+
+        var response = await accountsDbContext.RunSpCommandAsync<ActualSubmissionPeriodInfo>(sql, logger, _logPrefix, sqlParameters);
+        if (response is not null && response.Count > 0)
+        {
+            return response[0].ActualSubmissionPeriod ?? submissionPeriod;
+        }
+
+        return submissionPeriod;
     }
 }
