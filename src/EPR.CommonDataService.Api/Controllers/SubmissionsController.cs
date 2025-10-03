@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Newtonsoft.Json;
 using System.Globalization;
+using System.Net;
 
 namespace EPR.CommonDataService.Api.Controllers;
 
@@ -324,6 +325,35 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         catch (Exception ex)
         {
             logger.LogError(ex, "{LogPrefix}: SubmissionsController - IsCosmosFileSynchronised: The FileId caused an exception. {FileId}: Error: {ErrorMessage}", _logPrefix, sanitisedFileId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
+    [HttpGet("get_actual_submission_period/{submissionId}")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(PoMActualSubmissionPeriod), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<PoMActualSubmissionPeriod>> GetActualSubmissionPeriod([FromRoute] Guid submissionId, [FromQuery] string submissionPeriod)
+    {
+        var sanitisedSubmissionId = submissionId.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/get_actual_submission_period/{SubmissionId}/{SubmissionPeriod}'", _logPrefix, submissionId, submissionPeriod);
+
+        try
+        {
+            string? dbRet = await submissionsService.GetActualSubmissionPeriod(sanitisedSubmissionId, WebUtility.UrlDecode(submissionPeriod));
+            return Ok(new PoMActualSubmissionPeriod() { ActualSubmissionPeriod = dbRet });
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetActualSubmissionPeriod: Timeout exception. {SubmissionId}: Error: {ErrorMessage}", _logPrefix, submissionId, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetActualSubmissionPeriod: {SubmissionId}: Error: {ErrorMessage}", _logPrefix, submissionId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }
