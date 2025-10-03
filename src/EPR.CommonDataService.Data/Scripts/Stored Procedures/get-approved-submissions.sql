@@ -1,7 +1,26 @@
+-- Dropping stored procedure if it exists
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetApprovedSubmissions]'))
+DROP PROCEDURE [dbo].[sp_GetApprovedSubmissions];
+GO
+
+-- Drop unused stored procedures
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2];
+GO
+
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3]'))
+DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3];
+GO
 
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
+		DECLARE @start_dt datetime;
+	DECLARE @batch_id INT;
+	DECLARE @cnt int;
+
+	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
+	set @start_dt = getdate();
 
 -- Check if there are any approved submissions after the specified date
     IF EXISTS (
@@ -170,7 +189,7 @@ BEGIN
             p.submission_period AS SubmissionPeriod,
             p.packaging_material AS PackagingMaterial,
             CASE
-                WHEN NULLIF(LTRIM(RTRIM(p.subsidiary_id)), '') IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
+                WHEN NULLIF(TRIM(p.subsidiary_id), '') IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
                 ELSE CAST(o2.ExternalId AS UNIQUEIDENTIFIER)
             END AS OrganisationId,
             f.Created AS Created,
@@ -179,11 +198,11 @@ BEGIN
             p.organisation_id AS SixDigitOrgId,
             p.packaging_type AS PackType,
             CASE
-                WHEN NULLIF(LTRIM(RTRIM(f.ComplianceSchemeId)), '') IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
+                WHEN NULLIF(TRIM(f.ComplianceSchemeId), '') IS NULL THEN CAST(o.ExternalId AS UNIQUEIDENTIFIER)
                 ELSE f.ComplianceSchemeId
             END AS SubmitterId,
             CASE
-                WHEN NULLIF(LTRIM(RTRIM(f.ComplianceSchemeId)), '') IS NULL THEN @DirectRegistrantType
+                WHEN NULLIF(TRIM(f.ComplianceSchemeId), '') IS NULL THEN @DirectRegistrantType
                 ELSE @ComplianceSchemeType
             END AS SubmitterType
         INTO #FilteredByApproveAfterYear
@@ -409,5 +428,8 @@ BEGIN
         WHERE 1 = 0; -- Ensures no rows are returned
     END
 
+	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
+GO
 
