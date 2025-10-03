@@ -3,15 +3,6 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 DROP PROCEDURE [dbo].[sp_GetApprovedSubmissions];
 GO
 
--- Drop unused stored procedures
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2]'))
-DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataV2];
-GO
-
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3]'))
-DROP PROCEDURE [rpd].[sp_GetApprovedSubmissionsWithAggregatedPomDataIncludingPartialV3];
-GO
-
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
@@ -431,5 +422,4 @@ BEGIN
 	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
-GO
 
