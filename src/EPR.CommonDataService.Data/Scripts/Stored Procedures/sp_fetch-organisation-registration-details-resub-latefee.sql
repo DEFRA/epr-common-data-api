@@ -1,9 +1,9 @@
-﻿﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 24/04/2025 10:26:16 ******/
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub]'))
-DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub];
+﻿/****** Object:  StoredProcedure [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee]    Script Date: 24/04/2025 10:26:16 ******/
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee]'))
+DROP PROCEDURE [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee];
 GO
 
-CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub] @SubmissionId [nvarchar](36) AS
+CREATE PROC [dbo].[sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee] @SubmissionId [nvarchar](36) AS
 
 BEGIN
 
@@ -208,7 +208,7 @@ BEGIN
 				,s.DecisionDate as SubmissionDate
 				,fs.DecisionDate as FirstSubmissionDate
 				,CASE WHEN @IsComplianceScheme = 1 THEN 'C' ELSE s.organisation_size END as OrganisationType
-				,CAST(CASE WHEN @IsComplianceScheme = 1 OR s.organisation_size = 'L' THEN
+				,CAST(CASE WHEN @IsComplianceScheme = 1 OR UPPER(TRIM(s.organisation_size)) = 'L' THEN
 						CASE
 							WHEN fs.DecisionDate > @CSLLateFeeCutoffDate THEN 1
 							ELSE 0
@@ -447,12 +447,24 @@ BEGIN
 			) as a
 			WHERE a.RowNum = 1
 		)
+		,CSSchemeDetailsCTE as (
+			select csm.*,
+				   re.DecisionDate as FirstApplicationSubmittedDate
+			from dbo.v_ComplianceSchemeMembers_resub_latefee csm
+				,ReconciledSubmissionEvents re
+			where @IsComplianceScheme = 1
+				  and csm.CSOReference = @CSOReferenceNumber
+				  and csm.SubmissionPeriod = @SubmissionPeriod
+				  and csm.ComplianceSchemeId = @ComplianceSchemeId
+				  and csm.EarliestFileId = re.FileId and re.Type = 'RegistrationApplicationSubmitted'
+		) 
 		,ComplianceSchemeMembersCTE as (
 			select csm.*
 				   ,ss.SubmissionDate as SubmittedOn
 				   ,ss.IsLateSubmission
 				   ,ss.IsResubmissionLate
 				   ,ss.FileId as SubmittedFileId
+				   ,ss.FirstSubmissionDate as FirstApplicationSubmissionDate
 				   ,CASE WHEN ss.RegistrationDecisionDate IS NULL THEN 1
 						 WHEN ss.ResubmissionDate is not null THEN
 							  CASE WHEN csm.joiner_date is not null then 0
@@ -467,7 +479,7 @@ BEGIN
 							  END
 						  ELSE 0
 					END as IsNewJoiner
-			from dbo.v_ComplianceSchemeMembers_resub csm
+			from CSSchemeDetailsCTE csm
 				,SubmissionStatusCTE ss
 			where @IsComplianceScheme = 1
 				  and csm.CSOReference = @CSOReferenceNumber
@@ -484,10 +496,63 @@ BEGIN
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
+				,CASE 
+					--Original Submission Was Late So All Members are late
+					WHEN UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate > @CSLLateFeeCutoffDate
+					THEN 1
+					
+					--Original Submission Was Late So All Members are late
+					WHEN UPPER(TRIM(csm.organisation_size)) = 'S' and csm.FirstApplicationSubmissionDate > @SmallLateFeeCutoffDate
+					THEN 1
+					
+					--Original Submission Was On Time So Calculate LateFee if joiner_date presesnt
+					ELSE
+						CASE 
+							-- Check if the first application submission date is later than the first application submitted date
+							-- and if the joiner date is null
+							WHEN csm.FirstApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
+								 AND csm.joiner_date IS NULL 
+							THEN 
+								-- If true, set the result to 0 (no late fee applicable)
+								0 
+							ELSE 				
+								CASE	
+									-- Check the organization size
+									WHEN UPPER(TRIM(csm.organisation_size)) = 'S' 
+									THEN
+										CASE 
+											-- Check if the first application submitted date is after the small late fee cutoff date
+											WHEN csm.FirstApplicationSubmittedDate > @SmallLateFeeCutoffDate 
+											THEN
+												-- If true, set the result to 1 (late fee applicable)
+												1
+											ELSE
+												-- If false, set the result to 0 (no late fee applicable)
+												0 
+										END
+									-- For large organizations
+									WHEN UPPER(TRIM(csm.organisation_size)) = 'L' 
+									THEN
+										CASE 
+											-- Check if the first application submitted date is after the CSL late fee cutoff date
+											WHEN csm.FirstApplicationSubmittedDate > @CSLLateFeeCutoffDate 
+											THEN 
+												-- If true, set the result to 1 (late fee applicable)
+												1
+											ELSE 
+												-- If false, set the result to 0 (no late fee applicable)
+												0 
+										END
+									-- Fall Back to IsLateSubmission
+									ELSE 
+										 csm.IsLateSubmission
+								END
+						END 
+					END AS IsLateFeeApplicable_Post2025
 				,CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
    				      ELSE csm.IsLateSubmission
 				  END AS IsLateFeeApplicable
-				 ,csm.OrganisationName
+				,csm.OrganisationName
 				,csm.leaver_code
 				,csm.leaver_date
 				,csm.joiner_date
@@ -513,10 +578,20 @@ BEGIN
             ELSE 'false'
         END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(
             NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)
-        ) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
-            WHEN IsLateFeeApplicable = 1 THEN 'true'
-            ELSE 'false'
-        END + ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
+        ) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + 
+		CASE
+            WHEN @RelYear < 2026 THEN
+				CASE
+					WHEN IsLateFeeApplicable = 1 THEN 'true'
+					ELSE 'false'
+				END
+            ELSE 
+				CASE
+					WHEN IsLateFeeApplicable_Post2025 = 1 THEN 'true'
+					ELSE 'false'
+				END
+        END
+		+ ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
             FROM
                 CompliancePaycalCTE
         )
