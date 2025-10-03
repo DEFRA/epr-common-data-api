@@ -15,12 +15,6 @@ GO
 CREATE PROC [dbo].[sp_GetApprovedSubmissions] @ApprovedAfter [DATETIME2],@Periods [VARCHAR](MAX),@IncludePackagingTypes [VARCHAR](MAX),@IncludePackagingMaterials [VARCHAR](MAX),@IncludeOrganisationSize [VARCHAR](MAX) AS
 BEGIN
 
-		DECLARE @start_dt datetime;
-	DECLARE @batch_id INT;
-	DECLARE @cnt int;
-
-	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
-	set @start_dt = getdate();
 
 -- Check if there are any approved submissions after the specified date
     IF EXISTS (
