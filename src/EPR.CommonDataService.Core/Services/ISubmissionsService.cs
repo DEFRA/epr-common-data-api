@@ -20,5 +20,7 @@ public interface ISubmissionsService
 
     Task<bool?> IsCosmosDataAvailable(string? sanitisedSubmissionId, string? sanitisedFileId);
 
+    Task<string> GetActualSubmissionPeriod(string sanitisedSubmissionId, string submissionPeriod);
+
     Task<bool> IsPOMResubmissionDataSynchronised(string sanitisedFileId);
 }
