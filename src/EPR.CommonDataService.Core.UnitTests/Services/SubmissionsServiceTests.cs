@@ -1020,4 +1020,45 @@ public class SubmissionsServiceTests
         await act.Should().ThrowAsync<DataException>()
             .WithMessage("An exception occurred when executing query.");
     }
+
+    [TestMethod]
+    public async Task GetActualSubmissionPeriod_ReturnsActualSubmissionPeriod_WhenFound()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid().ToString();
+        var submissionPeriod = "July to December 2025";
+        var actualSubmissionPeriod = "January to December 2025";
+
+        var result = new List<ActualSubmissionPeriodInfo> { new ActualSubmissionPeriodInfo { ActualSubmissionPeriod = actualSubmissionPeriod } };
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<ActualSubmissionPeriodInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(result);
+
+        // Act
+        var sutResult = await _sut.GetActualSubmissionPeriod(submissionId, submissionPeriod);
+
+        // Assert
+        sutResult.Should().Be(actualSubmissionPeriod);
+    }
+
+    [TestMethod]
+    public async Task GetActualSubmissionPeriod_ReturnSubmissionPeriod_WhenNotFound()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid().ToString();
+        var submissionPeriod = "July to December 2025";
+
+        var result = new List<ActualSubmissionPeriodInfo>();
+
+        _mockSynapseContext.Setup(db =>
+            db.RunSpCommandAsync<ActualSubmissionPeriodInfo>(It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(result);
+
+        // Act
+        var sutResult = await _sut.GetActualSubmissionPeriod(submissionId, submissionPeriod);
+
+        // Assert
+        sutResult.Should().Be(submissionPeriod);
+    }
 }

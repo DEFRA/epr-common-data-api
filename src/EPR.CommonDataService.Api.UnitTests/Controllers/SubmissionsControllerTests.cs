@@ -600,6 +600,62 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
+    public async Task GetActualSubmissionPeriod_Should_Return_Ok_WhenGotActualSubmissionPeriod()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var submissionPeriod = "July to December 2025";
+        var actualSubmissionPeriod = "January to December 2025";
+
+        _mockSubmissionsService
+            .Setup(x => x.GetActualSubmissionPeriod(It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(actualSubmissionPeriod);
+
+        // Act
+        var result = await _submissionsController.GetActualSubmissionPeriod(submissionId, submissionPeriod);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>().Which.Value.Should().BeOfType<PoMActualSubmissionPeriod>();
+    }
+
+
+    [TestMethod]
+    public async Task GetActualSubmissionPeriod_Should_Return_504_When_TimeoutException()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var submissionPeriod = "July to December 2025";
+        _mockSubmissionsService
+            .Setup(x => x.GetActualSubmissionPeriod(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new TimeoutException("Request timed out"));
+
+        // Act
+        var result = await _submissionsController.GetActualSubmissionPeriod(submissionId, submissionPeriod);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(504);
+    }
+
+    [TestMethod]
+    public async Task GetActualSubmissionPeriod_Should_Return_500_When_Throws_Exception()
+    {
+        // Arrange
+        var submissionId = Guid.NewGuid();
+        var submissionPeriod = "July to December 2025";
+        _mockSubmissionsService
+             .Setup(x => x.GetActualSubmissionPeriod(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new Exception("Unexpected error"));
+
+        // Act
+        var result = await _submissionsController.GetActualSubmissionPeriod(submissionId, submissionPeriod);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>()
+            .Which.StatusCode.Should().Be(500);
+    }
+
+    [TestMethod]
     public async Task IsSubmissionSynchronised_Should_Return_Ok_False_When_IsCosmosDataAvailable_Returns_Null()
     {
         // Arrange
