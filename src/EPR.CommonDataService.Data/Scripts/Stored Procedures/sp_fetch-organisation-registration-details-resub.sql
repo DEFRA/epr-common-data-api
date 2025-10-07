@@ -329,6 +329,7 @@ BEGIN
 				,IsOnlineMarketplace
 				,NumberOfSubsidiaries
 				,OnlineMarketPlaceSubsidiaries
+				,NumberOfLateSubsidiaries
 				FROM
 					[dbo].[t_ProducerPaycalParameters_resub] AS ppp
 				WHERE ppp.FileId in (SELECT FileId from SubmissionStatusCTE)
@@ -435,6 +436,7 @@ BEGIN
 									 ,s.ComplianceSchemeId
 						ORDER BY s.load_ts DESC
 					) AS RowNum
+					,ISNULL(ppp.NumberOfLateSubsidiaries,0) AS NumberOfLateSubsidiaries 
 				FROM
 					[rpd].[Submissions] AS s
 						INNER JOIN SubmittedCTE on SubmittedCTE.SubmissionId = s.SubmissionId 
@@ -496,6 +498,7 @@ BEGIN
 				,ppp.NumberOfSubsidiaries
 				,ppp.OnlineMarketPlaceSubsidiaries as NumberOfSubsidiariesBeingOnlineMarketPlace
 				,csm.submissionperiod
+				,ppp.NumberOfLateSubsidiaries
             FROM
 				ComplianceSchemeMembersCTE csm
 				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
@@ -513,7 +516,7 @@ BEGIN
             ELSE 'false'
         END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(
             NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)
-        ) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
+        ) + ', ' + '"NumberOfLateSubsidiaries": ' + CAST(NumberOfLateSubsidiaries AS NVARCHAR(6)) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS nvarchar(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
             WHEN IsLateFeeApplicable = 1 THEN 'true'
             ELSE 'false'
         END + ', ' + '"SubmissionPeriodDescription": "' + submissionperiod + '"}' AS OrganisationDetailsJsonString
@@ -592,6 +595,7 @@ BEGIN
 		,r.ComplianceSchemeId
 		,r.CSId
         ,acpp.FinalJson AS CSOJson
+		,r.NumberOfLateSubsidiaries
     FROM
         SubmissionDetails r
         INNER JOIN [rpd].[Organisations] o
