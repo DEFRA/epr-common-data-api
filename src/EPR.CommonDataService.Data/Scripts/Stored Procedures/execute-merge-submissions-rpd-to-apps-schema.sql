@@ -392,6 +392,3 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
     END CATCH
 
 END;
-GO
-
-
