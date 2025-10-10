@@ -4,6 +4,9 @@ DROP PROCEDURE [dbo].[sp_GetRegistrationFeeCalculationDetails];
 GO
 
 CREATE PROC [dbo].[sp_GetRegistrationFeeCalculationDetails] @fileId [varchar](40) AS
+/*
+	Updated by 596714 and 610862
+*/
 BEGIN
 SET NOCOUNT ON;
 
@@ -37,19 +40,27 @@ SET NOCOUNT ON;
         WHERE
             TRIM(cd.FileName) = @fileName
  
-    )
+    ),
+	SubsidiaryCount AS
+
+	(
+	(select OrganisationID, count(*) as subsidiarycounter,COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries from OrganisationDetails od  where SubsidiaryId IS NOT NULL group by OrganisationID)
+	)
+
+
     SELECT
         od.OrganisationId AS OrganisationId,
         od.OrganisationSize AS OrganisationSize,
-		(select count(*) from OrganisationDetails where SubsidiaryId IS NOT NULL) as NumberOfSubsidiaries,
-		(select COUNT(CASE WHEN Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END)from OrganisationDetails where SubsidiaryId IS NOT NULL) as NumberOfSubsidiariesBeingOnlineMarketPlace,     
+		isnull(sc.subsidiarycounter,0) as NumberOfSubsidiaries,
+		ISNULL(sc.OnlineMarketPlaceSubsidiaries, 0)as NumberOfSubsidiariesBeingOnlineMarketPlace,     
 	    CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
         CAST(od.IsNewJoiner AS BIT) AS IsNewJoiner,
         NationId
     FROM
-        OrganisationDetails od 
-		where SubsidiaryId is null
-        
+        OrganisationDetails od left join SubsidiaryCount sc on od.OrganisationID=sc.OrganisationID
+		where SubsidiaryId is null;
+
+
 END;
 
 GO
