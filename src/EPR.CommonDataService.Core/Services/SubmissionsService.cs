@@ -144,7 +144,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     public async Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get sp_PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
-        var sql = "[dbo].[sp_PomResubmissionPaycalParameters_v2]";
+        var sql = "[dbo].[sp_PomResubmissionPaycalParameters]";
 
         SqlParameter[] sqlParameters =
         {
