@@ -20,7 +20,7 @@ BEGIN
 	DECLARE @SmallLateFeeCutoffDate DATE; 
 	DECLARE @CSLLateFeeCutoffDate DATE; 
 
-    SELECT
+      SELECT
         @OrganisationIDForSubmission = O.Id 
 		,@OrganisationUUIDForSubmission = O.ExternalId 
 		,@CSOReferenceNumber = O.ReferenceNumber 
@@ -43,7 +43,7 @@ BEGIN
 	ELSE
 	BEGIN
 		SET @SmallLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
-		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 1);
+		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 11);
 	END;
 
     WITH
@@ -94,6 +94,12 @@ BEGIN
 				AND decisions.SubmissionId = @SubmissionId
 			) as subevents
 			where RowNum = 1
+		)
+		,LatestRegistrationApplicationSubmittedCTE as (
+			select top 1 sev.DecisionDate as LatestRegistrationApplicationSubmittedDate
+			from SubmissionEventsCTE sev
+			where sev.type = 'RegistrationApplicationSubmitted'
+			order by sev.DecisionDate Desc
 		)
 		,ProdSubmissionsRegulatorDecisionsCTE as (
 			SELECT
@@ -508,13 +514,19 @@ BEGIN
 					--Original Submission Was On Time So Calculate LateFee if joiner_date presesnt
 					ELSE
 						CASE 
-							-- Check if the first application submission date is later than the first application submitted date
+							-- Check if the first application submission date is later than the first application submitted date (Non-Original Member)
 							-- and if the joiner date is null
 							WHEN csm.FirstApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
 								 AND csm.joiner_date IS NULL 
 							THEN 
 								-- If true, set the result to 0 (no late fee applicable)
 								0 
+							-- Not Original Submission(it is a subsequent submission(Update))
+							WHEN lras.LatestRegistrationApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
+								 AND csm.joiner_date IS NOT NULL 
+							THEN 
+								-- If true, set the result to 1 (late fee applicable)
+								1
 							ELSE 				
 								CASE	
 									-- Check the organization size
@@ -564,7 +576,7 @@ BEGIN
             FROM
 				ComplianceSchemeMembersCTE csm
 				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
-				  			AND ppp.FileName = csm.FileName
+				  			AND ppp.FileName = csm.FileName, LatestRegistrationApplicationSubmittedCTE lras
             WHERE @IsComplianceScheme = 1
         ) 
 	   ,JsonifiedCompliancePaycalCTE
