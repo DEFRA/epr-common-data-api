@@ -20,7 +20,7 @@ BEGIN
 	DECLARE @SmallLateFeeCutoffDate DATE; 
 	DECLARE @CSLLateFeeCutoffDate DATE; 
 
-      SELECT
+    SELECT
         @OrganisationIDForSubmission = O.Id 
 		,@OrganisationUUIDForSubmission = O.ExternalId 
 		,@CSOReferenceNumber = O.ReferenceNumber 
@@ -43,7 +43,7 @@ BEGIN
 	ELSE
 	BEGIN
 		SET @SmallLateFeeCutoffDate = DATEFROMPARTS(@RelYear, 4, 1);
-		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 11);
+		SET @CSLLateFeeCutoffDate = DATEFROMPARTS(@RelYear - 1, 10, 1);
 	END;
 
     WITH
@@ -514,7 +514,7 @@ BEGIN
 					--Original Submission Was On Time So Calculate LateFee if joiner_date presesnt
 					ELSE
 						CASE 
-							-- Check if the first application submission date is later than the first application submitted date (Non-Original Member)
+							-- Check if the first application submission date is later than the first application submitted date
 							-- and if the joiner date is null
 							WHEN csm.FirstApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
 								 AND csm.joiner_date IS NULL 
