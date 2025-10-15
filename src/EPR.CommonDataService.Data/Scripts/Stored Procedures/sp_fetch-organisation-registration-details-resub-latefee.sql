@@ -503,6 +503,13 @@ BEGIN
 				,ppp.ProducerSize
 				,csm.SubmittedDate
 				,CASE 
+					--Resubmission, Large OnTime
+					WHEN ss.ResubmissionDate is not null and  UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate <= @CSLLateFeeCutoffDate
+					THEN 0
+					--Resubmission, Small OnTime
+					WHEN ss.ResubmissionDate is not null and  UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate <= @SmallLateFeeCutoffDate
+					THEN 0
+
 					--Original Submission Was Late So All Members are late
 					WHEN UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate > @CSLLateFeeCutoffDate
 					THEN 1
@@ -576,7 +583,7 @@ BEGIN
             FROM
 				ComplianceSchemeMembersCTE csm
 				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
-				  			AND ppp.FileName = csm.FileName, LatestRegistrationApplicationSubmittedCTE lras
+				  			AND ppp.FileName = csm.FileName, LatestRegistrationApplicationSubmittedCTE lras,SubmissionStatusCTE ss
             WHERE @IsComplianceScheme = 1
         ) 
 	   ,JsonifiedCompliancePaycalCTE
