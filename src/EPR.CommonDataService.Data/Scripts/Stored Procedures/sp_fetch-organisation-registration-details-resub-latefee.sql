@@ -502,13 +502,26 @@ BEGIN
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,CASE 
-					--Resubmission, Large OnTime
-					WHEN ss.ResubmissionDate is not null and  UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate <= @CSLLateFeeCutoffDate
-					THEN 0
-					--Resubmission, Small OnTime
-					WHEN ss.ResubmissionDate is not null and  UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate <= @SmallLateFeeCutoffDate
-					THEN 0
+,CASE 
+					--Resubmission - Use pre-existing Logic
+					WHEN ss.ResubmissionDate is not null
+					THEN 
+						CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
+   							  ELSE csm.IsLateSubmission
+						END
+
+
+					-- Latest Submission On Time for Member Type
+					WHEN UPPER(TRIM(csm.organisation_size)) = 'L' and lras.LatestRegistrationApplicationSubmittedDate <= @CSLLateFeeCutoffDate
+					THEN 
+						-- If true, set the result to 0 (no late fee applicable)
+						0
+					-- Latest Submission On Time for Member Type
+					WHEN UPPER(TRIM(csm.organisation_size)) = 'S' and lras.LatestRegistrationApplicationSubmittedDate <= @SmallLateFeeCutoffDate
+					THEN 
+						-- If true, set the result to 0 (no late fee applicable)
+						0
+
 
 					--Original Submission Was Late So All Members are late
 					WHEN UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate > @CSLLateFeeCutoffDate
@@ -528,12 +541,6 @@ BEGIN
 							THEN 
 								-- If true, set the result to 0 (no late fee applicable)
 								0 
-							-- Not Original Submission(it is a subsequent submission(Update))
-							WHEN lras.LatestRegistrationApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
-								 AND csm.joiner_date IS NOT NULL 
-							THEN 
-								-- If true, set the result to 1 (late fee applicable)
-								1
 							ELSE 				
 								CASE	
 									-- Check the organization size
