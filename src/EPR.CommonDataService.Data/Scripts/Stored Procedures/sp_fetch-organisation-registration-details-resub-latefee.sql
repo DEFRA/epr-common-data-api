@@ -541,6 +541,12 @@ BEGIN
 							THEN 
 								-- If true, set the result to 0 (no late fee applicable)
 								0 
+							--Updated Submission, Joiner Date Not Null
+							WHEN csm.FirstApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
+								 AND csm.joiner_date IS NOT NULL 
+							THEN 
+								-- If true, set the result to 1 (late fee applicable)
+								1
 							ELSE 				
 								CASE	
 									-- Check the organization size
