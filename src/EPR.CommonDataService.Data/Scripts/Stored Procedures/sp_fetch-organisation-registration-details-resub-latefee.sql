@@ -502,7 +502,27 @@ BEGIN
 				,csm.RelevantYear
 				,ppp.ProducerSize
 				,csm.SubmittedDate
-				,CASE 
+,CASE 
+					--Resubmission - Use pre-existing Logic
+					WHEN ss.ResubmissionDate is not null
+					THEN 
+						CASE WHEN csm.IsNewJoiner = 1 THEN csm.IsResubmissionLate
+   							  ELSE csm.IsLateSubmission
+						END
+
+
+					-- Latest Submission On Time for Member Type
+					WHEN UPPER(TRIM(csm.organisation_size)) = 'L' and lras.LatestRegistrationApplicationSubmittedDate <= @CSLLateFeeCutoffDate
+					THEN 
+						-- If true, set the result to 0 (no late fee applicable)
+						0
+					-- Latest Submission On Time for Member Type
+					WHEN UPPER(TRIM(csm.organisation_size)) = 'S' and lras.LatestRegistrationApplicationSubmittedDate <= @SmallLateFeeCutoffDate
+					THEN 
+						-- If true, set the result to 0 (no late fee applicable)
+						0
+
+
 					--Original Submission Was Late So All Members are late
 					WHEN UPPER(TRIM(csm.organisation_size)) = 'L' and csm.FirstApplicationSubmissionDate > @CSLLateFeeCutoffDate
 					THEN 1
@@ -521,8 +541,8 @@ BEGIN
 							THEN 
 								-- If true, set the result to 0 (no late fee applicable)
 								0 
-							-- Not Original Submission(it is a subsequent submission(Update))
-							WHEN lras.LatestRegistrationApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
+							--Updated Submission, Joiner Date Not Null
+							WHEN csm.FirstApplicationSubmittedDate > csm.FirstApplicationSubmissionDate 
 								 AND csm.joiner_date IS NOT NULL 
 							THEN 
 								-- If true, set the result to 1 (late fee applicable)
@@ -576,7 +596,7 @@ BEGIN
             FROM
 				ComplianceSchemeMembersCTE csm
 				INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
-				  			AND ppp.FileName = csm.FileName, LatestRegistrationApplicationSubmittedCTE lras
+				  			AND ppp.FileName = csm.FileName, LatestRegistrationApplicationSubmittedCTE lras,SubmissionStatusCTE ss
             WHERE @IsComplianceScheme = 1
         ) 
 	   ,JsonifiedCompliancePaycalCTE
