@@ -29,6 +29,7 @@ public class RegistrationFeeCalculationDetailsService(SynapseContext synapseCont
                     IsNewJoiner = resp.IsNewJoiner,
                     NumberOfSubsidiaries = resp.NumberOfSubsidiaries,
                     NumberOfSubsidiariesBeingOnlineMarketPlace = resp.NumberOfSubsidiariesBeingOnlineMarketPlace,
+                    NumberOfLateSubsidiaries = resp.NumberOfLateSubsidiaries,
                     OrganisationSize = OrganisationSizeMapper.Map(resp.OrganisationSize),
                     OrganisationId = resp.OrganisationId.ToString(),
                     NationId = resp.NationId

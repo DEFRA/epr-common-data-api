@@ -31,6 +31,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "L",
                 NumberOfSubsidiaries = 54,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 29,
+                NumberOfLateSubsidiaries = 17,
                 IsOnlineMarketplace = true,
                 IsNewJoiner = true
             }
@@ -47,6 +48,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result![0].OrganisationSize.Should().Be("Large");
         result[0].NumberOfSubsidiaries.Should().Be(54);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
+        result[0].NumberOfLateSubsidiaries.Should().Be(17);
         result[0].IsOnlineMarketplace.Should().BeTrue();
         result[0].IsNewJoiner.Should().BeTrue();
 
@@ -69,6 +71,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "s",
                 NumberOfSubsidiaries = 100,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
+                NumberOfLateSubsidiaries = 300,
                 IsOnlineMarketplace = false,
                 IsNewJoiner = false
             }
@@ -86,6 +89,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result![0].OrganisationSize.Should().Be("Small");
         result[0].NumberOfSubsidiaries.Should().Be(100);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
+        result[0].NumberOfLateSubsidiaries.Should().Be(300);
         result[0].IsOnlineMarketplace.Should().BeFalse();
         result[0].IsNewJoiner.Should().BeFalse();
     }
@@ -140,6 +144,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "X", // Invalid size
                 NumberOfSubsidiaries = 10,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 5,
+                NumberOfLateSubsidiaries = 15,
                 IsOnlineMarketplace = false,
                 IsNewJoiner = false
             }
@@ -156,6 +161,7 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result![0].OrganisationSize.Should().Be("Unknown"); // Validate fallback to "Unknown"
         result[0].NumberOfSubsidiaries.Should().Be(10);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(5);
+        result[0].NumberOfLateSubsidiaries.Should().Be(15);
         result[0].IsOnlineMarketplace.Should().BeFalse();
         result[0].IsNewJoiner.Should().BeFalse();
 

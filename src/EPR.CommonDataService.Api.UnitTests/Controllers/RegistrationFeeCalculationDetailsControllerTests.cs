@@ -67,7 +67,7 @@ public class RegistrationFeeCalculationDetailsControllerTests
         // Arrange
         var fileId = Guid.NewGuid();
 
-        var expectedResult = new[] { new RegistrationFeeCalculationDetails { OrganisationSize = "Large", NumberOfSubsidiaries = 10, NumberOfSubsidiariesBeingOnlineMarketPlace = 20, IsOnlineMarketplace = true, IsNewJoiner = false, NationId = 1, OrganisationId = "1234" } }; // Mock result
+        var expectedResult = new[] { new RegistrationFeeCalculationDetails { OrganisationSize = "Large", NumberOfSubsidiaries = 10, NumberOfSubsidiariesBeingOnlineMarketPlace = 20, NumberOfLateSubsidiaries = 30, IsOnlineMarketplace = true, IsNewJoiner = false, NationId = 1, OrganisationId = "1234" } }; // Mock result
 
         _registrationFeeCalculationDetailsServiceMock
             .Setup(service => service.GetRegistrationFeeCalculationDetails(fileId))
