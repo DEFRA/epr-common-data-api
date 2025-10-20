@@ -25,12 +25,63 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		IF OBJECT_ID('tempdb..#OrgRegistrationsSummaries') IS NOT NULL
 			DROP TABLE #OrgRegistrationsSummaries;
 
-
+		--If table exists but is incorrect distribution then drop
+		IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'apps.OrgRegistrationsSummaries') AND type in (N'U')) AND NOT EXISTS( SELECT * FROM sys.pdw_table_distribution_properties where OBJECT_SCHEMA_NAME( object_id )='apps' AND OBJECT_NAME( object_id ) ='OrgRegistrationsSummaries' and distribution_policy_desc='HASH')
+		BEGIN
+			DROP TABLE [apps].[OrgRegistrationsSummaries]
+		END
 		
 		set @start_dt = getdate()
 		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'apps.OrgRegistrationsSummaries') AND type in (N'U'))
 		BEGIN
-			select * into apps.OrgRegistrationsSummaries from [apps].[v_OrganisationRegistrationSummaries];
+
+			CREATE TABLE [apps].[OrgRegistrationsSummaries]
+			(
+				[SubmissionId] [nvarchar](4000) NULL,
+				[OrganisationId] [nvarchar](4000) NULL,
+				[OrganisationInternalId] [int] NULL,
+				[OrganisationName] [nvarchar](4000) NULL,
+				[UploadedOrganisationName] [nvarchar](4000) NULL,
+				[OrganisationReference] [nvarchar](4000) NULL,
+				[SubmittedUserId] [nvarchar](4000) NULL,
+				[IsComplianceScheme] [int] NOT NULL,
+				[OrganisationType] [varchar](10) NULL,
+				[ProducerSize] [varchar](5) NULL,
+				[ApplicationReferenceNumber] [nvarchar](4000) NULL,
+				[RegistrationReferenceNumber] [nvarchar](4000) NULL,
+				[SubmittedDateTime] [nvarchar](4000) NULL,
+				[FirstSubmissionDate] [nvarchar](4000) NULL,
+				[RegistrationDate] [nvarchar](4000) NULL,
+				[IsResubmission] [int] NOT NULL,
+				[ResubmissionDate] [nvarchar](4000) NULL,
+				[RelevantYear] [int] NULL,
+				[SubmissionPeriod] [nvarchar](4000) NULL,
+				[IsLateSubmission] [bit] NULL,
+				[SubmissionStatus] [nvarchar](4000) NOT NULL,
+				[ResubmissionStatus] [nvarchar](4000) NULL,
+				[ResubmissionDecisionDate] [nvarchar](4000) NULL,
+				[RegulatorDecisionDate] [nvarchar](4000) NULL,
+				[StatusPendingDate] [nvarchar](4000) NULL,
+				[NationId] [int] NULL,
+				[NationCode] [varchar](6) NULL,
+				[ComplianceSchemeId] [nvarchar](4000) NULL,
+				[ProducerComment] [nvarchar](4000) NULL,
+				[RegulatorComment] [nvarchar](4000) NULL,
+				[FileId] [nvarchar](4000) NULL,
+				[ResubmissionComment] [nvarchar](4000) NULL,
+				[ResubmittedUserId] [nvarchar](4000) NULL,
+				[ProducerUserId] [nvarchar](4000) NULL,
+				[RegulatorUserId] [nvarchar](4000) NULL
+			)
+			WITH
+			(
+				DISTRIBUTION = HASH ( [FileId] ),
+				CLUSTERED COLUMNSTORE INDEX
+			);
+
+			insert into apps.OrgRegistrationsSummaries
+			select * from [apps].[v_OrganisationRegistrationSummaries];
+
 			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create apps.OrgRegistrationsSummaries', NULL, @start_dt, getdate(), 'Completed',@batch_id
 		END;	
@@ -341,4 +392,3 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
     END CATCH
 
 END;
-GO

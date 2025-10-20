@@ -4,6 +4,9 @@ DROP PROCEDURE [dbo].[sp_GetRegistrationFeeCalculationDetails];
 GO
 
 CREATE PROC [dbo].[sp_GetRegistrationFeeCalculationDetails] @fileId [varchar](40) AS
+/*
+	Updated by 596714 and 610862
+*/
 BEGIN
 SET NOCOUNT ON;
 
