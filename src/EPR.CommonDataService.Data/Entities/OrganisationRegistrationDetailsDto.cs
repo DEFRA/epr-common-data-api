@@ -64,10 +64,11 @@ namespace EPR.CommonDataService.Data.Entities
         public string ServiceRole { get; set; }
         public int? ServiceRoleId { get; set; }
 
-        // Paycal parameters
+        // Paycal parameters for producers - large & small
         public bool IsOnlineMarketPlace { get; set; }
         public int NumberOfSubsidiaries { get; set; }
         public int NumberOfOnlineSubsidiaries { get; set; }
+        public int NumberOfLateSubsidiaries { get; set; }
 
         public Guid? CompanyDetailsFileId { get; set; }
         public string CompanyDetailsFileName { get; set; }
