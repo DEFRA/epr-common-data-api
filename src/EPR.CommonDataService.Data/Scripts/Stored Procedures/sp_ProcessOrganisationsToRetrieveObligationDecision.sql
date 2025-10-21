@@ -62,8 +62,7 @@ BEGIN
                     AND CD.organisation_size = 'L'
                     AND SE.Decision IN ('Accepted', 'Granted')
                     AND CFM.FileTYpe = 'CompanyDetails'
-                    AND CFM.SubmissionPeriod LIKE '%2024'
-                    --AND CFM.SubmissionPeriod LIKE '%' + CAST(YEAR(GETDATE()) AS VARCHAR(4))
+                    AND CFM.SubmissionPeriod LIKE '%' + CAST(YEAR(GETDATE()) AS VARCHAR(4))
                 ) AS CombinedRegistrations
     WHERE   rn = 1;
 
