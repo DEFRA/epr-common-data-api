@@ -23,6 +23,17 @@ BEGIN
         DROP TABLE #OrganisationsObligationAfterDecision;
     IF OBJECT_ID('tempdb..#OrganisationsObligationAfterInheritance') IS NOT NULL
         DROP TABLE #OrganisationsObligationAfterInheritance; 
+        
+    -- Define constants
+    DECLARE
+        -- Constants for IsObligated statuses
+        @OBLIGATED INT = 1,
+        @NOT_OBLIGATED INT = 0,
+        @INVALID_LEAVER_CODE INT = -1,
+        @CANNOT_DETERMINE INT = -2,        
+        -- Constants for OrganisationType
+        @DIRECT_REGISTRANT NVARCHAR = 'DirectRegistrant',
+        @SUBSIDIARY NVARCHAR = 'Subsidiary';
 
     /* ============================================================
         STEP 1: INSERT INPUT LIST ID's INTO TEMP TABLE's
@@ -43,7 +54,7 @@ BEGIN
     FROM    (SELECT  CAST(CASE WHEN CD.subsidiary_id IS NULL THEN CAST(CD.organisation_id AS NVARCHAR(50)) ELSE CD.subsidiary_id END AS NVARCHAR(50)) AS OrganisationId,
                     COALESCE(CFM.ComplianceSchemeId, O.ExternalId) AS SubmitterId,
                     CD.leaver_code AS LeaverCode,
-                    CASE WHEN CD.subsidiary_id IS NULL THEN 'DirectRegistrant' ELSE 'Subsidiary' END AS OrganisationType,
+                    CASE WHEN CD.subsidiary_id IS NULL THEN @DIRECT_REGISTRANT ELSE @SUBSIDIARY END AS OrganisationType,
                     CASE WHEN CD.subsidiary_id IS NULL THEN NULL ELSE CAST(CD.organisation_id AS NVARCHAR(50)) END AS ParentOrganisationId,
                     SE.Created AS DecisionDate,
                     ----------------------------------------------------------------
@@ -61,7 +72,7 @@ BEGIN
                     (CD.subsidiary_id IS NOT NULL AND EXISTS (SELECT 1 FROM #SubOrganisationIdTable SubID WHERE SubID.OrganisationId = CD.subsidiary_id)))
                     AND CD.organisation_size = 'L'
                     AND SE.Decision IN ('Accepted', 'Granted')
-                    AND CFM.FileTYpe = 'CompanyDetails'
+                    AND CFM.FileType = 'CompanyDetails'
                     AND CFM.SubmissionPeriod LIKE '%' + CAST(YEAR(GETDATE()) AS VARCHAR(4))
                 ) AS CombinedRegistrations
     WHERE   rn = 1;
@@ -84,22 +95,17 @@ BEGIN
     WITH ObligationFlagSummary AS (
         SELECT  OrganisationId,
                 COUNT(*) AS TotalCount,
-                SUM(CASE WHEN IsObligated = 1 THEN 1 ELSE 0 END) AS ObligatedCount,
-                SUM(CASE WHEN IsObligated = 0 THEN 1 ELSE 0 END) AS NotObligatedCount,
-                SUM(CASE WHEN IsObligated = -1 THEN 1 ELSE 0 END) AS InvalidCount,
+                SUM(CASE WHEN IsObligated = @OBLIGATED THEN 1 ELSE 0 END) AS ObligatedCount,
+                SUM(CASE WHEN IsObligated = @NOT_OBLIGATED THEN 1 ELSE 0 END) AS NotObligatedCount,
+                SUM(CASE WHEN IsObligated = @INVALID_LEAVER_CODE THEN 1 ELSE 0 END) AS InvalidCount,
                 SUM(CASE WHEN IsObligated IS NULL THEN 1 ELSE 0 END) AS NullCount
         FROM    #OrganisationsObligation
         GROUP BY OrganisationId
     )
 
     /* ============================================================
-        STEP 5: ADD ISOBLIGATED DECISION COLUMN
+    STEP 5: ADD ISOBLIGATED DECISION COLUMN
     ============================================================ */
-    -- Add IsObligatedAfterDecision column by checking IsObligated count based on organisation id
-    -- 1  = Obligated
-    -- 0  = Not Obligated
-    -- -1 = Invalid Leaver Code
-    -- -2 = Cannot Determine Error
     SELECT  OO.OrganisationId,
             OO.SubmitterId,
             OO.LeaverCode,
@@ -107,30 +113,30 @@ BEGIN
             OO.ParentOrganisationId,
             OO.IsObligated,
             CASE    -- Explicit invalid flag on record itself
-                    WHEN OO.IsObligated = -1 THEN -1
+                    WHEN OO.IsObligated = @INVALID_LEAVER_CODE THEN @INVALID_LEAVER_CODE
                     -- Org has multiple records, and *all* records are invalid then conclude all error
-                    WHEN OFS.TotalCount > 1 AND OFS.InvalidCount = OFS.TotalCount THEN -1
+                    WHEN OFS.TotalCount > 1 AND OFS.InvalidCount = OFS.TotalCount THEN @INVALID_LEAVER_CODE
                     -- Org has multiple records, and *all* records NULL then conclude all error
-                    WHEN OFS.TotalCount > 1 AND OFS.NullCount = OFS.TotalCount THEN -2
+                    WHEN OFS.TotalCount > 1 AND OFS.NullCount = OFS.TotalCount THEN @CANNOT_DETERMINE
                     -- Org has multiple records, and *multiple* 'Obligated' flags then conclude all cannot detemine
-                    WHEN OFS.TotalCount > 1 AND OFS.ObligatedCount > 1 THEN -2
+                    WHEN OFS.TotalCount > 1 AND OFS.ObligatedCount > 1 THEN @CANNOT_DETERMINE
                     -- Org has multiple records, exactly one 'Obligated' then mark only that as obligated
-                    WHEN OFS.TotalCount > 1 AND OFS.ObligatedCount = 1 THEN CASE WHEN OO.IsObligated = 1 THEN 1 ELSE 0  END
+                    WHEN OFS.TotalCount > 1 AND OFS.ObligatedCount = 1 THEN CASE WHEN OO.IsObligated = @OBLIGATED THEN @OBLIGATED ELSE @NOT_OBLIGATED END
                     -- Org has multiple records, multiple 'Not Obligated' + exactly 1 NULL then mark the NULL is actually the 'Obligated' one
-                    WHEN OFS.TotalCount > 1 AND OFS.NotObligatedCount > 1 AND OFS.NullCount = 1 THEN CASE WHEN OO.IsObligated IS NULL THEN 1 ELSE 0 END
+                    WHEN OFS.TotalCount > 1 AND OFS.NotObligatedCount > 1 AND OFS.NullCount = 1 THEN CASE WHEN OO.IsObligated IS NULL THEN @OBLIGATED ELSE @NOT_OBLIGATED END
                     -- Org has multiple records, exactly 1 'Not Obligated' and more than one NULL then treat NULLs as error
-                    WHEN OFS.TotalCount > 1 AND OFS.NotObligatedCount = 1 AND OFS.NullCount > 1 THEN -2
+                    WHEN OFS.TotalCount > 1 AND OFS.NotObligatedCount = 1 AND OFS.NullCount > 1 THEN @CANNOT_DETERMINE
                     -- Org has only one record then treat as 'Obligated' if true or NULL else Not Obligated
-                    WHEN OFS.TotalCount = 1 THEN CASE WHEN OO.IsObligated = 1 OR OO.IsObligated IS NULL THEN 1 ELSE 0 END
-                    ELSE 0 END AS IsObligatedAfterDecision,
-            CASE    WHEN (OO.IsObligated = -1 OR (OFS.TotalCount > 1 AND OFS.InvalidCount = OFS.TotalCount)) THEN 'Invalid Leaver Code'
+                    WHEN OFS.TotalCount = 1 THEN CASE WHEN OO.IsObligated = @OBLIGATED OR OO.IsObligated IS NULL THEN @OBLIGATED ELSE @NOT_OBLIGATED END
+                    ELSE @NOT_OBLIGATED END AS IsObligatedAfterDecision,
+            CASE    WHEN (OO.IsObligated = @INVALID_LEAVER_CODE OR (OFS.TotalCount > 1 AND OFS.InvalidCount = OFS.TotalCount)) THEN 'Invalid Leaver Code'
                     WHEN ((OFS.TotalCount > 1 AND OFS.NullCount = OFS.TotalCount) 
                             OR (OFS.TotalCount > 1 AND OFS.ObligatedCount > 1) 
                             OR (OFS.TotalCount > 1 AND OFS.NotObligatedCount = 1 AND OFS.NullCount > 1)) 
                             THEN 'Cannot Determine | Error'
-                    WHEN ((OFS.TotalCount > 1 AND OFS.ObligatedCount = 1 AND OO.IsObligated = 1)
+                    WHEN ((OFS.TotalCount > 1 AND OFS.ObligatedCount = 1 AND OO.IsObligated = @OBLIGATED)
                             OR (OFS.TotalCount > 1 AND OFS.NotObligatedCount > 1 AND OFS.NullCount = 1 AND OO.IsObligated IS NULL)
-                            OR (OFS.TotalCount = 1 AND (OO.IsObligated = 1 OR OO.IsObligated IS NULL))) 
+                            OR (OFS.TotalCount = 1 AND (OO.IsObligated = @OBLIGATED OR OO.IsObligated IS NULL))) 
                             THEN 'Obligated'
                     ELSE 'Not Obligated' END AS IsObligatedAfterDecisionDescription
     INTO    #OrganisationsObligationAfterDecision
@@ -158,10 +164,10 @@ BEGIN
                                 IsObligatedAfterDecision AS DpDecision,
                                 IsObligatedAfterDecisionDescription AS DpDescription
                         FROM    #OrganisationsObligationAfterDecision
-                        WHERE   OrganisationType = 'DirectRegistrant'
-                                AND IsObligatedAfterDecision IN (0, -1, -2)
+                        WHERE   OrganisationType = @DIRECT_REGISTRANT
+                                AND IsObligatedAfterDecision IN (@NOT_OBLIGATED, @INVALID_LEAVER_CODE, @CANNOT_DETERMINE)
                     ) P ON OOAI.ParentOrganisationId = P.DpOrganisationId AND OOAI.SubmitterId = P.DpSubmitterId
-    WHERE   OOAI.OrganisationType = 'Subsidiary'
+    WHERE   OOAI.OrganisationType = @SUBSIDIARY
             AND OOAI.IsObligatedAfterInheritance <> P.DpDecision;
 
     /* ===================================================================================

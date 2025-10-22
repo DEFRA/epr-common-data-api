@@ -21,7 +21,7 @@ BEGIN
     SELECT  DISTINCT CD.organisation_id AS OrganisationId
     INTO    #DpOrganisationIdTable
     FROM    rpd.CompanyDetails CD 
-            INNER JOIN (SELECT TRY_CAST(value AS NVARCHAR) AS OrgId FROM STRING_SPLIT(@OrganisationIds, @Delimiter)) I
+            INNER JOIN (SELECT TRY_CAST(value AS NVARCHAR(10)) AS OrgId FROM STRING_SPLIT(@OrganisationIds, @Delimiter)) I
                                 ON CD.organisation_id = I.OrgId OR CD.subsidiary_id = I.OrgId AND I.OrgId IS NOT NULL
     WHERE   CD.subsidiary_id IS NULL
 
