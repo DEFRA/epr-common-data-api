@@ -20,6 +20,301 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge Submissions', NULL, @start_dt, getdate(), 'Started',@batch_id
 
 
+--New changes for the table = t_FetchOrganisationRegistrationSubmissionDetails_resub  from view = V_FetchOrganisationRegistrationSubmissionDetails_resub
+
+		set @start_dt = getdate()
+		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]') AND type in (N'U'))
+		BEGIN
+			CREATE TABLE [dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]
+			(
+			[SubmissionId] [nvarchar](4000) NULL,
+			[OrganisationId] [nvarchar](4000) NULL,
+			[OrganisationName] [nvarchar](4000) NULL,
+			[OrganisationReference] [nvarchar](20) NULL,
+			[ApplicationReferenceNumber] [nvarchar](4000) NULL,
+			[RegistrationReferenceNumber] [nvarchar](4000) NULL,
+			[SubmissionStatus] [nvarchar](4000) NULL,
+			[StatusPendingDate] [nvarchar](4000) NULL,
+			[SubmittedDateTime] [nvarchar](4000) NULL,
+			[IsLateSubmission] [bit] NULL,
+			[IsResubmission] [bit] NULL,
+			[ResubmissionStatus] [nvarchar](4000) NULL,
+			[RegistrationDate] [nvarchar](4000) NULL,
+			[ResubmissionDate] [nvarchar](4000) NULL,
+			[ResubmissionFileId] [nvarchar](4000) NULL,
+			[SubmissionPeriod] [nvarchar](4000) NULL,
+			[RelevantYear] [int] NULL,
+			[IsComplianceScheme] [bit] NULL,
+			[OrganisationSize] [varchar](5) NULL,
+			[OrganisationType] [varchar](10) NULL,
+			[NationId] [int] NULL,
+			[NationCode] [varchar](6) NULL,
+			[RegulatorComment] [nvarchar](4000) NULL,
+			[ProducerComment] [nvarchar](4000) NULL,
+			[RegulatorDecisionDate] [nvarchar](4000) NULL,
+			[RegulatorResubmissionDecisionDate] [nvarchar](4000) NULL,
+			[RegulatorUserId] [nvarchar](4000) NULL,
+			[CompaniesHouseNumber] [nvarchar](4000) NULL,
+			[BuildingName] [nvarchar](4000) NULL,
+			[SubBuildingName] [nvarchar](4000) NULL,
+			[BuildingNumber] [nvarchar](4000) NULL,
+			[Street] [nvarchar](4000) NULL,
+			[Locality] [nvarchar](4000) NULL,
+			[DependentLocality] [nvarchar](4000) NULL,
+			[Town] [nvarchar](4000) NULL,
+			[County] [nvarchar](4000) NULL,
+			[Country] [nvarchar](4000) NULL,
+			[Postcode] [nvarchar](4000) NULL,
+			[SubmittedUserId] [nvarchar](4000) NULL,
+			[FirstName] [nvarchar](4000) NULL,
+			[LastName] [nvarchar](4000) NULL,
+			[Email] [nvarchar](4000) NULL,
+			[Telephone] [nvarchar](4000) NULL,
+			[ServiceRole] [nvarchar](100) NULL,
+			[ServiceRoleId] [int] NULL,
+			[IsOnlineMarketplace] [bit] NULL,
+			[NumberOfSubsidiaries] [int] NOT NULL,
+			[NumberOfOnlineSubsidiaries] [int] NOT NULL,
+			[CompanyDetailsFileId] [nvarchar](4000) NULL,
+			[CompanyDetailsFileName] [nvarchar](4000) NULL,
+			[CompanyDetailsBlobName] [nvarchar](4000) NULL,
+			[PartnershipFileId] [nvarchar](4000) NULL,
+			[PartnershipFileName] [nvarchar](4000) NULL,
+			[PartnershipBlobName] [nvarchar](4000) NULL,
+			[BrandsFileId] [nvarchar](4000) NULL,
+			[BrandsFileName] [nvarchar](4000) NULL,
+			[BrandsBlobName] [nvarchar](4000) NULL,
+			[ComplianceSchemeId] [nvarchar](4000) NULL,
+			[CSId] [nvarchar](4000) NULL,
+			[CSOJson] [nvarchar](max) NULL
+			)
+			WITH
+			(
+			DISTRIBUTION = HASH ( [SubmissionId] ),
+			HEAP
+			);
+			insert into dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub 
+			select * from dbo.V_FetchOrganisationRegistrationSubmissionDetails_resub;
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create t_FetchOrganisationRegistrationSubmissionDetails_resub', NULL, @start_dt, getdate(), 'Completed',@batch_id
+		END;	
+		ELSE
+		BEGIN
+			set @start_dt = getdate()
+			--truncate table t_FetchOrganisationRegistrationSubmissionDetails_resub;  *** removed 
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge start t_FetchOrganisationRegistrationSubmissionDetails_resub', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+			--***Added to Merge instead of truncate and insert
+
+			MERGE INTO t_FetchOrganisationRegistrationSubmissionDetails_resub AS Target
+			 USING V_FetchOrganisationRegistrationSubmissionDetails_resub AS Source
+			 ON Target.SubmissionID = Source.SubmissionID
+
+			 WHEN MATCHED THEN
+			UPDATE SET
+			 Target.[SubmissionId]						= Source.[SubmissionId]
+			,Target.[OrganisationId]					= Source.[OrganisationId]
+			,Target.[OrganisationName]					= Source.[OrganisationName]	
+			,Target.[OrganisationReference]				= Source.[OrganisationReference]	
+			,Target.[ApplicationReferenceNumber]		= Source.[ApplicationReferenceNumber]
+			,Target.[RegistrationReferenceNumber]		= Source.[RegistrationReferenceNumber]
+			,Target.[SubmissionStatus]					= Source.[SubmissionStatus]	
+			,Target.[StatusPendingDate]					= Source.[StatusPendingDate]
+			,Target.[SubmittedDateTime]					= Source.[SubmittedDateTime]	
+			,Target.[IsLateSubmission]					= Source.[IsLateSubmission]	
+			,Target.[IsResubmission]					= Source.[IsResubmission]
+			,Target.[ResubmissionStatus]				= Source.[ResubmissionStatus]
+			,Target.[RegistrationDate]					= Source.[RegistrationDate]
+			,Target.[ResubmissionDate]					= Source.[ResubmissionDate]
+			,Target.[ResubmissionFileId]				= Source.[ResubmissionFileId]
+			,Target.[SubmissionPeriod]					= Source.[SubmissionPeriod]
+			,Target.[RelevantYear]						= Source.[RelevantYear]
+			,Target.[IsComplianceScheme]				= Source.[IsComplianceScheme]
+			,Target.[OrganisationSize]					= Source.[OrganisationSize]
+			,Target.[OrganisationType]					= Source.[OrganisationType]
+			,Target.[NationId]							= Source.[NationId]
+			,Target.[NationCode]						= Source.[NationCode]
+			,Target.[RegulatorComment]					= Source.[RegulatorComment]
+			,Target.[ProducerComment]					= Source.[ProducerComment]
+			,Target.[RegulatorDecisionDate]				= Source.[RegulatorDecisionDate]
+			,Target.[RegulatorResubmissionDecisionDate]	= Source.[RegulatorResubmissionDecisionDate]
+			,Target.[RegulatorUserId]					= Source.[RegulatorUserId]
+			,Target.[CompaniesHouseNumber]				= Source.[CompaniesHouseNumber]
+			,Target.[BuildingName]						= Source.[BuildingName]
+			,Target.[SubBuildingName]					= Source.[SubBuildingName]
+			,Target.[BuildingNumber]					= Source.[BuildingNumber]
+			,Target.[Street]							= Source.[Street]
+			,Target.[Locality]							= Source.[Locality]
+			,Target.[DependentLocality]					= Source.[DependentLocality]
+			,Target.[Town]								= Source.[Town]
+			,Target.[County]							= Source.[County]
+			,Target.[Country]							= Source.[Country]
+			,Target.[Postcode]							= Source.[Postcode]
+			,Target.[SubmittedUserId]					= Source.[SubmittedUserId]
+			,Target.[FirstName]							= Source.[FirstName]
+			,Target.[LastName]							= Source.[LastName]
+			,Target.[Email]								= Source.[Email]
+			,Target.[Telephone]							= Source.[Telephone]
+			,Target.[ServiceRole]						= Source.[ServiceRole]
+			,Target.[ServiceRoleId]						= Source.[ServiceRoleId]
+			,Target.[IsOnlineMarketplace]				= Source.[IsOnlineMarketplace]
+			,Target.[NumberOfSubsidiaries]				= Source.[NumberOfSubsidiaries]
+			,Target.[NumberOfOnlineSubsidiaries]		= Source.[NumberOfOnlineSubsidiaries]
+			,Target.[CompanyDetailsFileId]				= Source.[CompanyDetailsFileId]
+			,Target.[CompanyDetailsFileName]			= Source.[CompanyDetailsFileName]
+			,Target.[CompanyDetailsBlobName]			= Source.[CompanyDetailsBlobName]
+			,Target.[PartnershipFileId]					= Source.[PartnershipFileId]
+			,Target.[PartnershipFileName]				= Source.[PartnershipFileName]
+			,Target.[PartnershipBlobName]				= Source.[PartnershipBlobName]
+			,Target.[BrandsFileId]						= Source.[BrandsFileId]
+			,Target.[BrandsFileName]					= Source.[BrandsFileName]
+			,Target.[BrandsBlobName]					= Source.[BrandsBlobName]
+			,Target.[ComplianceSchemeId]				= Source.[ComplianceSchemeId]
+			,Target.[CSId]								= Source.[CSId]
+			,Target.[CSOJson]							= Source.[CSOJson]
+
+			WHEN NOT MATCHED BY TARGET THEN
+		INSERT (
+		[SubmissionId]
+      ,[OrganisationId]
+      ,[OrganisationName]
+      ,[OrganisationReference]
+      ,[ApplicationReferenceNumber]
+      ,[RegistrationReferenceNumber]
+      ,[SubmissionStatus]
+      ,[StatusPendingDate]
+      ,[SubmittedDateTime]
+      ,[IsLateSubmission]
+      ,[IsResubmission]
+      ,[ResubmissionStatus]
+      ,[RegistrationDate]
+      ,[ResubmissionDate]
+      ,[ResubmissionFileId]
+      ,[SubmissionPeriod]
+      ,[RelevantYear]
+      ,[IsComplianceScheme]
+      ,[OrganisationSize]
+      ,[OrganisationType]
+      ,[NationId]
+      ,[NationCode]
+      ,[RegulatorComment]
+      ,[ProducerComment]
+      ,[RegulatorDecisionDate]
+      ,[RegulatorResubmissionDecisionDate]
+      ,[RegulatorUserId]
+      ,[CompaniesHouseNumber]
+      ,[BuildingName]
+      ,[SubBuildingName]
+      ,[BuildingNumber]
+      ,[Street]
+      ,[Locality]
+      ,[DependentLocality]
+      ,[Town]
+      ,[County]
+      ,[Country]
+      ,[Postcode]
+      ,[SubmittedUserId]
+      ,[FirstName]
+      ,[LastName]
+      ,[Email]
+      ,[Telephone]
+      ,[ServiceRole]
+      ,[ServiceRoleId]
+      ,[IsOnlineMarketplace]
+      ,[NumberOfSubsidiaries]
+      ,[NumberOfOnlineSubsidiaries]
+      ,[CompanyDetailsFileId]
+      ,[CompanyDetailsFileName]
+      ,[CompanyDetailsBlobName]
+      ,[PartnershipFileId]
+      ,[PartnershipFileName]
+      ,[PartnershipBlobName]
+      ,[BrandsFileId]
+      ,[BrandsFileName]
+      ,[BrandsBlobName]
+      ,[ComplianceSchemeId]
+      ,[CSId]
+      ,[CSOJson]
+	)
+	VALUES (
+		Source.[SubmissionId]
+		,Source.[OrganisationId]
+		,Source.[OrganisationName]
+		,Source.[OrganisationReference]
+		,Source.[ApplicationReferenceNumber]
+		,Source.[RegistrationReferenceNumber]
+		,Source.[SubmissionStatus]
+		,Source.[StatusPendingDate]
+		,Source.[SubmittedDateTime]
+		,Source.[IsLateSubmission]
+		,Source.[IsResubmission]
+		,Source.[ResubmissionStatus]
+		,Source.[RegistrationDate]
+		,Source.[ResubmissionDate]
+		,Source.[ResubmissionFileId]
+		,Source.[SubmissionPeriod]
+		,Source.[RelevantYear]
+		,Source.[IsComplianceScheme]
+		,Source.[OrganisationSize]
+		,Source.[OrganisationType]
+		,Source.[NationId]
+		,Source.[NationCode]
+		,Source.[RegulatorComment]
+		,Source.[ProducerComment]
+		,Source.[RegulatorDecisionDate]
+		,Source.[RegulatorResubmissionDecisionDate]
+		,Source.[RegulatorUserId]
+		,Source.[CompaniesHouseNumber]
+		,Source.[BuildingName]
+		,Source.[SubBuildingName]
+		,Source.[BuildingNumber]
+		,Source.[Street]
+		,Source.[Locality]
+		,Source.[DependentLocality]
+		,Source.[Town]
+		,Source.[County]
+		,Source.[Country]
+		,Source.[Postcode]
+		,Source.[SubmittedUserId]
+		,Source.[FirstName]
+		,Source.[LastName]
+		,Source.[Email]
+		,Source.[Telephone]
+		,Source.[ServiceRole]
+		,Source.[ServiceRoleId]
+		,Source.[IsOnlineMarketplace]
+		,Source.[NumberOfSubsidiaries]
+		,Source.[NumberOfOnlineSubsidiaries]
+		,Source.[CompanyDetailsFileId]
+		,Source.[CompanyDetailsFileName]
+		,Source.[CompanyDetailsBlobName]
+		,Source.[PartnershipFileId]
+		,Source.[PartnershipFileName]
+		,Source.[PartnershipBlobName]
+		,Source.[BrandsFileId]
+		,Source.[BrandsFileName]
+		,Source.[BrandsBlobName]
+		,Source.[ComplianceSchemeId]
+		,Source.[CSId]
+		,Source.[CSOJson]
+		)
+	    WHEN NOT MATCHED BY SOURCE THEN
+        DELETE; -- delete from table when no longer in source
+
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge complete t_FetchOrganisationRegistrationSubmissionDetails_resub', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+		END;	
+
+		select @cnt =count(1) from dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub;
+		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','t_FetchOrganisationRegistrationSubmissionDetails_resub', @cnt, @start_dt, getdate(), 'count',@batch_id;
+
+
+
+
+
 
 		--New changes for the table = apps.OrgRegistrationsSummaries  from view = [apps].[v_OrganisationRegistrationSummaries]
 		IF OBJECT_ID('tempdb..#OrgRegistrationsSummaries') IS NOT NULL
@@ -360,7 +655,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 			select @cnt =count(1) from apps.RegistrationsSummaries;
 			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.RegistrationsSummaries', @cnt, @start_dt, getdate(), 'count-after',@batch_id;
-			
+		
 			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','sp_AggregateAndMergeRegistrationData', NULL, @start_dt, getdate(), 'Completed',@batch_id
 
