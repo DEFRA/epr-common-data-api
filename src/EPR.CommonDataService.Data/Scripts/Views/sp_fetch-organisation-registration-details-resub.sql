@@ -1,4 +1,4 @@
-﻿﻿﻿/****** Object:  View [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 04/11/2025 12:05:17 ******/
+﻿/****** Object:  View [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 04/11/2025 12:05:17 ******/
 IF EXISTS (
 	SELECT 1
 FROM sys.views
