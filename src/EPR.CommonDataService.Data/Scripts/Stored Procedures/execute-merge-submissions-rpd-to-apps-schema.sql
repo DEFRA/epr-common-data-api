@@ -1,4 +1,4 @@
-﻿/****** Object:  StoredProcedure [apps].[sp_MergeSubmissionsSummaries_629288]    Script Date: 04/11/2025 17:38:58 ******/
+/****** Object:  StoredProcedure [apps].[sp_MergeSubmissionsSummaries_629288]    Script Date: 04/11/2025 17:38:58 ******/
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_MergeSubmissionsSummaries]'))
 	DROP PROCEDURE [apps].[sp_MergeSubmissionsSummaries];
 GO
@@ -953,7 +953,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 			select @cnt =count(1) from apps.RegistrationsSummaries;
 			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.RegistrationsSummaries', @cnt, @start_dt, getdate(), 'count-after',@batch_id;
-			
+		
 			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','sp_AggregateAndMergeRegistrationData', NULL, @start_dt, getdate(), 'Completed',@batch_id
 
