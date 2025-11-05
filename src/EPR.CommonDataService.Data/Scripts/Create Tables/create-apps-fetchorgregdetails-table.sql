@@ -1,4 +1,4 @@
-﻿﻿IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]') AND type in (N'U'))
+﻿IF NOT EXISTS (SELECT 1 FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]') AND type in (N'U'))
 BEGIN
 	CREATE TABLE [dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]
 	(
