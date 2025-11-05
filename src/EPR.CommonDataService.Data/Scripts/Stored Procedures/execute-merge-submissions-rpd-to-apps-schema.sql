@@ -1,4 +1,4 @@
-﻿﻿-- Dropping stored procedure if it exists
+/****** Object:  StoredProcedure [apps].[sp_MergeSubmissionsSummaries_629288]    Script Date: 04/11/2025 17:38:58 ******/
 IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_MergeSubmissionsSummaries]'))
 	DROP PROCEDURE [apps].[sp_MergeSubmissionsSummaries];
 GO
@@ -316,6 +316,34 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 
 
 
+	--New changes for the table dbo.t_CSO_Pom_Resubmitted_ByCSID
+		set @start_dt = getdate()
+		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[t_CSO_Pom_Resubmitted_ByCSID]') AND type in (N'U'))
+		BEGIN
+			select * into dbo.t_CSO_Pom_Resubmitted_ByCSID from dbo.v_CSO_Pom_Resubmitted_ByCSID;
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create t_CSO_Pom_Resubmitted_ByCSID', NULL, @start_dt, getdate(), 'Completed',@batch_id
+		END;	
+		ELSE
+		BEGIN
+			set @start_dt = getdate()
+			truncate table dbo.t_CSO_Pom_Resubmitted_ByCSID;
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','truncate t_CSO_Pom_Resubmitted_ByCSID', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+
+			insert into dbo.t_CSO_Pom_Resubmitted_ByCSID
+			select * from dbo.v_CSO_Pom_Resubmitted_ByCSID;
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','generate t_CSO_Pom_Resubmitted_ByCSID', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+		END;	
+
+		select @cnt =count(1) from dbo.t_CSO_Pom_Resubmitted_ByCSID;
+		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dbo.t_CSO_Pom_Resubmitted_ByCSID', @cnt, @start_dt, getdate(), 'count',@batch_id;
+
+
 		--New changes for the table = apps.OrgRegistrationsSummaries  from view = [apps].[v_OrganisationRegistrationSummaries]
 		IF OBJECT_ID('tempdb..#OrgRegistrationsSummaries') IS NOT NULL
 			DROP TABLE #OrgRegistrationsSummaries;
@@ -551,6 +579,195 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dbo.t_ProducerPayCalParameters_resub', @cnt, @start_dt, getdate(), 'count',@batch_id;
 
 
+		--New changes for the table = dbo.t_submitted_pom_org_file_status  from view = [dbo].[v_submitted_pom_org_file_status]
+		set @start_dt = getdate()
+		--If table exists but is incorrect distribution then drop table
+		IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.t_submitted_pom_org_file_status') AND type in (N'U')) AND NOT EXISTS( SELECT * FROM sys.pdw_table_distribution_properties where OBJECT_SCHEMA_NAME( object_id )='dbo' AND OBJECT_NAME( object_id ) ='t_submitted_pom_org_file_status' and distribution_policy_desc='HASH')
+		BEGIN
+			DROP TABLE [dbo].[t_submitted_pom_org_file_status];
+		END
+
+		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.t_submitted_pom_org_file_status') AND type in (N'U'))
+		BEGIN
+
+			CREATE TABLE [dbo].[t_submitted_pom_org_file_status]
+			(
+				[SubmissionId] [nvarchar](4000) NULL,
+				[RegistrationSetId] [nvarchar](4000) NULL,
+				[OrganisationId] [nvarchar](4000) NULL,
+				[FileName] [nvarchar](4000) NULL,
+				[FileType] [nvarchar](4000) NULL,
+				[OriginalFileName] [nvarchar](4000) NULL,
+				[TargetDirectoryName] [nvarchar](4000) NULL,
+				[Decision_Date] [nvarchar](4000) NULL,
+				[Regulator_Status] [nvarchar](4000) NULL,
+				[RegulatorDecision] [varchar](1) NOT NULL,
+				[Regulator_User_Name] [nvarchar](4000) NOT NULL,
+				[Regulator_Rejection_Comments] [nvarchar](4000) NULL,
+				[RejectionComments] [varchar](1) NOT NULL,
+				[Type] [nvarchar](4000) NULL,
+				[UserId] [nvarchar](4000) NULL,
+				[RowNumber] [bigint] NULL,
+				[Created] [nvarchar](4000) NULL,
+				[Application_submitted_ts] [nvarchar](4000) NULL,
+				[RegistrationType] [int] NULL,
+				[SubmissionPeriod] [nvarchar](4000) NULL,
+				[ApplicationReferenceNo] [nvarchar](4000) NULL,
+				[registrationreferencenumber] [nvarchar](4000) NULL,
+				[Original_Regulator_Status] [nvarchar](4000) NULL,
+				[SubmissionType] [nvarchar](4000) NULL,
+				[IsResubmission_identifier] [bit] NOT NULL,
+				[Is_resubmitted_POM_identifier] [int] NOT NULL,
+				[cfm_FileId] [nvarchar](4000) NULL,
+				[FileId] [nvarchar](4000) NULL,
+				[fileid_new] [nvarchar](4000) NULL,
+				[submitted_Fileid] [nvarchar](4000) NULL,
+				[SubmissionEventId_of_submitted_record] [nvarchar](4000) NULL,
+				[app_submitted_Fileid] [nvarchar](4000) NULL,
+				[SubmissionEventId_of_application_submitted_record] [nvarchar](4000) NULL
+			)
+			WITH
+			(
+				DISTRIBUTION = HASH ( [FileName] ),
+				CLUSTERED COLUMNSTORE INDEX
+			);
+			--select * into dbo.t_submitted_pom_org_file_status from [dbo].[v_submitted_pom_org_file_status];
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create blank dbo.t_submitted_pom_org_file_status', NULL, @start_dt, getdate(), 'Completed',@batch_id
+		END;	
+		
+		BEGIN
+			set @start_dt = getdate()
+
+			IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.t_submitted_pom_org_file_status_temp') AND type in (N'U'))
+			BEGIN
+				drop table dbo.t_submitted_pom_org_file_status_temp;
+				INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+				select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dropped dbo.t_submitted_pom_org_file_status_temp', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			END;
+
+			select * into dbo.t_submitted_pom_org_file_status_temp from [dbo].[v_submitted_pom_org_file_status];
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create dbo.t_submitted_pom_org_file_status_temp', NULL, @start_dt, getdate(), 'Completed',@batch_id
+
+			MERGE INTO dbo.t_submitted_pom_org_file_status AS Target
+				USING dbo.t_submitted_pom_org_file_status_temp AS Source
+				ON Target.FileName = Source.FileName
+				WHEN MATCHED THEN
+					UPDATE SET
+						Target.SubmissionId = Source.SubmissionId,
+						Target.RegistrationSetId = Source.RegistrationSetId,
+						Target.OrganisationId = Source.OrganisationId,
+						Target.FileName = Source.FileName,
+						Target.FileType = Source.FileType,
+						Target.OriginalFileName = Source.OriginalFileName,
+						Target.TargetDirectoryName = Source.TargetDirectoryName,
+						Target.Decision_Date = Source.Decision_Date,
+						Target.Regulator_Status = Source.Regulator_Status,
+						Target.RegulatorDecision = Source.RegulatorDecision,
+						Target.Regulator_User_Name = Source.Regulator_User_Name,
+						Target.Regulator_Rejection_Comments = Source.Regulator_Rejection_Comments,
+						Target.RejectionComments = Source.RejectionComments,
+						Target.Type = Source.Type,
+						Target.UserId = Source.UserId,
+						Target.RowNumber = Source.RowNumber,
+						Target.Created = Source.Created,
+						Target.Application_submitted_ts = Source.Application_submitted_ts,
+						Target.RegistrationType = Source.RegistrationType,
+						Target.SubmissionPeriod = Source.SubmissionPeriod,
+						Target.ApplicationReferenceNo = Source.ApplicationReferenceNo,
+						Target.registrationreferencenumber = Source.registrationreferencenumber,
+						Target.Original_Regulator_Status = Source.Original_Regulator_Status,
+						Target.SubmissionType = Source.SubmissionType,
+						Target.IsResubmission_identifier = Source.IsResubmission_identifier,
+						Target.Is_resubmitted_POM_identifier = Source.Is_resubmitted_POM_identifier,
+						Target.cfm_FileId = Source.cfm_FileId,
+						Target.FileId = Source.FileId,
+						Target.fileid_new = Source.fileid_new,
+						Target.submitted_Fileid = Source.submitted_Fileid,
+						Target.SubmissionEventId_of_submitted_record = Source.SubmissionEventId_of_submitted_record,
+						Target.app_submitted_Fileid = Source.app_submitted_Fileid,
+						Target.SubmissionEventId_of_application_submitted_record = Source.SubmissionEventId_of_application_submitted_record
+				WHEN NOT MATCHED BY TARGET THEN
+					INSERT ([SubmissionId]
+								   ,[RegistrationSetId]
+								   ,[OrganisationId]
+								   ,[FileName]
+								   ,[FileType]
+								   ,[OriginalFileName]
+								   ,[TargetDirectoryName]
+								   ,[Decision_Date]
+								   ,[Regulator_Status]
+								   ,[RegulatorDecision]
+								   ,[Regulator_User_Name]
+								   ,[Regulator_Rejection_Comments]
+								   ,[RejectionComments]
+								   ,[Type]
+								   ,[UserId]
+								   ,[RowNumber]
+								   ,[Created]
+								   ,[Application_submitted_ts]
+								   ,[RegistrationType]
+								   ,[SubmissionPeriod]
+								   ,[ApplicationReferenceNo]
+								   ,[registrationreferencenumber]
+								   ,[Original_Regulator_Status]
+								   ,[SubmissionType]
+								   ,[IsResubmission_identifier]
+								   ,[Is_resubmitted_POM_identifier]
+								   ,[cfm_FileId]
+								   ,[FileId]
+								   ,[fileid_new]
+								   ,[submitted_Fileid]
+								   ,[SubmissionEventId_of_submitted_record]
+								   ,[app_submitted_Fileid]
+								   ,[SubmissionEventId_of_application_submitted_record])
+								  VALUES (
+								  Source.[SubmissionId]
+								   ,Source.[RegistrationSetId]
+								   ,Source.[OrganisationId]
+								   ,Source.[FileName]
+								   ,Source.[FileType]
+								   ,Source.[OriginalFileName]
+								   ,Source.[TargetDirectoryName]
+								   ,Source.[Decision_Date]
+								   ,Source.[Regulator_Status]
+								   ,Source.[RegulatorDecision]
+								   ,Source.[Regulator_User_Name]
+								   ,Source.[Regulator_Rejection_Comments]
+								   ,Source.[RejectionComments]
+								   ,Source.[Type]
+								   ,Source.[UserId]
+								   ,Source.[RowNumber]
+								   ,Source.[Created]
+								   ,Source.[Application_submitted_ts]
+								   ,Source.[RegistrationType]
+								   ,Source.[SubmissionPeriod]
+								   ,Source.[ApplicationReferenceNo]
+								   ,Source.[registrationreferencenumber]
+								   ,Source.[Original_Regulator_Status]
+								   ,Source.[SubmissionType]
+								   ,Source.[IsResubmission_identifier]
+								   ,Source.[Is_resubmitted_POM_identifier]
+								   ,Source.[cfm_FileId]
+								   ,Source.[FileId]
+								   ,Source.[fileid_new]
+								   ,Source.[submitted_Fileid]
+								   ,Source.[SubmissionEventId_of_submitted_record]
+								   ,Source.[app_submitted_Fileid]
+								   ,Source.[SubmissionEventId_of_application_submitted_record]
+								    )
+				WHEN NOT MATCHED BY SOURCE THEN
+					DELETE;
+
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge dbo.t_submitted_pom_org_file_status', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+		END;	
+
+		select @cnt =count(1) from dbo.t_submitted_pom_org_file_status
+		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dbo.t_submitted_pom_org_file_status', @cnt, @start_dt, getdate(), 'count',@batch_id;
 
 
 
@@ -617,7 +834,88 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge SubmissionEvents', NULL, @start_dt, getdate(), 'Completed',@batch_id
 
 
+----New code for dbo.t_PomResubmissionPaycalEvents ticket 629288
+	IF OBJECT_ID('tempdb..#PomResubmissionPaycalEvents') IS NOT NULL
+		DROP TABLE #PomResubmissionPaycalEvents;
+		--If table exists but is incorrect distribution then drop
+		IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.t_PomResubmissionPaycalEvents') AND type in (N'U')) AND NOT EXISTS( SELECT * FROM sys.pdw_table_distribution_properties where OBJECT_SCHEMA_NAME( object_id )='dbo' AND OBJECT_NAME( object_id ) ='t_PomResubmissionPaycalEvents' and distribution_policy_desc='HASH')
+		BEGIN
+			DROP TABLE dbo.t_PomResubmissionPaycalEvents
+		END
 
+		set @start_dt = getdate()
+		IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.t_PomResubmissionPaycalEvents') AND type in (N'U')) 
+		BEGIN
+
+			CREATE TABLE dbo.t_PomResubmissionPaycalEvents
+			(
+				[SubmissionId] [nvarchar](4000) NULL,
+				[PackagingResubmissionReferenceNumber] [nvarchar](4000) NULL
+				
+			)
+			WITH
+			(
+				DISTRIBUTION = HASH ( [SubmissionId] ),
+				CLUSTERED COLUMNSTORE INDEX
+			);
+
+			insert into dbo.t_PomResubmissionPaycalEvents
+			Select SubmissionID, PackagingResubmissionReferenceNumber from
+					(
+  					select  SubmissionID, PackagingResubmissionReferenceNumber,created, ROW_NUMBER() OVER (PARTITION BY SubmissionID Order By created desc)  as RowNum FROM apps.SubmissionEvents se 
+					where se.[Type] = 'PackagingResubmissionReferenceNumberCreated'
+					)se2 where RowNum=1;
+
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','create dbo.t_PomResubmissionPaycalEvents', NULL, @start_dt, getdate(), 'Completed',@batch_id
+		END;	
+		ELSE
+		BEGIN
+			set @start_dt = getdate()
+
+	
+
+			Select SubmissionID, PackagingResubmissionReferenceNumber  INTO #PomResubmissionPaycalEvents from 
+					(
+  					select  SubmissionID, PackagingResubmissionReferenceNumber,created, ROW_NUMBER() OVER (PARTITION BY SubmissionID Order By created desc)  as RowNum FROM apps.SubmissionEvents se 
+					where se.[Type] = 'PackagingResubmissionReferenceNumberCreated'
+					)se2 where RowNum=1;
+
+			MERGE INTO dbo.t_PomResubmissionPaycalEvents AS Target
+			 USING #PomResubmissionPaycalEvents AS Source
+			 ON Target.SubmissionID = Source.SubmissionID
+
+			 WHEN MATCHED THEN
+        UPDATE SET
+	   Target.[SubmissionId] = Source.SubmissionId
+      ,Target.PackagingResubmissionReferenceNumber = Source.PackagingResubmissionReferenceNumber
+
+
+		WHEN NOT MATCHED BY TARGET THEN
+    INSERT (
+		[SubmissionId]
+      ,PackagingResubmissionReferenceNumber
+	  )
+	VALUES (
+	   Source.[SubmissionId]
+      ,Source.PackagingResubmissionReferenceNumber
+     
+	)
+	    WHEN NOT MATCHED BY SOURCE THEN
+        DELETE; -- delete from table when no longer in source
+
+	DROP TABLE #PomResubmissionPaycalEvents
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','generate dbo.t_PomResubmissionPaycalEvents', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+		END;	
+
+		select @cnt =count(1) from apps.PackagingResubmissionEvents;
+		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dbo.t_PomResubmissionPaycalEvents', @cnt, @start_dt, getdate(), 'count',@batch_id;
+
+
+ ---End of new code for dbo.t_PomResubmissionPaycalEvents ticket 629288
 
  
         -- If no errors occur, execute the next set of procedures
@@ -686,3 +984,4 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 
     END CATCH
 END;
+GO
