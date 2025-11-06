@@ -779,6 +779,11 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.submissions', @cnt, @start_dt, getdate(), 'count-before',@batch_id;
 
+		delete from apps.Submissions where id in 
+		(
+			select id from apps.Submissions group by created,id,load_ts having count(1) > 1 
+		);
+
         -- Merge rpd.submissions into apps.submissions
         EXEC [apps].[sp_DynamicTableMerge]
             @sourceSchema = 'rpd',
@@ -813,6 +818,12 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		select @cnt =count(1) from apps.submissionEvents;
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 		select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','apps.submissionEvents', @cnt, @start_dt, getdate(), 'count-before',@batch_id;
+
+
+		delete from apps.SubmissionEvents where id in 
+		(
+			select id from apps.SubmissionEvents group by created,id,load_ts having count(1) > 1 
+		);
 
         -- Merge rpd.submissionEvents into apps.submissionEvents
         EXEC [apps].[sp_DynamicTableMerge]
@@ -910,7 +921,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 			
 		END;	
 
-		select @cnt =count(1) from apps.PackagingResubmissionEvents;
+		select @cnt =count(1) from dbo.t_PomResubmissionPaycalEvents;
 		INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','dbo.t_PomResubmissionPaycalEvents', @cnt, @start_dt, getdate(), 'count',@batch_id;
 
