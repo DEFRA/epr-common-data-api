@@ -3,8 +3,8 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp
 DROP PROCEDURE [apps].[sp_AggregateAndMergePomData];
 GO
 
-CREATE PROCEDURE apps.sp_AggregateAndMergePomData
-    AS
+/****** Object:  StoredProcedure [apps].[sp_AggregateAndMergePomData_596704_PT]    Script Date: 12/11/2025 15:14:10 ******/
+CREATE PROC [apps].[sp_AggregateAndMergePomData] AS
 BEGIN
 
 IF OBJECT_ID('tempdb..#SubmissionsSummariesTemp') IS NOT NULL
@@ -42,7 +42,8 @@ CREATE TABLE #SubmissionsSummariesTemp
     [PreviousRejectionComments] NVARCHAR(4000),
     [NationId] INT,
     [PomFileName] NVARCHAR(4000),
-	[PomBlobName] NVARCHAR(4000)
+	[PomBlobName] NVARCHAR(4000),
+	NEW_FLAG BIT
 	);
 
 INSERT INTO #SubmissionsSummariesTemp
@@ -75,8 +76,9 @@ SELECT DISTINCT
     [PreviousRejectionComments],
     [NationId],
     [PomFileName],
-	[PomBlobName]
-FROM apps.v_SubmissionsSummaries;
+	[PomBlobName],
+	NEW_FLAG
+FROM apps.[v_SubmissionsSummaries];
 
 MERGE INTO apps.SubmissionsSummaries AS Target
     USING #SubmissionsSummariesTemp AS Source
@@ -111,7 +113,8 @@ MERGE INTO apps.SubmissionsSummaries AS Target
             Target.PreviousRejectionComments = Source.PreviousRejectionComments,
             Target.NationId = Source.NationId,
             Target.PomFileName = Source.PomFileName,
-            Target.PomBlobName = Source.PomBlobName
+            Target.PomBlobName = Source.PomBlobName,
+			Target.NEW_FLAG = Source.NEW_FLAG
     WHEN NOT MATCHED BY TARGET THEN
     INSERT (
     SubmissionId,
@@ -142,7 +145,8 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     PreviousRejectionComments,
     NationId,
     PomFileName,
-    PomBlobName
+    PomBlobName,
+	NEW_FLAG
     )
     VALUES (
     Source.Submissionid,
@@ -173,7 +177,8 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Source.PreviousRejectionComments,
     Source.NationId,
     Source.PomFileName,
-    Source.PomBlobName
+    Source.PomBlobName,
+	Source.NEW_FLAG
     )
     WHEN NOT MATCHED BY SOURCE THEN
         DELETE; -- delete from table when no longer in source

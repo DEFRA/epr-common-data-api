@@ -3,7 +3,9 @@ IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_Submi
 DROP VIEW [apps].[v_SubmissionsSummaries];
 GO
 
-CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH 
+/****** Object:  View [apps].[v_SubmissionsSummaries_596704_PT]    Script Date: 12/11/2025 15:06:58 ******/
+CREATE VIEW [apps].[v_SubmissionsSummaries]
+AS WITH 
     cf_meta_first_record as
         (
                 select Fileid, blobname, OriginalFileName
@@ -51,6 +53,44 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
     FROM [apps].[SubmissionEvents] submitted
         WHERE submitted.Type='Submitted'
         )
+		
+-------596704-----------
+
+ -- This is the first fee resubmission record
+    ,FirstResubmissionReferenceNumberCreated AS (
+     SELECT se.SubmissionId, MIN(CONVERT(DATETIME,substring(Created,1,23))) AS FirstReferenceNumberCreated
+        FROM apps.SubmissionEvents se
+        WHERE se.[Type] = 'PackagingResubmissionReferenceNumberCreated'
+     GROUP BY se.SubmissionId
+    )
+
+    ,ResubmissionApplicationSubmittedData AS (
+        SELECT se.FileId, se.SubmissionId, se.[Type] AS EventType
+        FROM FirstResubmissionReferenceNumberCreated fr
+     INNER JOIN apps.SubmissionEvents se 
+      ON fr.SubmissionId = se.SubmissionId
+       AND se.[Type] = 'PackagingResubmissionApplicationSubmitted'
+       AND CONVERT(DATETIME,substring(se.Created,1,23)) > fr.FirstReferenceNumberCreated
+          
+    )
+
+    ,SubmittedOrResubmissionWithoutNewEvents AS (
+        SELECT se.FileId, se.SubmissionId, fr.FirstReferenceNumberCreated
+        FROM apps.SubmissionEvents se
+     LEFT JOIN FirstResubmissionReferenceNumberCreated fr
+      ON se.SubmissionId = fr.SubmissionId
+        WHERE se.[Type] = 'Submitted'
+      AND (fr.FirstReferenceNumberCreated IS NULL OR CONVERT(DATETIME,substring(se.Created,1,23)) < fr.FirstReferenceNumberCreated)
+    )
+
+    ,SubmissionsAggregated AS (
+     SELECT FileId, SubmissionId FROM ResubmissionApplicationSubmittedData
+     UNION
+     SELECT FileId, SubmissionId FROM SubmittedOrResubmissionWithoutNewEvents
+    )
+	
+-------596704-----------
+
 
     -- Get LATEST submitted event by load_ts per SubmissionEventId (to remove cosmos sync duplicates)
         ,LatestSubmittedEventsCTE AS (
@@ -74,9 +114,9 @@ CREATE VIEW [apps].[v_SubmissionsSummaries] AS WITH
         decision.Decision,
         decision.Comments,
         CASE
-		 WHEN UPPER(ISNULL(CAST(decision.IsResubmissionRequired AS NVARCHAR), 'FALSE')) IN ('1', 'TRUE') THEN 1
-		 ELSE 0
-		END AS IsResubmissionRequired,
+            WHEN UPPER( ISNULL(decision.IsResubmissionRequired,'FALSE')) = 'TRUE' THEN 1
+            ELSE 0
+        END AS IsResubmissionRequired ,
         decision.Created AS DecisionDate,
         ROW_NUMBER() OVER(
         PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
@@ -267,7 +307,11 @@ LatestUserSubmissions AS(
 			 ROW_NUMBER() OVER (
 				PARTITION BY r.SubmittedUserId, r.SubmissionPeriod, r.FileId
 				ORDER BY p.IsDeleted ASC, CONVERT(DATETIME,SUBSTRING(p.LastUpdatedOn,1,23)) DESC
-			) AS UserRowNumber
+			) AS UserRowNumber,
+		----ST-----
+		CASE WHEN sa.FileId IS NULL THEN 0 ELSE 1 END AS NEW_FLAG
+		-----------
+		
 	FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
 			 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
 		LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
@@ -279,6 +323,9 @@ LatestUserSubmissions AS(
 		LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
 	    LEFT JOIN File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
         LEFT JOIN cf_meta_first_record meta on meta.FileId = r.FileId 
+		-----ST-----
+		LEFT JOIN SubmissionsAggregated sa on r.FileId = sa.FileId AND r.SubmissionId = sa.SubmissionId
+		---------------
         WHERE o.IsDeleted=0
 )
 
