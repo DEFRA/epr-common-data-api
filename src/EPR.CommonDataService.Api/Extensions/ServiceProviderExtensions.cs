@@ -3,6 +3,7 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Microsoft.Data.SqlClient;
 
 namespace EPR.CommonDataService.Api.Extensions;
 
@@ -21,7 +22,39 @@ public static class ServiceProviderExtensions
 
     public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase")));
+        services.AddDbContext<SynapseContext>(options =>
+        {
+            var connectionString = configuration.GetConnectionString("SynapseDatabase");
+            var accessToken = Environment.GetEnvironmentVariable("AZURE_SQL_ACCESS_TOKEN");
+            var accessTokenFile = Environment.GetEnvironmentVariable("AZURE_SQL_ACCESS_TOKEN_FILE");
+
+            if (!string.IsNullOrEmpty(accessToken))
+            {
+                var connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+                connectionStringBuilder.Remove("Authentication");
+        
+                var sqlConnection = new SqlConnection(connectionStringBuilder.ConnectionString);
+                
+                sqlConnection.AccessToken = accessToken;
+                
+                options.UseSqlServer(sqlConnection);
+            }
+            else if (!string.IsNullOrEmpty(accessTokenFile))
+            {
+                var connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+                connectionStringBuilder.Remove("Authentication");
+        
+                var sqlConnection = new SqlConnection(connectionStringBuilder.ConnectionString);
+                
+                sqlConnection.AccessToken = File.ReadAllText(accessTokenFile).Trim();
+                
+                options.UseSqlServer(sqlConnection);
+            }
+            else
+            {
+                options.UseSqlServer(connectionString);                
+            }
+        });
 
         return services;
     }
