@@ -6,13 +6,6 @@
 
 GO
 
-/****** Object:  View [dbo].[v_CSO_Pom_Resubmitted_ByCSID]    Script Date: 04/11/2025 15:29:07 ******/
-SET ANSI_NULLS ON
-GO
-
-SET QUOTED_IDENTIFIER ON
-GO
-
 CREATE VIEW [dbo].[v_CSO_Pom_Resubmitted_ByCSID] AS WITH latestSubmittedFiles AS (
 /*****************************************************************************************************************
 	History:
@@ -216,5 +209,4 @@ v.CS_Reference_number,
 		ON v.CS_Reference_number = mt.CS_Reference_number
 		AND v.CSid = mt.CSid
 		AND v.submissionperiod = mt.submissionperiod;
-GO
 
