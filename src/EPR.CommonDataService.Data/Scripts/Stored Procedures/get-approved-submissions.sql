@@ -343,13 +343,13 @@ BEGIN
             f.SubmitterId,
             f.SubmitterType;
 
-        -- Step 13: Identify orgs with submissions after ApprovedAfter
-        SELECT DISTINCT 
-            p.organisation_id
+        -- Step 13: Identify orgs with submissions after ApprovedAfter 
+        SELECT DISTINCT aw.OrganisationId
         INTO #ValidOrganisations
-        FROM #FileIdss f
-        INNER JOIN [rpd].[Pom] p ON p.FileName = f.FileName
-        WHERE TRY_CAST(f.Created AS datetime2) >= @ApprovedAfter;
+        FROM #AggregatedWeightsForDuplicates aw
+        GROUP BY aw.OrganisationId
+        HAVING MAX(aw.LatestDate) >= @ApprovedAfter;
+ 
 
         -- Step 14: Build final aggregation
         SELECT DISTINCT
@@ -423,5 +423,3 @@ BEGIN
 	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissions',@ApprovedAfter, NULL, @start_dt, getdate(), '@ApprovedAfter',@batch_id
 END
-
-
