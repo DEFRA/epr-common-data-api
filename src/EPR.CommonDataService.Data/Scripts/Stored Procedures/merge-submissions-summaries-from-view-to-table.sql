@@ -1,84 +1,89 @@
 ﻿-- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp_AggregateAndMergePomData]'))
+IF EXISTS (SELECT 1
+FROM sys.procedures
+WHERE object_id = OBJECT_ID(N'[apps].[sp_AggregateAndMergePomData]'))
 DROP PROCEDURE [apps].[sp_AggregateAndMergePomData];
 GO
 
-CREATE PROCEDURE apps.sp_AggregateAndMergePomData
-    AS
+/****** Object:  StoredProcedure [apps].[sp_AggregateAndMergePomData_596704_PT]    Script Date: 12/11/2025 15:14:10 ******/
+CREATE PROC [apps].[sp_AggregateAndMergePomData]
+AS
 BEGIN
 
-IF OBJECT_ID('tempdb..#SubmissionsSummariesTemp') IS NOT NULL
+    IF OBJECT_ID('tempdb..#SubmissionsSummariesTemp') IS NOT NULL
 DROP TABLE #SubmissionsSummariesTemp;
 
 
--- Create temp table
-CREATE TABLE #SubmissionsSummariesTemp
-(
-    [SubmissionId] NVARCHAR(4000),
-    [OrganisationId] NVARCHAR(4000),
-    [ComplianceSchemeId] NVARCHAR(4000),
-    [OrganisationName] NVARCHAR(4000),
-    [OrganisationReference] NVARCHAR(4000),
-    [OrganisationType] NVARCHAR(4000),
-    [ProducerType] NVARCHAR(4000),
-    [UserId] NVARCHAR(4000),
-    [FirstName] NVARCHAR(4000),
-    [LastName] NVARCHAR(4000),
-    [Email] NVARCHAR(4000),
-    [Telephone] NVARCHAR(4000),
-    [ServiceRole] NVARCHAR(4000),
-    [FileId] NVARCHAR(4000),
-	[SubmissionYear] INT,
-	[SubmissionCode] NVARCHAR(4000),
-	[ActualSubmissionPeriod] NVARCHAR(4000),
-	[Combined_SubmissionCode] NVARCHAR(4000),
-	[Combined_ActualSubmissionPeriod] NVARCHAR(4000),
-    [SubmissionPeriod] NVARCHAR(4000),
-    [SubmittedDate] NVARCHAR(4000),
-    [Decision] NVARCHAR(4000),
-    [IsResubmissionRequired] BIT,
-    [Comments] NVARCHAR(4000),
-    [IsResubmission] BIT,
-    [PreviousRejectionComments] NVARCHAR(4000),
-    [NationId] INT,
-    [PomFileName] NVARCHAR(4000),
-	[PomBlobName] NVARCHAR(4000)
-	);
+    -- Create temp table
+    CREATE TABLE #SubmissionsSummariesTemp
+    (
+        [SubmissionId] NVARCHAR(4000),
+        [OrganisationId] NVARCHAR(4000),
+        [ComplianceSchemeId] NVARCHAR(4000),
+        [OrganisationName] NVARCHAR(4000),
+        [OrganisationReference] NVARCHAR(4000),
+        [OrganisationType] NVARCHAR(4000),
+        [ProducerType] NVARCHAR(4000),
+        [UserId] NVARCHAR(4000),
+        [FirstName] NVARCHAR(4000),
+        [LastName] NVARCHAR(4000),
+        [Email] NVARCHAR(4000),
+        [Telephone] NVARCHAR(4000),
+        [ServiceRole] NVARCHAR(4000),
+        [FileId] NVARCHAR(4000),
+        [SubmissionYear] INT,
+        [SubmissionCode] NVARCHAR(4000),
+        [ActualSubmissionPeriod] NVARCHAR(4000),
+        [Combined_SubmissionCode] NVARCHAR(4000),
+        [Combined_ActualSubmissionPeriod] NVARCHAR(4000),
+        [SubmissionPeriod] NVARCHAR(4000),
+        [SubmittedDate] NVARCHAR(4000),
+        [Decision] NVARCHAR(4000),
+        [IsResubmissionRequired] BIT,
+        [Comments] NVARCHAR(4000),
+        [IsResubmission] BIT,
+        [PreviousRejectionComments] NVARCHAR(4000),
+        [NationId] INT,
+        [PomFileName] NVARCHAR(4000),
+        [PomBlobName] NVARCHAR(4000),
+        NEW_FLAG BIT
+    );
 
-INSERT INTO #SubmissionsSummariesTemp
-SELECT DISTINCT
-    [SubmissionId],
-    [OrganisationId],
-    [ComplianceSchemeId],
-    [OrganisationName],
-    [OrganisationReference],
-    [OrganisationType],
-    [ProducerType],
-    [UserId],
-    [FirstName],
-    [LastName],
-    [Email],
-    [Telephone],
-    [ServiceRole],
-    [FileId],
-	[SubmissionYear],
-	[SubmissionCode],
-	[ActualSubmissionPeriod],
-	[Combined_SubmissionCode],
-	[Combined_ActualSubmissionPeriod],
-    [SubmissionPeriod],
-    [SubmittedDate],
-    [Decision],
-    [IsResubmissionRequired],
-    [Comments],
-    [IsResubmission],
-    [PreviousRejectionComments],
-    [NationId],
-    [PomFileName],
-	[PomBlobName]
-FROM apps.v_SubmissionsSummaries;
+    INSERT INTO #SubmissionsSummariesTemp
+    SELECT DISTINCT
+        [SubmissionId],
+        [OrganisationId],
+        [ComplianceSchemeId],
+        [OrganisationName],
+        [OrganisationReference],
+        [OrganisationType],
+        [ProducerType],
+        [UserId],
+        [FirstName],
+        [LastName],
+        [Email],
+        [Telephone],
+        [ServiceRole],
+        [FileId],
+        [SubmissionYear],
+        [SubmissionCode],
+        [ActualSubmissionPeriod],
+        [Combined_SubmissionCode],
+        [Combined_ActualSubmissionPeriod],
+        [SubmissionPeriod],
+        [SubmittedDate],
+        [Decision],
+        [IsResubmissionRequired],
+        [Comments],
+        [IsResubmission],
+        [PreviousRejectionComments],
+        [NationId],
+        [PomFileName],
+        [PomBlobName],
+        NEW_FLAG
+    FROM apps.[v_SubmissionsSummaries];
 
-MERGE INTO apps.SubmissionsSummaries AS Target
+    MERGE INTO apps.SubmissionsSummaries AS Target
     USING #SubmissionsSummariesTemp AS Source
     ON Target.FileId = Source.FileId and Target.SubmissionCode = Source.SubmissionCode
     WHEN MATCHED THEN
@@ -111,7 +116,8 @@ MERGE INTO apps.SubmissionsSummaries AS Target
             Target.PreviousRejectionComments = Source.PreviousRejectionComments,
             Target.NationId = Source.NationId,
             Target.PomFileName = Source.PomFileName,
-            Target.PomBlobName = Source.PomBlobName
+            Target.PomBlobName = Source.PomBlobName,
+			Target.NEW_FLAG = Source.NEW_FLAG
     WHEN NOT MATCHED BY TARGET THEN
     INSERT (
     SubmissionId,
@@ -142,7 +148,8 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     PreviousRejectionComments,
     NationId,
     PomFileName,
-    PomBlobName
+    PomBlobName,
+	NEW_FLAG
     )
     VALUES (
     Source.Submissionid,
@@ -173,12 +180,14 @@ MERGE INTO apps.SubmissionsSummaries AS Target
     Source.PreviousRejectionComments,
     Source.NationId,
     Source.PomFileName,
-    Source.PomBlobName
+    Source.PomBlobName,
+	Source.NEW_FLAG
     )
     WHEN NOT MATCHED BY SOURCE THEN
-        DELETE; -- delete from table when no longer in source
+        DELETE;
+    -- delete from table when no longer in source
 
-DROP TABLE #SubmissionsSummariesTemp;
+    DROP TABLE #SubmissionsSummariesTemp;
 
 END;
 GO
