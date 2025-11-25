@@ -3,6 +3,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[apps].[sp
 DROP PROCEDURE [apps].[sp_FilterAndPaginateSubmissionsSummaries_resub];
 GO
 
+/****** Object:  StoredProcedure [apps].[sp_FilterAndPaginateSubmissionsSummaries_resub_596704_PT]    Script Date: 12/11/2025 15:12:29 ******/
 CREATE PROC [apps].[sp_FilterAndPaginateSubmissionsSummaries_resub] @OrganisationName [NVARCHAR](255),@OrganisationReference [NVARCHAR](255),@RegulatorUserId [NVARCHAR](50),@StatusesCommaSeperated [NVARCHAR](50),@OrganisationType [NVARCHAR](50),@PageSize [INT],@PageNumber [INT],@DecisionsDelta [NVARCHAR](MAX),@SubmissionYearsCommaSeperated [NVARCHAR](1000),@SubmissionPeriodsCommaSeperated [NVARCHAR](1500),@ActualSubmissionPeriodsCommaSeperated [NVARCHAR](1500) AS
 BEGIN
  
@@ -22,100 +23,32 @@ BEGIN
 
 -- Initial Filter CTE
 WITH InitialFilter AS (
-    SELECT distinct SubmissionId, OrganisationId, ComplianceSchemeId, OrganisationName, OrganisationReference, OrganisationType, ProducerType, UserId, FirstName, LastName, Email, Telephone, ServiceRole, FileId, SubmissionYear, Combined_SubmissionCode as SubmissionCode, Combined_ActualSubmissionPeriod as ActualSubmissionPeriod, SubmissionPeriod, SubmittedDate, Decision, IsResubmissionRequired, Comments, IsResubmission, PreviousRejectionComments, NationId, PomFileName,  PomBlobName
+    SELECT distinct SubmissionId, OrganisationId, ComplianceSchemeId, OrganisationName, OrganisationReference, OrganisationType, ProducerType, UserId, FirstName, LastName, Email, Telephone, ServiceRole, FileId, SubmissionYear, Combined_SubmissionCode as SubmissionCode, Combined_ActualSubmissionPeriod as ActualSubmissionPeriod, SubmissionPeriod, SubmittedDate, Decision, IsResubmissionRequired, Comments, IsResubmission, PreviousRejectionComments, NationId, PomFileName,  PomBlobName, NEW_FLAG
     FROM apps.SubmissionsSummaries ss
     WHERE
         (
-            (NULLIF(@OrganisationName, '') IS NOT NULL AND OrganisationName LIKE '%' + @OrganisationName + '%')
-            OR
-            (NULLIF(@OrganisationReference, '') IS NOT NULL AND OrganisationReference LIKE '%' + @OrganisationReference + '%')
-            OR
-            (NULLIF(@OrganisationName, '') IS NULL AND NULLIF(@OrganisationReference, '') IS NULL)
-        )
+                (NULLIF(@OrganisationName, '') IS NOT NULL AND OrganisationName LIKE '%' + @OrganisationName + '%')
+                OR
+                (NULLIF(@OrganisationReference, '') IS NOT NULL AND OrganisationReference LIKE '%' + @OrganisationReference + '%')
+                OR
+                (NULLIF(@OrganisationName, '') IS NULL AND NULLIF(@OrganisationReference, '') IS NULL)
+            )
       AND (NationId = @NationId)
       AND
         (
-            (@OrganisationType IS NULL OR @OrganisationType = 'All' OR @OrganisationType = '')
-            OR
-            (@OrganisationType = 'ComplianceScheme' AND ComplianceSchemeId IS NOT NULL)
-            OR
-            (@OrganisationType = 'DirectProducer' AND ComplianceSchemeId IS NULL)
-         )
-      AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR SubmissionYear IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
-      AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
-      AND (ISNULL(@ActualSubmissionPeriodsCommaSeperated, '') = '' OR ActualSubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@ActualSubmissionPeriodsCommaSeperated, ',')))
-    )
-    -- This is the first fee resubmission record
-    ,FirstResubmissionReferenceNumberCreated AS (
-     SELECT se.SubmissionId, MIN(CONVERT(DATETIME,substring(Created,1,23))) AS FirstReferenceNumberCreated
-        FROM apps.SubmissionEvents se
-        INNER JOIN InitialFilter i
-            ON se.SubmissionId = i.SubmissionId
-        WHERE se.[Type] = 'PackagingResubmissionReferenceNumberCreated'
-     GROUP BY se.SubmissionId
-    )
-
-    ,ResubmissionApplicationSubmittedData AS (
-        SELECT se.FileId, se.SubmissionId, se.[Type] AS EventType
-        FROM FirstResubmissionReferenceNumberCreated fr
-     INNER JOIN apps.SubmissionEvents se 
-      ON fr.SubmissionId = se.SubmissionId
-       AND se.[Type] = 'PackagingResubmissionApplicationSubmitted'
-       AND CONVERT(DATETIME,substring(se.Created,1,23)) > fr.FirstReferenceNumberCreated
-        INNER JOIN InitialFilter i
-            ON se.SubmissionId = i.SubmissionId    
-    )
-
-    ,SubmittedOrResubmissionWithoutNewEvents AS (
-        SELECT se.FileId, se.SubmissionId, fr.FirstReferenceNumberCreated
-        FROM apps.SubmissionEvents se
-        INNER JOIN InitialFilter i
-            ON se.SubmissionId = i.SubmissionId
-     LEFT JOIN FirstResubmissionReferenceNumberCreated fr
-      ON se.SubmissionId = fr.SubmissionId
-        WHERE se.[Type] = 'Submitted'
-      AND (fr.FirstReferenceNumberCreated IS NULL OR CONVERT(DATETIME,substring(se.Created,1,23)) < fr.FirstReferenceNumberCreated)
-    )
-
-    ,SubmissionsAggregated AS (
-     SELECT FileId, SubmissionId FROM ResubmissionApplicationSubmittedData
-     UNION
-     SELECT FileId, SubmissionId FROM SubmittedOrResubmissionWithoutNewEvents
-    )
-
-    ,RemovedEarlyResubmissionIndicators AS (
-      SELECT initial.SubmissionId,
-          initial.OrganisationId,
-          ComplianceSchemeId,
-          OrganisationName,
-          OrganisationReference,
-          OrganisationType,
-          ProducerType,
-          initial.Userid,
-          FirstName,
-          LastName,
-          Email,
-          Telephone,
-          ServiceRole,
-          initial.FileId,
-          SubmissionYear,
-          SubmissionCode,
-          ActualSubmissionPeriod,
-          initial.SubmissionPeriod,
-          SubmittedDate,
-          initial.Decision,
-          initial.IsResubmissionRequired,
-          initial.Comments,
-          initial.IsResubmission,
-          PreviousRejectionComments,
-          NationId,
-          PomFileName,
-          PomBlobName
-      FROM InitialFilter initial
-            INNER JOIN SubmissionsAggregated sa
-                ON initial.FileId = sa.FileId
-                AND initial.SubmissionId = sa.SubmissionId                  
-    )
+                (@OrganisationType IS NULL OR @OrganisationType = 'All' OR @OrganisationType = '')
+                OR
+                (@OrganisationType = 'ComplianceScheme' AND ComplianceSchemeId IS NOT NULL)
+                OR
+                (@OrganisationType = 'DirectProducer' AND ComplianceSchemeId IS NULL)
+            )
+   AND (ISNULL(@SubmissionYearsCommaSeperated, '') = '' OR SubmissionYear IN (SELECT value FROM STRING_SPLIT(@SubmissionYearsCommaSeperated, ',')))
+   AND (ISNULL(@SubmissionPeriodsCommaSeperated, '') = '' OR SubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@SubmissionPeriodsCommaSeperated, ',')))
+   AND (ISNULL(@ActualSubmissionPeriodsCommaSeperated, '') = '' OR ActualSubmissionPeriod IN (SELECT value FROM STRING_SPLIT(@ActualSubmissionPeriodsCommaSeperated, ',')))
+   --Replaces the CTE's that would previously join to this initial Filter
+   AND ss.NEW_FLAG = 1 
+	)
+  
 
  ,RankedJsonParsedUpdates AS (
         SELECT
@@ -143,7 +76,8 @@ WITH InitialFilter AS (
             COALESCE(j.Decision, f.Decision) AS UpdatedDecision,
             COALESCE(j.Comments, f.Comments) AS UpdatedComments,
             COALESCE(j.IsResubmissionRequired, f.IsResubmissionRequired) AS UpdatedIsResubmissionRequired
-        FROM RemovedEarlyResubmissionIndicators f
+--Now restrictions already taking place in the Initial Filter - altered to reference this instead--      
+	  FROM InitialFilter f
                  LEFT JOIN JsonParsedUpdates j ON j.FileId = f.FileId
     )
 
