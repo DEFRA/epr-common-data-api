@@ -9,7 +9,7 @@ namespace EPR.CommonDataService.Core.Services;
 public interface IProducerDetailsService
 {
     Task<List<UpdatedProducersResponseModel>> GetUpdatedProducers(DateTime from, DateTime to);
-    Task<List<UpdatedProducersResponseModel2>> GetUpdatedProducers2(DateTime from, DateTime to);
+    Task<List<UpdatedProducersResponseModelV2>> GetUpdatedProducersV2(DateTime from, DateTime to);
 }
 
 public class ProducerDetailsService(
@@ -40,11 +40,11 @@ public class ProducerDetailsService(
         }
     }
 
-    public async Task<List<UpdatedProducersResponseModel2>> GetUpdatedProducers2(DateTime from, DateTime to)
+    public async Task<List<UpdatedProducersResponseModelV2>> GetUpdatedProducersV2(DateTime from, DateTime to)
     {
         try
         {
-            const string Sql = "EXECUTE [dbo].[sp_PRN_Delta_Extract2] @From_Date, @To_Date";
+            const string Sql = "EXECUTE [dbo].[sp_PRN_Delta_ExtractV2] @From_Date, @To_Date";
 
             var parameters = new[]
             {
@@ -52,13 +52,13 @@ public class ProducerDetailsService(
                 new SqlParameter("@To_Date", SqlDbType.DateTime2) { Value = to }
             };
 
-            var dbResponse = await synapseContext.RunSqlAsync<UpdatedProducersResponseModel2>(Sql, parameters);
+            var dbResponse = await synapseContext.RunSqlAsync<UpdatedProducersResponseModelV2>(Sql, parameters);
 
-            return dbResponse?.ToList() ?? new List<UpdatedProducersResponseModel2>();
+            return dbResponse?.ToList() ?? new List<UpdatedProducersResponseModelV2>();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error occurred in GetUpdatedProducers method. From: {FromDate}, To: {ToDate}", from, to);
+            logger.LogError(ex, "Error occurred in GetUpdatedProducersV2 method. From: {FromDate}, To: {ToDate}", from, to);
 
             throw;
         }
