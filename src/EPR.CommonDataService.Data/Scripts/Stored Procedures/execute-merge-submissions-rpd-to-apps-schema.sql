@@ -101,6 +101,20 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		ELSE
 		BEGIN
 			set @start_dt = getdate()
+			--removing duplicates from t_FetchOrganisationRegistrationSubmissionDetails_resub;
+			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','remove dup t_FetchOrganisationRegistrationSubmissionDetails_resub', NULL, @start_dt, getdate(), 'Completed',@batch_id
+			
+			delete from t_FetchOrganisationRegistrationSubmissionDetails_resub
+			where SubmissionID in 
+			(
+				select SubmissionId
+				from dbo.V_FetchOrganisationRegistrationSubmissionDetails_resub
+				group by SubmissionId
+				having count(1) > 1
+			);
+			
+			set @start_dt = getdate()
 			--truncate table t_FetchOrganisationRegistrationSubmissionDetails_resub;  *** removed 
 			INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
 			select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'sp_MergeSubmissionsSummaries','merge start t_FetchOrganisationRegistrationSubmissionDetails_resub', NULL, @start_dt, getdate(), 'Completed',@batch_id
