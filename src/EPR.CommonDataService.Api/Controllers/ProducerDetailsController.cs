@@ -31,14 +31,14 @@ public class ProducerDetailsController(
         return Ok(result);
     }
     
-    [HttpGet("get-updated-producers2/", Name = nameof(GetUpdatedProducers2))]
+    [HttpGet("updated-producers/", Name = nameof(GetUpdatedProducersV2))]
     [Produces("application/json")]
-    [ProducesResponseType(typeof(List<UpdatedProducersResponseModel2>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<UpdatedProducersResponseModelV2>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public async Task<IActionResult> GetUpdatedProducers2(DateTime from, DateTime to)
+    public async Task<IActionResult> GetUpdatedProducersV2(DateTime from, DateTime to)
     {
-        var result = await producerDetailsService.GetUpdatedProducers2(from, to);
+        var result = await producerDetailsService.GetUpdatedProducersV2(from, to);
 
         if (result == null || result.Count == 0)
         {

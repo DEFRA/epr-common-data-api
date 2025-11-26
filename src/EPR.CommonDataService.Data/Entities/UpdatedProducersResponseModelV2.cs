@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
-public class UpdatedProducersResponseModel2
+public class UpdatedProducersResponseModelV2
 {
     public string OrganisationName { get; set; }
     public string TradingName { get; set; }
