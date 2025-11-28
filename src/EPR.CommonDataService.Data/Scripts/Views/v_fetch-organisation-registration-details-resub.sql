@@ -367,7 +367,7 @@ END AS CSLLateFeeCutoffDate
 				,ppp.RegistrationSetId
 				,ppp.FileId
 				,ppp.FileName
-				,ppd.ProducerSize
+				,ppp.ProducerSize
 				,IsOnlineMarketplace
 				,NumberOfSubsidiaries
 				,OnlineMarketPlaceSubsidiaries
