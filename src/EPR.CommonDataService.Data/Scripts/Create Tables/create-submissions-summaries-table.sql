@@ -33,12 +33,11 @@ CREATE TABLE [apps].[SubmissionsSummaries]
 	[PreviousRejectionComments] [nvarchar](4000) NULL,
 	[NationId] [int] NULL,
 	[PomFileName] NVARCHAR(4000),
-	[PomBlobName] NVARCHAR(4000)
+	[PomBlobName] NVARCHAR(4000),
+	[NEW_FLAG] BIT NULL
 )
 WITH
 (
 	DISTRIBUTION = HASH ( [SubmissionId] ),
 	CLUSTERED COLUMNSTORE INDEX
 );
-
-GO
