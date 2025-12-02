@@ -44,7 +44,7 @@ public class ProducerDetailsService(
     {
         try
         {
-            const string Sql = "EXECUTE [dbo].[sp_PRN_Delta_ExtractV2] @From_Date, @To_Date";
+            const string Sql = "EXECUTE [dbo].[sp_Organisations_Delta_Extract] @From_Date, @To_Date";
 
             var parameters = new[]
             {
