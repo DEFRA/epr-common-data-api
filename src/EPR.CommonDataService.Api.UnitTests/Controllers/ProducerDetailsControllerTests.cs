@@ -103,4 +103,77 @@ public class ProducerDetailsControllerTests
         // Assert
         result.Should().BeOfType<NoContentResult>();
     }
+
+    [TestMethod]
+    public async Task GetUpdatedProducersV2_ValidRequest_NoResult_ReturnsNoRecords()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        _producerDetailsServiceMock
+            .Setup(service => service.GetUpdatedProducersV2(fromDate, toDate))
+            .ReturnsAsync(new List<UpdatedProducersResponseModelV2>());
+
+        // Act
+        var result = await _controller.GetUpdatedProducersV2(fromDate, toDate);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducersV2_ValidRequest_WithResult_ReturnsOk()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        var expectedResult = new List<UpdatedProducersResponseModelV2>
+        {
+            new UpdatedProducersResponseModelV2
+            {
+                OrganisationName = "Organisation A",
+                TradingName = "Trading A",
+                OrganisationType = "Private",
+                CompaniesHouseNumber = "123456",
+                OrganisationId = "1",
+                AddressLine1 = "123 Main St",
+                AddressLine2 = "Suite 1",
+                Town = "Town A",
+                County = "County A",
+                Country = "Country A",
+                Postcode = "A1 1AA",
+                pEPRID = "PEPRID1",
+                Status = "Active",
+                BusinessCountry = "Scotland",
+                RegistrationYear = 2024
+            }
+        };
+
+        _producerDetailsServiceMock
+            .Setup(service => service.GetUpdatedProducersV2(fromDate, toDate))
+            .ReturnsAsync(expectedResult);
+
+        // Act
+        var result = await _controller.GetUpdatedProducersV2(fromDate, toDate);
+
+        // Assert
+        result.Should().BeOfType<OkObjectResult>();
+        (result as OkObjectResult)!.Value.Should().Be(expectedResult);
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducersV2_InvalidDateRange_ReturnsBadRequest()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2024, 12, 31);
+
+        // Act
+        var result = await _controller.GetUpdatedProducersV2(fromDate, toDate);
+
+        // Assert
+        result.Should().BeOfType<NoContentResult>();
+    }
 }
