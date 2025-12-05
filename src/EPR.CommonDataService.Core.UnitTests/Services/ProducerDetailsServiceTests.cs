@@ -250,7 +250,6 @@ public class ProducerDetailsServiceTests
                 TradingName = "Trading A",
                 OrganisationType = "Private",
                 CompaniesHouseNumber = "123456",
-                OrganisationId = "1",
                 AddressLine1 = "123 Main St",
                 AddressLine2 = "Suite 1",
                 Town = "Town A",
@@ -267,7 +266,6 @@ public class ProducerDetailsServiceTests
                 TradingName = "Trading B",
                 OrganisationType = "Public",
                 CompaniesHouseNumber = "654321",
-                OrganisationId = "2",
                 AddressLine1 = "456 High St",
                 AddressLine2 = "Floor 2",
                 Town = "Town B",
@@ -296,7 +294,6 @@ public class ProducerDetailsServiceTests
         firstProducer.TradingName.Should().Be("Trading A");
         firstProducer.OrganisationType.Should().Be("Private");
         firstProducer.CompaniesHouseNumber.Should().Be("123456");
-        firstProducer.OrganisationId.Should().Be("1");
         firstProducer.AddressLine1.Should().Be("123 Main St");
         firstProducer.AddressLine2.Should().Be("Suite 1");
         firstProducer.Town.Should().Be("Town A");
@@ -312,7 +309,6 @@ public class ProducerDetailsServiceTests
         secondProducer.TradingName.Should().Be("Trading B");
         secondProducer.OrganisationType.Should().Be("Public");
         secondProducer.CompaniesHouseNumber.Should().Be("654321");
-        secondProducer.OrganisationId.Should().Be("2");
         secondProducer.AddressLine1.Should().Be("456 High St");
         secondProducer.AddressLine2.Should().Be("Floor 2");
         secondProducer.Town.Should().Be("Town B");

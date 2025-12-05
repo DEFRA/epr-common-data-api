@@ -137,7 +137,6 @@ public class ProducerDetailsControllerTests
                 TradingName = "Trading A",
                 OrganisationType = "Private",
                 CompaniesHouseNumber = "123456",
-                OrganisationId = "1",
                 AddressLine1 = "123 Main St",
                 AddressLine2 = "Suite 1",
                 Town = "Town A",
