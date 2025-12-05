@@ -146,7 +146,7 @@ public class ProducerDetailsControllerTests
                 pEPRID = "PEPRID1",
                 Status = "Active",
                 BusinessCountry = "Scotland",
-                RegistrationYear = 2024
+                RegistrationYear = "2024"
             }
         };
 

@@ -258,7 +258,7 @@ public class ProducerDetailsServiceTests
                 Postcode = "A1 1AA",
                 pEPRID = "PEPRID1",
                 Status = "CS Deleted",
-                RegistrationYear = 2024
+                RegistrationYear = "2024"
             },
             new UpdatedProducersResponseModelV2
             {
@@ -274,7 +274,7 @@ public class ProducerDetailsServiceTests
                 Postcode = "B2 2BB",
                 pEPRID = "PEPRID2",
                 Status = "DR Moved to CS",
-                RegistrationYear = 2025
+                RegistrationYear = "2025"
             }
         };
 
@@ -302,7 +302,7 @@ public class ProducerDetailsServiceTests
         firstProducer.Postcode.Should().Be("A1 1AA");
         firstProducer.pEPRID.Should().Be("PEPRID1");
         firstProducer.Status.Should().Be("CS Deleted");
-        firstProducer.RegistrationYear.Should().Be(2024);
+        firstProducer.RegistrationYear.Should().Be("2024");
 
         var secondProducer = result[1];
         secondProducer.OrganisationName.Should().Be("Organisation B");
@@ -317,7 +317,7 @@ public class ProducerDetailsServiceTests
         secondProducer.Postcode.Should().Be("B2 2BB");
         secondProducer.pEPRID.Should().Be("PEPRID2");
         secondProducer.Status.Should().Be("DR Moved to CS");
-        secondProducer.RegistrationYear.Should().Be(2025);
+        secondProducer.RegistrationYear.Should().Be("2025");
 
         _synapseContextMock
             .Verify(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModelV2>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
