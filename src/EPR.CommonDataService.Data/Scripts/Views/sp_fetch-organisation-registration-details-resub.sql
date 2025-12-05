@@ -1,4 +1,4 @@
-﻿﻿/****** Object:  View [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 04/11/2025 12:05:17 ******/
+﻿/****** Object:  View [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]    Script Date: 04/11/2025 12:05:17 ******/
 IF EXISTS (
 	SELECT 1
 FROM sys.views
@@ -758,5 +758,3 @@ END AS CSLLateFeeCutoffDate
         INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
         INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
 GO
-
-
