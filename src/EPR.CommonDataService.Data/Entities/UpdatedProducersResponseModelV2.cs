@@ -1,16 +1,15 @@
-﻿using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
 [SuppressMessage("SonarQube", "S1192:dup", Justification = "V2 model intentionally duplicates V1 with additional field")]
-public class UpdatedProducersResponseModel
+public class UpdatedProducersResponseModelV2
 {
     public string OrganisationName { get; set; }
     public string TradingName { get; set; }
     public string OrganisationType { get; set; }
     public string CompaniesHouseNumber { get; set; }
-    public string OrganisationId { get; set; }
     public string AddressLine1 { get; set; }
     public string AddressLine2 { get; set; }
     public string Town { get; set; }
@@ -21,4 +20,5 @@ public class UpdatedProducersResponseModel
     public string Status { get; set; }
     public string BusinessCountry { get; set; }
     public DateTime? UpdatedDateTime { get; set; }
+    public string RegistrationYear { get; set; }
 }
