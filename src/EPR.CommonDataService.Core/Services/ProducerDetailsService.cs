@@ -18,31 +18,33 @@ public class ProducerDetailsService(
 {
     public async Task<List<UpdatedProducersResponseModel>> GetUpdatedProducers(DateTime from, DateTime to)
     {
-        return await GetUpdatedProducersInternal<UpdatedProducersResponseModel>(
-            "sp_PRN_Delta_Extract",
-            from,
-            to,
-            nameof(GetUpdatedProducers));
+        try
+        {
+            const string Sql = "EXECUTE [dbo].[sp_PRN_Delta_Extract] @From_Date, @To_Date";
+
+            var parameters = new[]
+                {
+                new SqlParameter("@From_Date", SqlDbType.DateTime2) { Value = from },
+                new SqlParameter("@To_Date", SqlDbType.DateTime2) { Value = to }
+                };
+
+            var dbResponse = await synapseContext.RunSqlAsync<UpdatedProducersResponseModel>(Sql, parameters);
+
+            return dbResponse?.ToList() ?? new List<UpdatedProducersResponseModel>();
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error occurred in GetUpdatedProducers method. From: {FromDate}, To: {ToDate}", from, to);
+
+            throw;
+        }
     }
 
     public async Task<List<UpdatedProducersResponseModelV2>> GetUpdatedProducersV2(DateTime from, DateTime to)
     {
-        return await GetUpdatedProducersInternal<UpdatedProducersResponseModelV2>(
-            "sp_Organisations_Delta_Extract",
-            from,
-            to,
-            nameof(GetUpdatedProducersV2));
-    }
-
-    private async Task<List<T>> GetUpdatedProducersInternal<T>(
-        string storedProcedureName,
-        DateTime from,
-        DateTime to,
-        string methodName) where T : class
-    {
         try
         {
-            var sql = $"EXECUTE [dbo].[{storedProcedureName}] @From_Date, @To_Date";
+            const string Sql = "EXECUTE [dbo].[sp_Organisations_Delta_Extract] @From_Date, @To_Date";
 
             var parameters = new[]
             {
@@ -50,13 +52,13 @@ public class ProducerDetailsService(
                 new SqlParameter("@To_Date", SqlDbType.DateTime2) { Value = to }
             };
 
-            var dbResponse = await synapseContext.RunSqlAsync<T>(sql, parameters);
+            var dbResponse = await synapseContext.RunSqlAsync<UpdatedProducersResponseModelV2>(Sql, parameters);
 
-            return dbResponse?.ToList() ?? new List<T>();
+            return dbResponse?.ToList() ?? new List<UpdatedProducersResponseModelV2>();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error occurred in {MethodName} method. From: {FromDate}, To: {ToDate}", methodName, from, to);
+            logger.LogError(ex, "Error occurred in GetUpdatedProducersV2 method. From: {FromDate}, To: {ToDate}", from, to);
 
             throw;
         }
