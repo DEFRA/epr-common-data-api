@@ -1,4 +1,5 @@
-﻿using EPR.CommonDataService.Api.Configuration;
+﻿using System.Diagnostics.CodeAnalysis;
+using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using Microsoft.AspNetCore.Mvc;
