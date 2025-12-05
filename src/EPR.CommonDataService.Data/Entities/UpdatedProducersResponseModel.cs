@@ -3,6 +3,7 @@
 namespace EPR.CommonDataService.Data.Entities;
 
 [ExcludeFromCodeCoverage]
+[SuppressMessage("SonarQube", "S1192:dup", Justification = "V2 model intentionally duplicates V1 with additional field")]
 public class UpdatedProducersResponseModel
 {
     public string OrganisationName { get; set; }
