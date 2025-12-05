@@ -159,6 +159,10 @@ public class SynapseContext : DbContext
             entity.HasNoKey();
         });
 
+        modelBuilder.Entity<UpdatedProducersResponseModelV2>(entity => {
+            entity.HasNoKey();
+        });
+
         modelBuilder.Entity<SubmissionEvent>(AddSubmissionEventIdKeyIfApplicable);
 
 
