@@ -217,6 +217,25 @@ public class ProducerDetailsServiceTests
     }
 
     [TestMethod]
+    public async Task GetUpdatedProducers_NullResponse_ReturnsEmptyList()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModel>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync((List<UpdatedProducersResponseModel>)null!);
+
+        // Act
+        var result = await _service.GetUpdatedProducers(fromDate, toDate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
+    }
+
+    [TestMethod]
     public async Task GetUpdatedProducersV2_ValidRequestWithData_ReturnsUpdatedProducers()
     {
         // Arrange
@@ -412,5 +431,24 @@ public class ProducerDetailsServiceTests
         // Assert
         result.Should().NotBeNull();
         result.Count.Should().Be(0);
+    }
+
+    [TestMethod]
+    public async Task GetUpdatedProducersV2_NullResponse_ReturnsEmptyList()
+    {
+        // Arrange
+        var fromDate = new DateTime(2025, 1, 1);
+        var toDate = new DateTime(2025, 1, 7);
+
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSqlAsync<UpdatedProducersResponseModelV2>(It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync((List<UpdatedProducersResponseModelV2>)null!);
+
+        // Act
+        var result = await _service.GetUpdatedProducersV2(fromDate, toDate);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Should().BeEmpty();
     }
 }
