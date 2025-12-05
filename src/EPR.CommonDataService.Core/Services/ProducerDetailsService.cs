@@ -1,4 +1,5 @@
 using System.Data;
+using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
@@ -40,6 +41,7 @@ public class ProducerDetailsService(
         }
     }
 
+    [SuppressMessage("SonarQube", "S1192:dup", Justification = "V2  intentionally duplicates V1 with additional field")]
     public async Task<List<UpdatedProducersResponseModelV2>> GetUpdatedProducersV2(DateTime from, DateTime to)
     {
         try
