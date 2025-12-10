@@ -24,6 +24,7 @@ BEGIN
                                                    :Added registrationYear to use the year of lastupdatedon when SubmissionPeriodYear is NULL to CS Deleted
                                                    :Updated OrganisationType to either be S for compliance scheme or DP for large companies
                                                    :Updated status to be either Registered or Deleted
+
 ******************************************************************************************************************************/
 WITH latest_record AS(
 select
