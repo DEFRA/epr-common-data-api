@@ -2,7 +2,16 @@
 DROP PROCEDURE [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub];
 GO
 
-CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub] @OrganisationNameCommaSeparated [nvarchar](255),@OrganisationReferenceCommaSeparated [nvarchar](255),@SubmissionYearsCommaSeparated [nvarchar](255),@StatusesCommaSeparated [nvarchar](100),@ResubmissionStatusesCommaSeparated [nvarchar](100),@OrganisationTypeCommaSeparated [nvarchar](255),@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),@PageSize [INT],@PageNumber [INT] AS
+CREATE PROC [dbo].[sp_FilterAndPaginateOrganisationRegistrationSummaries_resub] 
+@OrganisationNameCommaSeparated [nvarchar](255),
+@OrganisationReferenceCommaSeparated [nvarchar](255),
+@SubmissionYearsCommaSeparated [nvarchar](255),
+@StatusesCommaSeparated [nvarchar](100),
+@ResubmissionStatusesCommaSeparated [nvarchar](100),
+@OrganisationTypeCommaSeparated [nvarchar](255),
+@NationId [int],@AppRefNumbersCommaSeparated [nvarchar](2000),
+@PageSize [INT],
+@PageNumber [INT] AS
 BEGIN
     SET NOCOUNT ON;
 
@@ -15,35 +24,38 @@ BEGIN
             AS
             (
                 SELECT
-					SubmissionId,
-					OrganisationId,
-					OrganisationInternalId,
-					OrganisationName,
-					OrganisationReference,
-					OrganisationType,
-					ProducerSize,
-					SubmissionStatus,
-                    CONVERT(bit, IsResubmission) AS IsResubmission,
-					ResubmissionStatus,
-					ResubmissionDate,
-					StatusPendingDate,
-					RegistrationDate,
-					ApplicationReferenceNumber,
-					RegistrationReferenceNumber,
-					RelevantYear,
-					SubmittedDateTime,
-					RegulatorDecisionDate,
-					NationId,
-					NationCode
-				FROM apps.OrgRegistrationsSummaries i
-				WHERE ( ( NationId = @NationId OR @NationId = 0 )
+					ors.SubmissionId,
+					ors.OrganisationId,
+					ors.OrganisationInternalId,
+					ors.OrganisationName,
+					ors.OrganisationReference,
+					ors.OrganisationType,
+					ors.ProducerSize,
+					ors.SubmissionStatus,
+                    CONVERT(bit, ors.IsResubmission) AS IsResubmission,
+					ors.ResubmissionStatus,
+					ors.ResubmissionDate,
+					ors.StatusPendingDate,
+					ors.RegistrationDate,
+					ors.ApplicationReferenceNumber,
+					ors.RegistrationReferenceNumber,
+					ors.RelevantYear,
+					ors.SubmittedDateTime,
+					ors.RegulatorDecisionDate,
+					ors.NationId,
+					ors.NationCode,
+					s.[RegistrationJourney]
+				FROM [apps].[OrgRegistrationsSummaries] as ors
+				INNER JOIN [apps].[Submissions] as s 
+					ON ors.[SubmissionId] = s.[SubmissionId]
+				WHERE ( ( ors.NationId = @NationId OR @NationId = 0 )
 					OR ( 
 						EXISTS (
 								SELECT
 									1
 								FROM
 									STRING_SPLIT(@AppRefNumbersCommaSeparated, ',') AS AppReference
-								WHERE ApplicationReferenceNumber = LTRIM(RTRIM(AppReference.value))
+								WHERE ors.ApplicationReferenceNumber = LTRIM(RTRIM(AppReference.value))
 						)
 					))
 			)
@@ -51,8 +63,19 @@ BEGIN
                 select * from NormalFilterCTE
                 where OrganisationName = @CleanedOrgName
             )
+			,OrganisationTypeValuesCTE as (
+				SELECT
+					MAX(CASE WHEN LOWER(TRIM(value)) = 'direct' THEN 1 ELSE 0 END) AS HasDirect,
+					MAX(CASE WHEN LOWER(TRIM(value)) = 'compliance' THEN 1 ELSE 0 END) AS HasCompliance,
+					MAX(CASE WHEN LOWER(TRIM(value)) = 'small' THEN 1 ELSE 0 END) AS HasSmall,
+					MAX(CASE WHEN LOWER(TRIM(value)) = 'large' THEN 1 ELSE 0 END) AS HasLarge
+				FROM STRING_SPLIT(@OrganisationTypeCommaSeparated, ',')
+			)
 			,OptionalFiltersCTE as (
-				SELECT * from NormalFilterCTE
+				SELECT 
+					nf.*
+				FROM NormalFilterCTE nf
+				CROSS JOIN OrganisationTypeValuesCTE otv
 				WHERE
 				(
 					(
@@ -65,16 +88,16 @@ BEGIN
                     							1
                     						FROM
                     							STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
-                    						WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
+                    						WHERE nf.OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
         						)
         						AND EXISTS (
         									SELECT
                     							1
                     						FROM
                     							STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
-                    						WHERE OrganisationReference LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-                    							OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-                    							OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    						WHERE nf.OrganisationReference LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    							OR nf.ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+                    							OR nf.RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
         						)
     						) 
     						-- Only OrganisationName specified
@@ -84,18 +107,11 @@ BEGIN
 								AND (
 										SELECT COUNT(*)
 										FROM STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Words
-										WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Words.value)) + '%'
+										WHERE nf.OrganisationName LIKE '%' + LTRIM(RTRIM(Words.value)) + '%'
 									) = (
 										SELECT COUNT(*)
 										FROM STRING_SPLIT(@OrganisationNameCommaSeparated, ',')
 								)
-								--AND EXISTS (
-        						--			SELECT
-        						--				1
-        						--			FROM
-        						--				STRING_SPLIT(@OrganisationNameCommaSeparated, ',') AS Names
-        						--			WHERE OrganisationName LIKE '%' + LTRIM(RTRIM(Names.value)) + '%'
-        						--)
     					    ) 
     						-- Only OrganisationReference specified
     						OR (
@@ -106,9 +122,9 @@ BEGIN
         							1
         						FROM
         							STRING_SPLIT(@OrganisationReferenceCommaSeparated, ',') AS Reference
-        						WHERE OrganisationReference LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-        							OR ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
-        							OR RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+        						WHERE nf.OrganisationReference LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+        							OR nf.ApplicationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
+        							OR nf.RegistrationReferenceNumber LIKE '%' + LTRIM(RTRIM(Reference.value)) + '%'
         								)
     					    )
     						OR (
@@ -119,16 +135,46 @@ BEGIN
                     )
 					AND (
 						ISNULL(@OrganisationTypeCommaSeparated, '') = ''
-						OR OrganisationType IN (
-							SELECT
-							TRIM(value)
-						FROM
-							STRING_SPLIT(@OrganisationTypeCommaSeparated, ',')
+						OR (
+							nf.OrganisationType IN (
+								SELECT
+								TRIM(value)
+							FROM
+								STRING_SPLIT(@OrganisationTypeCommaSeparated, ',')
+							)
+							OR (
+								-- DirectSmallProducer = direct & small
+								(otv.HasDirect = 1
+								 AND otv.HasSmall = 1
+								 AND nf.RegistrationJourney = 'DirectSmallProducer')
+								-- DirectLargeProducer = direct & large
+								OR (otv.HasDirect = 1
+								 AND otv.HasLarge = 1
+								 AND nf.RegistrationJourney = 'DirectLargeProducer')
+								-- CsoSmallProducer = compliance & small
+								OR (otv.HasCompliance = 1
+								 AND otv.HasSmall = 1
+								 AND nf.RegistrationJourney = 'CsoSmallProducer')
+								-- CsoLargeProducer = compliance & large
+								OR (otv.HasCompliance = 1
+								 AND otv.HasLarge = 1
+								 AND nf.RegistrationJourney = 'CsoLargeProducer')
+								-- null = none of the above (when OrganisationTypeCommaSeparated doesn't match any of the four combinations)
+								OR (
+									NOT (
+										(otv.HasDirect = 1 AND otv.HasSmall = 1)
+										OR (otv.HasDirect = 1 AND otv.HasLarge = 1)
+										OR (otv.HasCompliance = 1 AND otv.HasSmall = 1)
+										OR (otv.HasCompliance = 1 AND otv.HasLarge = 1)
+									)
+									AND nf.RegistrationJourney IS NULL
+								)
+							)
 						)
 					)
 					AND (
 						ISNULL(@SubmissionYearsCommaSeparated, '') = ''
-						OR RelevantYear IN (
+						OR nf.RelevantYear IN (
 							SELECT
 							TRIM(value)
 						FROM
@@ -137,7 +183,7 @@ BEGIN
 					)
 					AND (
 						ISNULL(@StatusesCommaSeparated, '') = ''
-						OR SubmissionStatus IN (
+						OR nf.SubmissionStatus IN (
 							SELECT
 							TRIM(value)
 						FROM
@@ -146,7 +192,7 @@ BEGIN
 					)
 					AND (
 						ISNULL(@ResubmissionStatusesCommaSeparated, '') = ''
-						OR ResubmissionStatus IN (
+						OR nf.ResubmissionStatus IN (
 							SELECT TRIM(value)
 							FROM STRING_SPLIT(@ResubmissionStatusesCommaSeparated, ',')
 						)
@@ -215,7 +261,7 @@ BEGIN
                                             )
                                         ) - 1
                                     )
-            )
+			)
             AND 
             PagedRowNum <= @PageSize * LEAST(
                 @PageNumber,
