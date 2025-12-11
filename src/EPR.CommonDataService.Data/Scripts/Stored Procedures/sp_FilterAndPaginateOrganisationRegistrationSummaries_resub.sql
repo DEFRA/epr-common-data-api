@@ -136,6 +136,9 @@ BEGIN
 					AND (
 						ISNULL(@OrganisationTypeCommaSeparated, '') = ''
 						OR (
+							-- fallback to original filter for records where new `RegistrationJourney` field is not populated
+							nf.RegistrationJourney IS NULL
+							AND
 							nf.OrganisationType IN (
 								SELECT
 								TRIM(value)
