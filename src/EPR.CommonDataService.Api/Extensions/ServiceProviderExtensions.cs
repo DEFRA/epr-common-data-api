@@ -3,6 +3,7 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Microsoft.Data.SqlClient;
 
 namespace EPR.CommonDataService.Api.Extensions;
 
@@ -21,7 +22,29 @@ public static class ServiceProviderExtensions
 
     public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<SynapseContext>(options => options.UseSqlServer(configuration.GetConnectionString("SynapseDatabase")));
+        services.AddDbContext<SynapseContext>(options =>
+        {
+            var connectionString = configuration.GetConnectionString("SynapseDatabase");
+            var accessTokenFile = Environment.GetEnvironmentVariable("AZURE_SQL_ACCESS_TOKEN_FILE");
+
+            if (!string.IsNullOrEmpty(accessTokenFile))
+            {
+                // This flow is only used when running as a local environment, 
+                // AZURE_SQL_ACCESS_TOKEN_FILE is never specified in any real Azure env.
+                var connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
+                connectionStringBuilder.Remove("Authentication");
+
+                var sqlConnection = new SqlConnection(connectionStringBuilder.ConnectionString);
+
+                sqlConnection.AccessToken = File.ReadAllText(accessTokenFile).Trim();
+
+                options.UseSqlServer(sqlConnection);
+            }
+            else
+            {
+                options.UseSqlServer(connectionString);
+            }
+        });
 
         return services;
     }

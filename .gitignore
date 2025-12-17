@@ -413,3 +413,4 @@ FodyWeavers.xsd
 /src/.vs/EPR.CommonDataService
 /.vs
 /src/.vs/ProjectEvaluation
+.idea
