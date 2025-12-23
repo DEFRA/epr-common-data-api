@@ -31,7 +31,7 @@ GO
 
 IF NOT EXISTS (SELECT 1 FROM SYS.COLUMNS WHERE [Name] = N'RegistrationJourney' AND object_id = OBJECT_ID(N'[apps].[Submissions]'))
 BEGIN
-    ALTER TABLE [apps].[SubmissionEvents] ADD [RegistrationJourney] NVARCHAR (4000) NULL
+    ALTER TABLE [apps].[Submissions] ADD [RegistrationJourney] NVARCHAR (128) NULL
 END;
 
 GO
