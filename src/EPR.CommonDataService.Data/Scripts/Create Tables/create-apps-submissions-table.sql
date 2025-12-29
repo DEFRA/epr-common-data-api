@@ -18,12 +18,20 @@ BEGIN
         [UserId] [nvarchar](4000) NULL,
         [Type] [nvarchar](4000) NULL,
         [ComplianceSchemeId] [nvarchar](4000) NULL,
-        [load_ts] [datetime2](7) NULL
+        [load_ts] [datetime2](7) NULL,
+        [RegistrationJourney] [nvarchar](128) NULL
         )
         WITH
             (
             DISTRIBUTION = HASH ( [SubmissionId] ),
-        CLUSTERED COLUMNSTORE INDEX
+            CLUSTERED COLUMNSTORE INDEX
         )
 END;
+GO
+
+IF NOT EXISTS (SELECT 1 FROM SYS.COLUMNS WHERE [Name] = N'RegistrationJourney' AND object_id = OBJECT_ID(N'[apps].[Submissions]'))
+BEGIN
+    ALTER TABLE [apps].[Submissions] ADD [RegistrationJourney] NVARCHAR (128) NULL
+END;
+
 GO

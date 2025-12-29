@@ -409,7 +409,8 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 				[ResubmissionComment] [nvarchar](4000) NULL,
 				[ResubmittedUserId] [nvarchar](4000) NULL,
 				[ProducerUserId] [nvarchar](4000) NULL,
-				[RegulatorUserId] [nvarchar](4000) NULL
+				[RegulatorUserId] [nvarchar](4000) NULL,
+			    [RegistrationJourney] [nvarchar](128) NULL
 			)
 			WITH
 			(

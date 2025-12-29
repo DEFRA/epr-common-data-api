@@ -290,49 +290,55 @@ WITH
     AS
     (
         SELECT DISTINCT
-            submissions.SubmissionId
-			,submissions.OrganisationId
-			,submissions.OrganisationInternalId
-            ,submissions.OrganisationName
-			,submissions.UploadedOrganisationName
-            ,submissions.ReferenceNumber as OrganisationReference
-            ,submissions.SubmittedUserId
-            ,submissions.IsComplianceScheme
+            SubmissionId
+			,OrganisationId
+			,OrganisationInternalId
+            ,OrganisationName
+			,UploadedOrganisationName
+            ,ReferenceNumber as OrganisationReference
+            ,SubmittedUserId
+            ,IsComplianceScheme
 			,CASE 
-				WHEN submissions.IsComplianceScheme = 1 THEN 'Compliance'
-				ELSE submissions.ProducerSize
+				WHEN IsComplianceScheme = 1 THEN 'Compliance'
+				ELSE ProducerSize
 			END AS OrganisationType
-            ,submissions.ProducerSize
-            ,submissions.ApplicationReferenceNumber
-			,submissions.RegistrationReferenceNumber
-            ,submissions.SubmittedDateTime
-			,submissions.FirstSubmissionDate
-            ,submissions.RegistrationDate
-			,submissions.IsResubmission
-			,submissions.ResubmissionDate
-			,submissions.RelevantYear
-            ,submissions.SubmissionPeriod
-            ,submissions.IsLateSubmission
-            ,ISNULL(submissions.SubmissionStatus, 'Pending') as SubmissionStatus
-            ,submissions.ResubmissionStatus
+            ,ProducerSize
+            ,ApplicationReferenceNumber
+			,RegistrationReferenceNumber
+            ,SubmittedDateTime
+			,FirstSubmissionDate
+            ,RegistrationDate
+			,IsResubmission
+			,ResubmissionDate
+			,RelevantYear
+            ,SubmissionPeriod
+            ,IsLateSubmission
+            ,ISNULL(SubmissionStatus, 'Pending') as SubmissionStatus
+            ,ResubmissionStatus
 			,ResubmissionDecisionDate
 			,RegulatorDecisionDate
 			,StatusPendingDate
-            ,submissions.NationId
-            ,submissions.NationCode
-			,submissions.ComplianceSchemeId
-			,submissions.ProducerComment
-			,submissions.RegulatorComment
-			,submissions.FileId
-			,submissions.ResubmissionComment
-			,submissions.ResubmittedUserId
-			,submissions.ProducerUserId
-			,submissions.RegulatorUserId
-        FROM
-            LatestOrganisationRegistrationSubmissionsCTE submissions
-		)
-	SELECT
-		DISTINCT *
-	FROM
-		AllSubmissionsAndDecisionsAndCommentCTE submissions;
+            ,NationId
+            ,NationCode
+			,ComplianceSchemeId
+			,ProducerComment
+			,RegulatorComment
+			,FileId
+			,ResubmissionComment
+			,ResubmittedUserId
+			,ProducerUserId
+			,RegulatorUserId
+        FROM LatestOrganisationRegistrationSubmissionsCTE
+    )
+
+SELECT DISTINCT a.*,
+    CASE
+        WHEN s.RegistrationJourney IS NOT NULL THEN s.RegistrationJourney
+        WHEN IsComplianceScheme = 0 AND ProducerSize = 'Large' THEN 'DirectLargeProducer'
+        WHEN IsComplianceScheme = 0 AND ProducerSize = 'Small' THEN 'DirectSmallProducer'
+        ELSE 'CsoLegacy'
+    END AS RegistrationJourney
+FROM AllSubmissionsAndDecisionsAndCommentCTE a
+join rpd.submissions s on s.SubmissionId = a.SubmissionId;
+
 GO
