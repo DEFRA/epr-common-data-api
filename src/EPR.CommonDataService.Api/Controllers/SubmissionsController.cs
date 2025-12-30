@@ -68,13 +68,20 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
             return BadRequest(ModelState);
         }
 
+        DateTime now = DateTime.UtcNow.Date;
+
+        var periodYear =
+            now >= new DateTime(now.Year, apiConfig.PomDataSubmissionPeriodStartMonth, apiConfig.PomDataSubmissionPeriodStartDay, 0, 0, 0, DateTimeKind.Utc)
+                ? now.Year - 1
+                : now.Year - 2;
+
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, apiConfig.PomDataSubmissionPeriods, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials, apiConfig.IncludeOrganisationSize);
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(periodYear, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials);
 
             if (!approvedSubmissions.Any())
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: The datetime provided did not return any submissions", _logPrefix);
+                logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithAggregatedPomData: The period year {PeriodYear} did not return any submissions", _logPrefix, periodYear);
                 return NoContent();
             }
 
@@ -152,7 +159,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     {
         var sanitisedSubmissionId = SubmissionId?.ToString("D").Replace("\r", string.Empty).Replace("\n", string.Empty);
         logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/organisation-registration-submission/{SubmissionId}'", _logPrefix, sanitisedSubmissionId);
-        
+
         try
         {
             if (!SubmissionId.HasValue)
@@ -223,7 +230,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 logger.LogError("The DB for POM Resubmissions isn't updated with the expected Schema changes.");
                 return StatusCode(StatusCodes.Status412PreconditionFailed, "Db Schema isn't updated to include PomResubmission ReferenceNumber");
             }
-            
+
             if (string.IsNullOrWhiteSpace(dbResult.Reference))
             {
                 logger.LogError("The data for POM Resubmissions {SubmissionId} doesn't have a required reference number.", sanitisedSubmissionId);
