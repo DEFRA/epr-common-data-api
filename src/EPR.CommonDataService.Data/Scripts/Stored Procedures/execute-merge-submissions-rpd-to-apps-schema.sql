@@ -363,6 +363,18 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		IF OBJECT_ID('tempdb..#OrgRegistrationsSummaries') IS NOT NULL
 			DROP TABLE #OrgRegistrationsSummaries;
 
+        -- add RegistrationJourney to OrgRegistrationsSummaries if missing
+        IF NOT EXISTS (
+            SELECT 1 FROM sys.tables t
+            JOIN SYS.COLUMNS c ON c.object_id = t.object_id
+            JOIN SYS.schemas s ON s.schema_id = t.schema_id
+            WHERE s.name = 'apps'
+                AND t.name = 'OrgRegistrationsSummaries'
+                AND c.name = 'RegistrationJourney')
+        BEGIN
+            ALTER TABLE apps.OrgRegistrationsSummaries ADD RegistrationJourney NVARCHAR (128) NULL
+        END;
+
 		--If table exists but is incorrect distribution then drop
 		IF EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'apps.OrgRegistrationsSummaries') AND type in (N'U')) AND NOT EXISTS( SELECT * FROM sys.pdw_table_distribution_properties where OBJECT_SCHEMA_NAME( object_id )='apps' AND OBJECT_NAME( object_id ) ='OrgRegistrationsSummaries' and distribution_policy_desc='HASH')
 		BEGIN
