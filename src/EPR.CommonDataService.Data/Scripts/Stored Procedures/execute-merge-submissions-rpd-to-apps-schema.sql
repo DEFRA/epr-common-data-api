@@ -449,9 +449,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 
 			MERGE INTO apps.OrgRegistrationsSummaries AS Target
 				USING #OrgRegistrationsSummaries AS Source
-			 	ON Target.SubmissionID = Source.SubmissionID
-			 	       and Target.OrganisationID = Source.OrganisationID
-
+			 	ON Target.SubmissionID = Source.SubmissionID and Target.OrganisationID = Source.OrganisationID
 			WHEN MATCHED THEN
         		UPDATE SET
 					Target.[SubmissionId] = Source.SubmissionId
