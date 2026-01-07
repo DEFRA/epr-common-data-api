@@ -449,7 +449,9 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 
 			MERGE INTO apps.OrgRegistrationsSummaries AS Target
 				USING #OrgRegistrationsSummaries AS Source
-			 	ON Target.SubmissionID = Source.SubmissionID and Target.OrganisationID = Source.OrganisationID
+			 	ON Target.SubmissionID = Source.SubmissionID
+			 	       and Target.OrganisationID = Source.OrganisationID
+
 			WHEN MATCHED THEN
         		UPDATE SET
 					Target.[SubmissionId] = Source.SubmissionId
@@ -487,6 +489,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 					,Target.[ResubmittedUserId] = Source.ResubmittedUserId
 					,Target.[ProducerUserId] = Source.ProducerUserId
 					,Target.[RegulatorUserId] = Source.RegulatorUserId
+					,Target.[RegistrationJourney] = Source.RegistrationJourney
         	WHEN NOT MATCHED BY TARGET THEN
         		INSERT (
 					[SubmissionId]
@@ -524,6 +527,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 					,[ResubmittedUserId]
 					,[ProducerUserId]
 					,[RegulatorUserId]
+					,[RegistrationJourney]
 				)
 				VALUES (
 					Source.[SubmissionId]
@@ -561,6 +565,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 					,Source.[ResubmittedUserId]
 					,Source.[ProducerUserId]
 					,Source.[RegulatorUserId]
+					,Source.[RegistrationJourney]
 				)
 	    	WHEN NOT MATCHED BY SOURCE THEN
             	DELETE; -- delete from table when no longer in source
