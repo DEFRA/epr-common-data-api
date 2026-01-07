@@ -18,8 +18,8 @@ BEGIN
         [UserId] [nvarchar](4000) NULL,
         [Type] [nvarchar](4000) NULL,
         [ComplianceSchemeId] [nvarchar](4000) NULL,
-        [RegistrationJourney] [nvarchar](128) NULL,
-        [load_ts] [datetime2](7) NULL
+        [load_ts] [datetime2](7) NULL,
+        [RegistrationJourney] [nvarchar](128) NULL
         )
         WITH
             (
