@@ -183,6 +183,20 @@ BEGIN
                                                               AND RegistrationJourney IN
                                                                   ('CsoLargeProducer', 'CsoSmallProducer',
                                                                    'DirectLargeProducer', 'DirectSmallProducer', 'CsoLegacy'))
+                                                            -- Large → CsoLargeProducer + DirectLargeProducer
+                                                              OR (@FilterCompliance = 0
+                                                              AND @FilterDirect = 0
+                                                              AND @FilterLarge = 1
+                                                              AND @FilterSmall = 0
+                                                              AND RegistrationJourney IN
+                                                                  ('CsoLargeProducer', 'DirectLargeProducer'))
+                                                            -- Small → CsoSmallProducer + DirectSmallProducer
+                                                              OR (@FilterCompliance = 0
+                                                              AND @FilterDirect = 0
+                                                              AND @FilterLarge = 0
+                                                              AND @FilterSmall = 1
+                                                              AND RegistrationJourney IN
+                                                                  ('CsoSmallProducer', 'DirectSmallProducer'))
                                                           )
                                                       )
                                                       AND (
