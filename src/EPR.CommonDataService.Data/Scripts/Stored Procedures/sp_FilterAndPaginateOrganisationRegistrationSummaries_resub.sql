@@ -19,16 +19,16 @@ BEGIN
     IF OBJECT_ID('apps.OrgRegistrationsSummaries') IS NOT NULL
         BEGIN
             DECLARE @CleanedOrgName NVARCHAR(4000) = REPLACE(LTRIM(RTRIM(@OrganisationNameCommaSeparated)), ',', ' ');
-            DECLARE @HasDirect BIT = 0;
-            DECLARE @HasCompliance BIT = 0;
-            DECLARE @HasSmall BIT = 0;
-            DECLARE @HasLarge BIT = 0;
+            DECLARE @FilterDirect BIT = 0;
+            DECLARE @FilterCompliance BIT = 0;
+            DECLARE @FilterSmall BIT = 0;
+            DECLARE @FilterLarge BIT = 0;
 
             -- Calculate flags once
-            SELECT @HasDirect = MAX(CASE WHEN LOWER(TRIM(value)) = 'direct' THEN 1 ELSE 0 END),
-                   @HasCompliance = MAX(CASE WHEN LOWER(TRIM(value)) = 'compliance' THEN 1 ELSE 0 END),
-                   @HasSmall = MAX(CASE WHEN LOWER(TRIM(value)) = 'small' THEN 1 ELSE 0 END),
-                   @HasLarge = MAX(CASE WHEN LOWER(TRIM(value)) = 'large' THEN 1 ELSE 0 END)
+            SELECT @FilterDirect = MAX(CASE WHEN LOWER(TRIM(value)) = 'direct' THEN 1 ELSE 0 END),
+                   @FilterCompliance = MAX(CASE WHEN LOWER(TRIM(value)) = 'compliance' THEN 1 ELSE 0 END),
+                   @FilterSmall = MAX(CASE WHEN LOWER(TRIM(value)) = 'small' THEN 1 ELSE 0 END),
+                   @FilterLarge = MAX(CASE WHEN LOWER(TRIM(value)) = 'large' THEN 1 ELSE 0 END)
             FROM STRING_SPLIT(@OrganisationTypeCommaSeparated, ',');
 
             WITH NormalFilterCTE
@@ -124,62 +124,62 @@ BEGIN
                                                           OR (
                                                           -- Filter on RegistrationJourney based on the mapping table
                                                           -- Compliance only → CsoLargeProducer + CsoSmallProducer + CsoLegacy
-                                                          (@HasCompliance = 1
-                                                              AND @HasDirect = 0
-                                                              AND @HasSmall = 0
-                                                              AND @HasLarge = 0
+                                                          (@FilterCompliance = 1
+                                                              AND @FilterDirect = 0
+                                                              AND @FilterSmall = 0
+                                                              AND @FilterLarge = 0
                                                               AND RegistrationJourney IN
                                                                   ('CsoLargeProducer', 'CsoSmallProducer', 'CsoLegacy'))
                                                               -- Compliance + Large → CsoLargeProducer
-                                                              OR (@HasCompliance = 1
-                                                              AND @HasDirect = 0
-                                                              AND @HasLarge = 1
-                                                              AND @HasSmall = 0
+                                                              OR (@FilterCompliance = 1
+                                                              AND @FilterDirect = 0
+                                                              AND @FilterLarge = 1
+                                                              AND @FilterSmall = 0
                                                               AND RegistrationJourney = 'CsoLargeProducer')
                                                               -- Compliance + Small → CsoSmallProducer
-                                                              OR (@HasCompliance = 1
-                                                              AND @HasDirect = 0
-                                                              AND @HasSmall = 1
-                                                              AND @HasLarge = 0
+                                                              OR (@FilterCompliance = 1
+                                                              AND @FilterDirect = 0
+                                                              AND @FilterSmall = 1
+                                                              AND @FilterLarge = 0
                                                               AND RegistrationJourney = 'CsoSmallProducer')
                                                               -- Compliance + Large + Small → CsoLargeProducer + CsoSmallProducer
-                                                              OR (@HasCompliance = 1
-                                                              AND @HasDirect = 0
-                                                              AND @HasLarge = 1
-                                                              AND @HasSmall = 1
+                                                              OR (@FilterCompliance = 1
+                                                              AND @FilterDirect = 0
+                                                              AND @FilterLarge = 1
+                                                              AND @FilterSmall = 1
                                                               AND RegistrationJourney IN
                                                                   ('CsoLargeProducer', 'CsoSmallProducer'))
                                                               -- Direct only → DirectLargeProducer + DirectSmallProducer
-                                                              OR (@HasDirect = 1
-                                                              AND @HasCompliance = 0
-                                                              AND @HasSmall = 0
-                                                              AND @HasLarge = 0
+                                                              OR (@FilterDirect = 1
+                                                              AND @FilterCompliance = 0
+                                                              AND @FilterSmall = 0
+                                                              AND @FilterLarge = 0
                                                               AND RegistrationJourney IN
                                                                   ('DirectLargeProducer', 'DirectSmallProducer'))
                                                               -- Direct + Large → DirectLargeProducer
-                                                              OR (@HasDirect = 1
-                                                              AND @HasCompliance = 0
-                                                              AND @HasLarge = 1
-                                                              AND @HasSmall = 0
+                                                              OR (@FilterDirect = 1
+                                                              AND @FilterCompliance = 0
+                                                              AND @FilterLarge = 1
+                                                              AND @FilterSmall = 0
                                                               AND RegistrationJourney = 'DirectLargeProducer')
                                                               -- Direct + Small → DirectSmallProducer
-                                                              OR (@HasDirect = 1
-                                                              AND @HasCompliance = 0
-                                                              AND @HasSmall = 1
-                                                              AND @HasLarge = 0
+                                                              OR (@FilterDirect = 1
+                                                              AND @FilterCompliance = 0
+                                                              AND @FilterSmall = 1
+                                                              AND @FilterLarge = 0
                                                               AND RegistrationJourney = 'DirectSmallProducer')
                                                               -- Direct + Large + Small → DirectLargeProducer + DirectSmallProducer
-                                                              OR (@HasDirect = 1
-                                                              AND @HasCompliance = 0
-                                                              AND @HasLarge = 1
-                                                              AND @HasSmall = 1
+                                                              OR (@FilterDirect = 1
+                                                              AND @FilterCompliance = 0
+                                                              AND @FilterLarge = 1
+                                                              AND @FilterSmall = 1
                                                               AND RegistrationJourney IN
                                                                   ('DirectLargeProducer', 'DirectSmallProducer'))
                                                               -- All (Compliance + Direct + Large + Small) → CsoLargeProducer + CsoSmallProducer + DirectLargeProducer + DirectSmallProducer
-                                                              OR (@HasCompliance = 1
-                                                              AND @HasDirect = 1
-                                                              AND @HasLarge = 1
-                                                              AND @HasSmall = 1
+                                                              OR (@FilterCompliance = 1
+                                                              AND @FilterDirect = 1
+                                                              AND @FilterLarge = 1
+                                                              AND @FilterSmall = 1
                                                               AND RegistrationJourney IN
                                                                   ('CsoLargeProducer', 'CsoSmallProducer',
                                                                    'DirectLargeProducer', 'DirectSmallProducer'))
