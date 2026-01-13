@@ -21,9 +21,9 @@ begin
 	--set @start_dt = getdate()
 --Checks that the apps.SubmissionEvents table exists with column PackagingResubmissionReferenceNumber
 	IF EXISTS (
-		SELECT 1 
-		FROM INFORMATION_SCHEMA.COLUMNS 
-		WHERE TABLE_SCHEMA = 'apps' AND TABLE_NAME = 'SubmissionEvents' 
+		SELECT 1
+		FROM INFORMATION_SCHEMA.COLUMNS
+		WHERE TABLE_SCHEMA = 'apps' AND TABLE_NAME = 'SubmissionEvents'
 		AND COLUMN_NAME = 'PackagingResubmissionReferenceNumber'
 	)
 	BEGIN
@@ -50,16 +50,16 @@ begin
 							END
 					  END as NationCode
 					, s.*
-			FROM apps.SubmissionsSummaries s 
+			FROM apps.SubmissionsSummaries s
 			left join rpd.ComplianceSchemes cs on cs.ExternalId = s.ComplianceSchemeId
 			inner join rpd.Organisations org on org.ExternalId = s.OrganisationId
-			WHERE s.SubmissionId = @SubmissionId 
+			WHERE s.SubmissionId = @SubmissionId
 		) innsers
 		WHERE RowNum = 1;
 --Following Code only applies if IsResbumission flag = 1
 		if ( @IsResubmission = 1 ) 
 		BEGIN
-			
+
 		Select  @Reference =  PackagingResubmissionReferenceNumber from dbo.t_PomResubmissionPaycalEvents where SubmissionId = @SubmissionId
 ---APPEARS TO BE CODE specifically for Compliance Schemes
 --Note - the ComplianceSchemeId parameter is not set in the SP but passed in by the looks of things
@@ -78,7 +78,7 @@ begin
 					order by s.SubmittedDate desc
 				) as inners ;
 --OTHER SP gets triggered here and passes back the MemberCount paramter back from it
-				
+
 		Select @MemberCount= IsNull(MemberCount,0) from t_CSO_Pom_resubmitted_ByCSID where CS_reference_number=@OrganisationRefNum and CSid=@ComplianceSchemeId and submissionperiod=@SubmissionPeriod
 			END
 --Note that the above member count is the count of members of a compliance scheme that are not new members between submissions - that has Pom data changes made to it
@@ -100,21 +100,21 @@ begin
 				) as inners2 ;
 --OTHER SP gets triggered here and passes back the MemberCount paramter back from it
 				exec [dbo].[sp_DP_Pom_Resubmitted_ByDPID] @DPOrganisationRefNum,
-															@DPSubmissionPeriod, 
+															@DPSubmissionPeriod,
 															@DPMemberCount OUTPUT;
 			END
-			
+
 			
 -----/NEW-----------
-			SELECT 
-			CASE 
+			SELECT
+			CASE
 				WHEN @SubmissionYear < 2024 THEN 0
 				WHEN @ComplianceSchemeId IS NOT NULL THEN @MemberCount
 				WHEN @ComplianceSchemeId IS NULL THEN @DPMemberCount
 				ELSE CAST(NULL as INT)
 			END AS MemberCount,
 			--Above seems to just set the field MemberCount as the count returned from the SP if a CS or NULL if a DP.
-			CASE 
+			CASE
 				WHEN @ReferenceAvailable = 0 THEN CAST(NULL AS NVARCHAR(50))
 				ELSE @Reference
 			END AS Reference,
@@ -128,12 +128,18 @@ begin
 
 --This section is for when the IsResubmission flag = 0 i.e. not a resubmission
 -- seems to set columns to null
-		BEGIN
-			if (@IsResubmission = 0)
-			BEGIN
-				SELECT 
+        BEGIN
+            DECLARE @PackagingResubmissionReferenceNumber NVARCHAR(50);
+
+            SELECT @PackagingResubmissionReferenceNumber = PackagingResubmissionReferenceNumber
+            FROM dbo.t_PomResubmissionPaycalEvents
+            WHERE SubmissionId = @SubmissionId;
+
+            IF (@IsResubmission = 0)
+            BEGIN
+                SELECT
 					CAST(NULL as INT) AS MemberCount,
-					CAST(NULL AS NVARCHAR(50)) as Reference,
+					@PackagingResubmissionReferenceNumber AS Reference,
 					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
 					CAST(0 AS BIT) as IsResubmission,
 					@ReferenceAvailable as ReferenceFieldAvailable,
@@ -143,7 +149,7 @@ begin
 --Below is the same thing except for when the IsResubmission field is NULL rather than 1 or 0
 			if (@IsResubmission IS NULL)
 			BEGIN
-				SELECT 
+				SELECT
 					CAST(NULL as INT) AS MemberCount,
 					CAST(NULL AS NVARCHAR(50)) as Reference,
 					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
@@ -157,7 +163,7 @@ begin
 	--Catch all ELSE statement 
 	ELSE
 	BEGIN
-		SELECT 
+		SELECT
 			CAST(NULL as INT) AS MemberCount,
 			CAST(NULL AS NVARCHAR(50)) as Reference,
 			CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
