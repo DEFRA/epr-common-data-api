@@ -21,15 +21,19 @@ begin
 	--set @start_dt = getdate()
 --Checks that the apps.SubmissionEvents table exists with column PackagingResubmissionReferenceNumber
 	IF EXISTS (
-		SELECT 1 
-		FROM INFORMATION_SCHEMA.COLUMNS 
-		WHERE TABLE_SCHEMA = 'apps' AND TABLE_NAME = 'SubmissionEvents' 
+		SELECT 1
+		FROM INFORMATION_SCHEMA.COLUMNS
+		WHERE TABLE_SCHEMA = 'apps' AND TABLE_NAME = 'SubmissionEvents'
 		AND COLUMN_NAME = 'PackagingResubmissionReferenceNumber'
 	)
 	BEGIN
 		SET @ReferenceAvailable = 1;
 --Grabbing the various require parameters for the given ComplianceScheme from the latest submission
-		select @IsResubmission = IsResubmission, 
+		select @IsResubmission =
+               case
+                   when IsResubmission = rpd_IsResubmission then IsResubmission
+                   else rpd_IsResubmission
+		       end,
 			   @ResubmissionDate = SubmittedDate,
 			   @NationCode = NationCode,
 			   @SubmissionYear = SubmissionYear
@@ -50,10 +54,12 @@ begin
 							END
 					  END as NationCode
 					, s.*
-			FROM apps.SubmissionsSummaries s 
+			        , rs.IsResubmission as rpd_IsResubmission
+			FROM apps.SubmissionsSummaries s
 			left join rpd.ComplianceSchemes cs on cs.ExternalId = s.ComplianceSchemeId
 			inner join rpd.Organisations org on org.ExternalId = s.OrganisationId
-			WHERE s.SubmissionId = @SubmissionId 
+			join rpd.Submissions rs on s.submissionid = rs.SubmissionId
+			WHERE s.SubmissionId = @SubmissionId
 		) innsers
 		WHERE RowNum = 1;
 --Following Code only applies if IsResbumission flag = 1
@@ -131,7 +137,7 @@ begin
 		BEGIN
 			if (@IsResubmission = 0)
 			BEGIN
-				SELECT 
+				SELECT
 					CAST(NULL as INT) AS MemberCount,
 					CAST(NULL AS NVARCHAR(50)) as Reference,
 					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
@@ -143,7 +149,7 @@ begin
 --Below is the same thing except for when the IsResubmission field is NULL rather than 1 or 0
 			if (@IsResubmission IS NULL)
 			BEGIN
-				SELECT 
+				SELECT
 					CAST(NULL as INT) AS MemberCount,
 					CAST(NULL AS NVARCHAR(50)) as Reference,
 					CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
@@ -154,10 +160,10 @@ begin
 			END
 		END
 	END
-	--Catch all ELSE statement 
+	--Catch all ELSE statement
 	ELSE
 	BEGIN
-		SELECT 
+		SELECT
 			CAST(NULL as INT) AS MemberCount,
 			CAST(NULL AS NVARCHAR(50)) as Reference,
 			CAST(NULL AS NVARCHAR(50)) as ResubmissionDate,
