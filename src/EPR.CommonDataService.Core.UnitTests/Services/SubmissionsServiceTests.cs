@@ -127,6 +127,214 @@ public class SubmissionsServiceTests
             .Build<ApprovedSubmissionEntity>()
             .CreateMany(10).ToList();
 
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(10);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods },
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials },
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize }
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoNotExist_ReturnsEmpty()
+    {
+        // Arrange
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(Array.Empty<ApprovedSubmissionEntity>());
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(0);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods },
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials },
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize }
+
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionOccurs_ShouldThrowDataException()
+    {
+        // Arrange
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
+
+        // Set up the mock to throw a generic exception when RunSqlAsync is called
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .ThrowsAsync(new Exception("Simulated exception"));
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        Func<Task> act = async () => await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
+
+        await act.Should().ThrowAsync<DataException>();
+
+        // Assert - This will be handled by the ExpectedException attribute
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreNull_ExecutesWithNullParameter()
+    {
+        // Arrange
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
+        var approvedAfter = DateTime.UtcNow;
+        string? periods = null;
+        string? includePackagingTypes = null;
+        string? includePackagingMaterials = null;
+        string? includeOrganisationSize = null;
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods!, includePackagingTypes!, includePackagingMaterials!, includeOrganisationSize!);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(5);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = DBNull.Value }, // Check for DBNull when periods is null
+			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = DBNull.Value }, // Check for DBNull when includePackagingTypes is null
+			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = DBNull.Value }, // Check for DBNull when includePackagingMaterials is null
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = DBNull.Value }  // Check for DBNull when includeOrganisationSize is null
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreEmpty_ExecutesWithEmptyParameter()
+    {
+        // Arrange
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
+        var approvedAfter = DateTime.UtcNow;
+        var periods = ""; // Empty periods
+        var includePackagingTypes = ""; // Empty includePackagingTypes
+        var includePackagingMaterials = "";  // Empty includePackagingMaterials
+        var includeOrganisationSize = ""; // Empty includeOrganisationSize
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(3);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+            new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods }, // Check for empty string when periods is empty
+			new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes }, // Check for empty string when includePackagingTypes is empty
+			new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials }, // Check for empty string when includePackagingMaterials is empty
+            new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize }  // Check for empty string when includeOrganisationSize is empty
+		});
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public void GetApprovedSubmissionsWithAggregatedPomData_WhenReceivesTimeout_WillThrowTimeoutException()
+    {
+        // Arrange
+        var approvedAfter = DateTime.UtcNow;
+        var periods = "2024-P1,2024-P2";
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+        var includeOrganisationSize = "L";
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ThrowsAsync(BuildSqlException(-2));
+
+        // Act and Assert
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize));
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomDataMyc_WhenApprovedSubmissionsExist_ReturnsThem()
+    {
+        // Arrange
+        var expectedResult = _fixture
+            .Build<ApprovedSubmissionEntity>()
+            .CreateMany(10).ToList();
+
         var periodYear = 2025;
         var includePackagingTypes = "HH,NH,PB,HDC,NHC";
         var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
@@ -143,7 +351,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(periodYear, includePackagingTypes, includePackagingMaterials);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, includePackagingTypes, includePackagingMaterials);
 
         // Assert
         result.Should().NotBeNull();
@@ -158,7 +366,7 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenApprovedSubmissionsDoNotExist_ReturnsEmpty()
+    public async Task GetApprovedSubmissionsWithAggregatedPomDataMyc_WhenApprovedSubmissionsDoNotExist_ReturnsEmpty()
     {
         // Arrange
         var periodYear = 2025;
@@ -177,7 +385,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(periodYear, includePackagingTypes, includePackagingMaterials);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, includePackagingTypes, includePackagingMaterials);
 
         // Assert
         result.Should().NotBeNull();
@@ -193,7 +401,7 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionOccurs_ShouldThrowDataException()
+    public async Task GetApprovedSubmissionsWithAggregatedPomDataMyc_WhenExceptionOccurs_ShouldThrowDataException()
     {
         // Arrange
         var periodYear = 2025;
@@ -210,7 +418,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        Func<Task> act = async () => await _sut.GetApprovedSubmissionsWithAggregatedPomData(periodYear, includePackagingTypes, includePackagingMaterials);
+        Func<Task> act = async () => await _sut.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, includePackagingTypes, includePackagingMaterials);
 
         await act.Should().ThrowAsync<DataException>();
 
@@ -219,7 +427,7 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreNull_ExecutesWithNullParameter()
+    public async Task GetApprovedSubmissionsWithAggregatedPomDataMyc_WhenParametersAreNull_ExecutesWithNullParameter()
     {
         // Arrange
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
@@ -239,7 +447,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(periodYear, includePackagingTypes!, includePackagingMaterials!);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, includePackagingTypes!, includePackagingMaterials!);
 
         // Assert
         result.Should().NotBeNull();
@@ -254,7 +462,7 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreEmpty_ExecutesWithEmptyParameter()
+    public async Task GetApprovedSubmissionsWithAggregatedPomDataMyc_WhenParametersAreEmpty_ExecutesWithEmptyParameter()
     {
         // Arrange
         var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
@@ -274,7 +482,7 @@ public class SubmissionsServiceTests
             .Verifiable();
 
         // Act
-        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomData(periodYear, includePackagingTypes, includePackagingMaterials);
+        var result = await _sut.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, includePackagingTypes, includePackagingMaterials);
 
         // Assert
         result.Should().NotBeNull();
@@ -289,7 +497,7 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
-    public void GetApprovedSubmissionsWithAggregatedPomData_WhenReceivesTimeout_WillThrowTimeoutException()
+    public void GetApprovedSubmissionsWithAggregatedPomDataMyc_WhenReceivesTimeout_WillThrowTimeoutException()
     {
         // Arrange
         var periodYear = 2025;
@@ -304,7 +512,7 @@ public class SubmissionsServiceTests
             .ThrowsAsync(BuildSqlException(-2));
 
         // Act and Assert
-        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetApprovedSubmissionsWithAggregatedPomData(periodYear, includePackagingTypes, includePackagingMaterials));
+        Assert.ThrowsExceptionAsync<TimeoutException>(() => _sut.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, includePackagingTypes, includePackagingMaterials));
     }
 
     [TestMethod]

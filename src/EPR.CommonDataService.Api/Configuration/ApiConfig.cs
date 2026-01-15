@@ -12,4 +12,6 @@ public class ApiConfig
 
     public int PomDataSubmissionPeriodStartDay { get; set; } = 1;
 
+    public bool EnableApprovedSubmissionsMyc { get; set; } = true;
+
 }

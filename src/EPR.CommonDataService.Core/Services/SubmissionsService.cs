@@ -47,14 +47,43 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         return paginatedResponse;
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(int periodYear, string includePackagingTypes, string includePackagingMaterials)
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomData(DateTime approvedAfter, string periods, string includePackagingTypes, string includePackagingMaterials, string includeOrganisationSize)
     {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions for period year {PeriodYear}, " +
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Get approved submissions after {ApprovedAfter}, for periods {Periods}, " +
+            "including packaging types {IncludePackagingTypes}, including packaging materials {IncludePackagingMaterials} and including organisation size {IncludeOrganisationSize}",
+            _logPrefix, approvedAfter.ToString(CultureInfo.InvariantCulture), periods, includePackagingTypes, includePackagingMaterials, includeOrganisationSize);
+
+        var sql = "EXECUTE dbo.sp_GetApprovedSubmissions @ApprovedAfter, @Periods, @IncludePackagingTypes, @IncludePackagingMaterials, @IncludeOrganisationSize";
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
+            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+                new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
+                new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
+                new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
+                new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value },
+                new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize ?? (object)DBNull.Value });
+
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Response received from stored procedure", _logPrefix);
+            return paginatedResponse;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An error occurred while accessing the database.", ex);
+        }
+    }
+
+    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomDataMyc(int periodYear, string includePackagingTypes, string includePackagingMaterials)
+    {
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: Get approved submissions for period year {PeriodYear}, " +
             "including packaging types {IncludePackagingTypes} and including packaging materials {IncludePackagingMaterials}",
             _logPrefix, periodYear, includePackagingTypes, includePackagingMaterials);
 
         var sql = "EXECUTE dbo.sp_GetApprovedSubmissionsMyc @PeriodYear, @IncludePackagingTypes, @IncludePackagingMaterials";
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: executing query {Sql}", _logPrefix, sql);
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: executing query {Sql}", _logPrefix, sql);
 
         try
         {
@@ -64,12 +93,12 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                 new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
                 new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value });
 
-            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Response received from stored procedure", _logPrefix);
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: Response received from stored procedure", _logPrefix);
             return paginatedResponse;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
             throw new DataException("An error occurred while accessing the database.", ex);
         }
     }

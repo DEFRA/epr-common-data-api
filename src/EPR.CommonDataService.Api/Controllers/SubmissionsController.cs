@@ -75,9 +75,17 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
                 ? now.Year - 1
                 : now.Year - 2;
 
+        var pomDataSubmissionPeriods =
+            periodYear <= 2024
+                ? $"{periodYear}-P1,{periodYear}-P4"
+                : $"{periodYear}-H1,{periodYear}-H2";
+
         try
         {
-            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(periodYear, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials);
+            var approvedSubmissions =
+                apiConfig.EnableApprovedSubmissionsMyc
+                    ? await submissionsService.GetApprovedSubmissionsWithAggregatedPomDataMyc(periodYear, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials)
+                    : await submissionsService.GetApprovedSubmissionsWithAggregatedPomData(approvedAfter, pomDataSubmissionPeriods, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials, "L");
 
             if (!approvedSubmissions.Any())
             {

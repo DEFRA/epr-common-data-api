@@ -23,6 +23,8 @@ public class SubmissionsControllerTests
     private SubmissionsController _submissionsController = null!;
     private readonly Mock<ISubmissionsService> _mockSubmissionsService = new();
     private readonly Mock<IOptions<ApiConfig>> _apiConfigOptionsMock = new();
+    private readonly Mock<IConfiguration> _configurationMock = new Mock<IConfiguration>();
+
     private Fixture _fixture = null!;
 
     [TestInitialize]
@@ -37,10 +39,9 @@ public class SubmissionsControllerTests
                 BaseProblemTypePath = "https://dummytest/",
             });
 
-        var configurationMock = new Mock<IConfiguration>();
-        configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
+        _configurationMock.Setup(c => c["LogPrefix"]).Returns("[EPR.CommonDataService]");
 
-        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, configurationMock.Object)
+        _submissionsController = new SubmissionsController(_mockSubmissionsService.Object, _apiConfigOptionsMock.Object, _logger.Object, _configurationMock.Object)
         {
             ControllerContext = new ControllerContext
             {
@@ -92,7 +93,7 @@ public class SubmissionsControllerTests
         var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
 
         _mockSubmissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomDataMyc(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(expectedResponse);
 
         // Act
@@ -104,11 +105,43 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
+    public async Task GetApprovedSubmissionsWithAggregatedPomData_EnableApprovedSubmissionsMyc_isFalse()
+    {
+        // Arrange
+        var expectedResponse = _fixture.Create<IList<ApprovedSubmissionEntity>>();
+
+        _apiConfigOptionsMock
+            .Setup(x => x.Value)
+            .Returns(new ApiConfig
+            {
+                BaseProblemTypePath = "https://dummytest/",
+                EnableApprovedSubmissionsMyc = false
+            });
+
+        _mockSubmissionsService
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<DateTime>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),  It.IsAny<string>()))
+            .ReturnsAsync(expectedResponse);
+
+        var _submissionsController2 = new SubmissionsController(
+            _mockSubmissionsService.Object,
+            _apiConfigOptionsMock.Object,
+            _logger.Object,
+            _configurationMock.Object);
+
+        // Act
+        var result = await _submissionsController2.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<OkObjectResult>();
+        ((OkObjectResult)result).Value.Should().Be(expectedResponse);
+    }
+
+    [TestMethod]
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenNoApprovedSubmissionsForValidDate_ReturnsNoContent()
     {
         // Arrange
         _mockSubmissionsService
-            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .Setup(x => x.GetApprovedSubmissionsWithAggregatedPomDataMyc(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
             .ReturnsAsync(new List<ApprovedSubmissionEntity>());
 
         // Act
@@ -139,7 +172,7 @@ public class SubmissionsControllerTests
         // Arrange
         var expectedErrorMessage = "The operation has timed out.";
 
-        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
+        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomDataMyc(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new TimeoutException(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
@@ -151,14 +184,13 @@ public class SubmissionsControllerTests
         objectResult.Value.Should().Be(expectedErrorMessage);
     }
 
-
     [TestMethod]
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenExceptionThrown_ReturnsInternalServerError()
     {
         // Arrange
         var expectedErrorMessage = "An unexpected error occurred.";
 
-        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomData(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
+        _mockSubmissionsService.Setup(x => x.GetApprovedSubmissionsWithAggregatedPomDataMyc(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>())).ThrowsAsync(new Exception(expectedErrorMessage));
 
         // Act
         var result = await _submissionsController.GetApprovedSubmissionsWithAggregatedPomData(DateTime.UtcNow.ToString(CultureInfo.InvariantCulture));
