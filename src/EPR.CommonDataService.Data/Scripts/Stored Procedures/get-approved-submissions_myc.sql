@@ -273,7 +273,7 @@ BEGIN
           , lap.packaging_material
           , case
               when obl.num_days_obligated is not null then
-                cast(lap.packaging_material_weight as decimal(16,2)) * (1.0 - cast(obl.num_days_obligated as decimal(16,2)) / cast(@DaysInYear as decimal(16,2)))
+                cast(lap.packaging_material_weight as decimal(16,2)) * cast(obl.num_days_obligated as decimal(16,2)) / cast(@DaysInYear as decimal(16,2))
               else
                 cast(lap.packaging_material_weight AS DECIMAL(16,2))
             end as packaging_material_weight
