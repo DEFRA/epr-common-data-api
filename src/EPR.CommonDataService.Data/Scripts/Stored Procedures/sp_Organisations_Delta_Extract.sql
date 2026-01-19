@@ -71,7 +71,8 @@ select
 			from [rpd].[CompanyDetails] cd
 			left join rpd.Organisations o on o.ReferenceNumber = cd.organisation_id
 			left join [rpd].[cosmos_file_metadata] cfm on cfm.FileName = cd.FileName
-			left join [rpd].[ComplianceSchemes] cs on cs.ExternalId = cfm.ComplianceSchemeId	
+			left join [rpd].[ComplianceSchemes] cs on cs.ExternalId = cfm.ComplianceSchemeId
+            WHERE '20'+RIGHT(rtrim(cfm.SubmissionPeriod),2) >= '2026'	
 		) A
 		WHERE subsidiary_id is null 
 		--ORDER BY ReferenceNumber asc, Last_submission asc)
@@ -96,6 +97,7 @@ AS (
             where
                 cs.id is not null
                 and FileType = 'CompanyDetails'
+                and '20'+RIGHT(rtrim(cfm2.SubmissionPeriod),2) >= '2026'
         ) AS A
     WHERE
         Last_submission = 1
