@@ -59,7 +59,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
-            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntityOld>(sql,
                 new SqlParameter("@ApprovedAfter", SqlDbType.DateTime2) { Value = approvedAfter },
                 new SqlParameter("@Periods", SqlDbType.VarChar) { Value = periods ?? (object)DBNull.Value },
                 new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
@@ -67,7 +67,17 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                 new SqlParameter("@IncludeOrganisationSize", SqlDbType.VarChar) { Value = includeOrganisationSize ?? (object)DBNull.Value });
 
             logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomData: Response received from stored procedure", _logPrefix);
-            return paginatedResponse;
+            return paginatedResponse
+                .Select(x => new ApprovedSubmissionEntity
+                {
+                    SubmissionPeriod = x.SubmissionPeriod,
+                    PackagingMaterial = x.PackagingMaterial,
+                    PackagingMaterialWeight = x.PackagingMaterialWeight,
+                    OrganisationId = x.OrganisationId.ToString(),
+                    SubmitterId = x.SubmitterId,
+                    SubmitterType = x.SubmitterType
+                })
+                .ToList();
         }
         catch (Exception ex)
         {
