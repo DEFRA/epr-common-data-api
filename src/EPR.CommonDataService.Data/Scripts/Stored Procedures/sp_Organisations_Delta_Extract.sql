@@ -97,6 +97,7 @@ AS (
             where
                 cs.id is not null
                 and FileType = 'CompanyDetails'
+                and '20'+RIGHT(rtrim(cfm2.SubmissionPeriod),2) >= '2026'
         ) AS A
     WHERE
         Last_submission = 1
