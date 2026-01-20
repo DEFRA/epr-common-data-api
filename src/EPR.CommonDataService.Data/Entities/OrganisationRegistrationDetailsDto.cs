@@ -32,7 +32,7 @@ public class OrganisationRegistrationDetailsDto
     public bool IsComplianceScheme { get; set; }
     public string OrganisationSize { get; set; }
     public string OrganisationType { get; set; }
-    public string RegistrationJourneyType { get; set; }
+    public string RegistrationJourney { get; set; }
     public int NationId { get; set; }
     public string NationCode { get; set; }
 
