@@ -22,10 +22,11 @@ public class SynapseContext : DbContext
     public DbSet<PomSubmissionSummaryRow> SubmissionSummaries { get; set; } = null!;
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
+    public DbSet<ApprovedSubmissionEntityOld> ApprovedSubmissionsOld { get; set; } = null!;
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
     public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
-    
+
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
     public SynapseContext(DbContextOptions<SynapseContext> options)
@@ -143,7 +144,7 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
             .Property(e => e.ComplianceSchemeId)
             .HasConversion(stringToGuidConverter);
-      
+
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
             .HasConversion(stringToGuidConverter);

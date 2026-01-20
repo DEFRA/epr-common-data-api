@@ -124,7 +124,7 @@ public class SubmissionsServiceTests
     {
         // Arrange
         var expectedResult = _fixture
-            .Build<ApprovedSubmissionEntity>()
+            .Build<ApprovedSubmissionEntityOld>()
             .CreateMany(10).ToList();
 
         var approvedAfter = DateTime.UtcNow;
@@ -136,7 +136,7 @@ public class SubmissionsServiceTests
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntityOld>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(expectedResult);
 
@@ -174,9 +174,9 @@ public class SubmissionsServiceTests
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntityOld>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
-            .ReturnsAsync(Array.Empty<ApprovedSubmissionEntity>());
+            .ReturnsAsync(Array.Empty<ApprovedSubmissionEntityOld>());
 
         _databaseTimeoutService
             .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
@@ -212,7 +212,7 @@ public class SubmissionsServiceTests
 
         // Set up the mock to throw a generic exception when RunSqlAsync is called
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntityOld>(It.IsAny<string>(), It.IsAny<object[]>()))
             .ThrowsAsync(new Exception("Simulated exception"));
 
         _databaseTimeoutService
@@ -232,7 +232,7 @@ public class SubmissionsServiceTests
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreNull_ExecutesWithNullParameter()
     {
         // Arrange
-        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(5).ToList();
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntityOld>().CreateMany(5).ToList();
         var approvedAfter = DateTime.UtcNow;
         string? periods = null;
         string? includePackagingTypes = null;
@@ -242,7 +242,7 @@ public class SubmissionsServiceTests
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntityOld>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(expectedResult);
 
@@ -271,7 +271,7 @@ public class SubmissionsServiceTests
     public async Task GetApprovedSubmissionsWithAggregatedPomData_WhenParametersAreEmpty_ExecutesWithEmptyParameter()
     {
         // Arrange
-        var expectedResult = _fixture.Build<ApprovedSubmissionEntity>().CreateMany(3).ToList();
+        var expectedResult = _fixture.Build<ApprovedSubmissionEntityOld>().CreateMany(3).ToList();
         var approvedAfter = DateTime.UtcNow;
         var periods = ""; // Empty periods
         var includePackagingTypes = ""; // Empty includePackagingTypes
@@ -281,7 +281,7 @@ public class SubmissionsServiceTests
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntityOld>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ReturnsAsync(expectedResult);
 
@@ -319,7 +319,7 @@ public class SubmissionsServiceTests
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
-            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionEntityOld>(It.IsAny<string>(), It.IsAny<object[]>()))
             .Callback<string, object[]>((_, o) => sqlParameters = o)
             .ThrowsAsync(BuildSqlException(-2));
 
