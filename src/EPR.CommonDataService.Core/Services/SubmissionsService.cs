@@ -149,11 +149,9 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionDetails: Get OrganisationRegistrationSubmissionDetails for given request {Request}", _logPrefix, JsonConvert.SerializeObject(request));
 
-        var useLateFeeSp = bool.TryParse(config["FeatureManagement:QueriedSubmission_LateFee_StoredProcedure"], out var result) && result;
+//        var useLateFeeSp = bool.TryParse(config["FeatureManagement:QueriedSubmission_LateFee_StoredProcedure"], out var result) && result;
 
-        var sql = useLateFeeSp
-            ? "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee"
-            : "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub";
+        var sql = "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub";
 
         var sqlParameters = request.ToProcParams();
 
