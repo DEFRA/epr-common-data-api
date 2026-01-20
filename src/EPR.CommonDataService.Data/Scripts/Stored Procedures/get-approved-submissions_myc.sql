@@ -30,6 +30,10 @@ BEGIN
         DECLARE @DaysInYear int = datediff(day, datefromparts(convert(int, @RelevantYear), 1, 1), datefromparts(convert(int, @RelevantYear) + 1, 1, 1));
 
         with
+        IncludeOrganisationSizeTable as (
+          select value as OrganisationSize from string_split('L', @Delimiter)
+        ),
+
         IncludePackagingMaterialsTable as (
           select value as PackagingMaterials from string_split(@IncludePackagingMaterials, @Delimiter)
         ),
@@ -150,7 +154,7 @@ BEGIN
             inner join LatestAcceptedPomFiles as latest
               on  latest.FileId         = cfm.FileId
             where p.submission_period in (select period from AllPeriodsTable)
-              and p.organisation_size = 'L'
+              and p.organisation_size in (select OrganisationSize from IncludeOrganisationSizeTable)
           ) a
           where a.rn = 1
         ),
