@@ -11,12 +11,12 @@ CREATE PROC [dbo].[sp_GetApprovedSubmissionsMyc]
 AS
 BEGIN
 
-	DECLARE @start_dt datetime;
-	DECLARE @batch_id INT;
-	DECLARE @cnt int;
+  DECLARE @start_dt datetime;
+  DECLARE @batch_id INT;
+  DECLARE @cnt int;
 
-	select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
-	set @start_dt = getdate();
+  select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
+  set @start_dt = getdate();
 
     BEGIN
         SET NOCOUNT ON;
@@ -261,65 +261,44 @@ BEGIN
             on  pom.FileName           = lap.FileName
             and coalesce(nullif(trim(pom.subsidiary_id), ''), '') = coalesce(lap.subsidiary_id, '')
             and pom.organisation_id    = lap.organisation_id
-        ),
-
-        WithMYC as (
-          select
-            lap.organisation_id
-          , lap.subsidiary_id
-          , lap.submitter_id
-          , lap.producer_id
-          , lap.external_producer_id
-          , lap.submitter_type
-          , lap.submission_period
-          , lap.submission_period_year
-          , lap.packaging_type
-          , lap.packaging_material
-          , case
-              when obl.num_days_obligated is not null then
-                cast(lap.packaging_material_weight as decimal(16,2)) * cast(obl.num_days_obligated as decimal(16,2)) / cast(@DaysInYear as decimal(16,2))
-              else
-                cast(lap.packaging_material_weight AS DECIMAL(16,2))
-            end as packaging_material_weight
-          , lap.transitional_packaging_units
-          , obl.num_days_obligated
-          from LatestAcceptedPomEntries as lap
-          left join RegistrationsWithObligations as obl
-            on  lap.organisation_id             = obl.organisation_id
-            and coalesce(lap.subsidiary_id, '') = coalesce(obl.subsidiary_id, '')
-            and lap.submitter_id                = obl.submitter_id
-            and obl.obligation_status           = 'O'
         )
 
         select
-          submission_period_year                 as SubmissionPeriod
-        , submitter_type                         as SubmitterType
-        , cast(pom.submitter_id as uniqueidentifier) as SubmitterId -- cast added for uppercasing (to match the other query)
-        , external_producer_id                   as OrganisationId
-        , packaging_material                     as PackagingMaterial
+          pom.submission_period_year                     as SubmissionPeriod
+        , submitter_type                                 as SubmitterType
+        , cast(pom.submitter_id as uniqueidentifier)     as SubmitterId
+        , cast(external_producer_id as uniqueidentifier) as OrganisationId
+        , packaging_material                             as PackagingMaterial
         , cast(
             round(
               (sum(packaging_material_weight) - coalesce(sum(transitional_packaging_units), 0)) / 1000.0,
               0
             ) as int
-          )                                      as PackagingMaterialWeight
-        from WithMYC as pom
+          )                                              as PackagingMaterialWeight
+        , obl.num_days_obligated                         as NumberOfDaysObligated
+        from LatestAcceptedPomEntries as pom
         inner join LatestForProducer as lfp
           on  lfp.submission_period           =  pom.submission_period
           and lfp.organisation_id             =  pom.organisation_id
           and coalesce(lfp.subsidiary_id, '') =  coalesce(pom.subsidiary_id, '')
           and lfp.submitter_id                =  pom.submitter_id
+        left join RegistrationsWithObligations as obl
+          on  pom.organisation_id             = obl.organisation_id
+          and coalesce(pom.subsidiary_id, '') = coalesce(obl.subsidiary_id, '')
+          and pom.submitter_id                = obl.submitter_id
+          and obl.obligation_status           = 'O'
         where packaging_material              in (select * from IncludePackagingMaterialsTable)
           and packaging_type                  in (select * from IncludePackagingTypesTable)
         group by
-          submission_period_year
+          pom.submission_period_year
         , pom.submitter_id
         , submitter_type
         , external_producer_id
         , packaging_material
+        , obl.num_days_obligated
 
     END
 
-	INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
-	select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissionsMyc','', NULL, @start_dt, getdate(), '',@batch_id
+  INSERT INTO [dbo].[batch_log] ([ID],[ProcessName],[SubProcessName],[Count],[start_time_stamp],[end_time_stamp],[Comments],batch_id)
+  select (select ISNULL(max(id),1)+1 from [dbo].[batch_log]),'dbo.sp_GetApprovedSubmissionsMyc','', NULL, @start_dt, getdate(), '',@batch_id
 END
