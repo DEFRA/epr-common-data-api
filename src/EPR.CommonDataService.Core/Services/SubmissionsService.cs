@@ -73,7 +73,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
                     SubmissionPeriod = x.SubmissionPeriod,
                     PackagingMaterial = x.PackagingMaterial,
                     PackagingMaterialWeight = x.PackagingMaterialWeight,
-                    OrganisationId = x.OrganisationId.ToString(),
+                    OrganisationId = x.OrganisationId,
                     SubmitterId = x.SubmitterId,
                     SubmitterType = x.SubmitterType
                 })
