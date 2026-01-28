@@ -210,30 +210,6 @@ BEGIN
             and pom.submitter_id = periods.submitter_id
         ),
 
-        -- If a producer has moved (e.g. from/to a holding company) we only use the latest one.
-        -- we return org,sub rather than producer for acurate lookup of the pom data later
-        LatestForProducer as (
-          select
-            submission_period
-          , organisation_id
-          , subsidiary_id
-          , submitter_id
-          from (
-            select
-              pom.submission_period
-            , pom.organisation_id
-            , pom.subsidiary_id
-            , pom.submitter_id
-            , row_number() over(partition by
-                  pom.submission_period
-                , pom.producer_id
-                order by pom.created desc
-              ) as rn
-            from LatestAcceptedPomsWith2Period as pom
-          ) a
-          where a.rn = 1
-        ),
-
         LatestAcceptedPomEntries as (
           select
             lap.organisation_id
@@ -265,7 +241,7 @@ BEGIN
 
         select
           pom.submission_period_year                     as SubmissionPeriod
-        , submitter_type                                 as SubmitterType
+        , pom.submitter_type                             as SubmitterType
         , cast(pom.submitter_id as uniqueidentifier)     as SubmitterId
         , cast(external_producer_id as uniqueidentifier) as OrganisationId
         , packaging_material                             as PackagingMaterial
@@ -277,7 +253,7 @@ BEGIN
           )                                              as PackagingMaterialWeight
         , obl.num_days_obligated                         as NumberOfDaysObligated
         from LatestAcceptedPomEntries as pom
-        inner join LatestForProducer as lfp
+        inner join LatestAcceptedPomsWith2Period as lfp
           on  lfp.submission_period           =  pom.submission_period
           and lfp.organisation_id             =  pom.organisation_id
           and coalesce(lfp.subsidiary_id, '') =  coalesce(pom.subsidiary_id, '')
@@ -292,7 +268,7 @@ BEGIN
         group by
           pom.submission_period_year
         , pom.submitter_id
-        , submitter_type
+        , pom.submitter_type
         , external_producer_id
         , packaging_material
         , obl.num_days_obligated
