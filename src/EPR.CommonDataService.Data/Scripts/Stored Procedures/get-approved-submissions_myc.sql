@@ -30,18 +30,6 @@ BEGIN
         DECLARE @DaysInYear int = datediff(day, datefromparts(convert(int, @RelevantYear), 1, 1), datefromparts(convert(int, @RelevantYear) + 1, 1, 1));
 
         with
-        IncludeOrganisationSizeTable as (
-          select value as OrganisationSize from string_split('L', @Delimiter)
-        ),
-
-        IncludePackagingMaterialsTable as (
-          select value as PackagingMaterials from string_split(@IncludePackagingMaterials, @Delimiter)
-        ),
-
-        IncludePackagingTypesTable as (
-          select value as PackagingType from string_split(@IncludePackagingTypes, @Delimiter)
-        ),
-
         P1P4Table as (
           select concat(@PeriodYear, '-P1') as period
           union
@@ -74,26 +62,6 @@ BEGIN
           select * from P3P4Table where @PeriodYear = '2024'
           union
           select * from H1H2Table where @PeriodYear > '2024'
-        ),
-
-        -- First get the org obligation:
-        RegistrationsWithObligations as (
-          select
-            organisation_id
-          , subsidiary_id
-          , organisation_name
-          , trading_name
-          , status_code  as leaver_code
-          , leaver_date
-          , joiner_date
-          , submitter_id
-          , submission_period_year
-          , obligation_status
-          , num_days_obligated
-          , error_code
-          , coalesce(subsidiary_id, cast(organisation_id as nvarchar(50))) as producer_id
-          from dbo.t_producer_obligation_determination
-          where submission_period_year = @RelevantYear
         ),
 
         LatestAcceptedPomFiles as (
@@ -154,7 +122,7 @@ BEGIN
             inner join LatestAcceptedPomFiles as latest
               on  latest.FileId         = cfm.FileId
             where p.submission_period in (select period from AllPeriodsTable)
-              and p.organisation_size in (select OrganisationSize from IncludeOrganisationSizeTable)
+              and p.organisation_size = 'L'
           ) a
           where a.rn = 1
         ),
@@ -208,30 +176,37 @@ BEGIN
           inner join OrgsWith2Periods as periods
             on  pom.producer_id  = periods.producer_id
             and pom.submitter_id = periods.submitter_id
+        )
+
+        select * into #LatestAcceptedPomsWith2Period from LatestAcceptedPomsWith2Period;
+
+
+        with
+        IncludePackagingMaterialsTable as (
+          select value as PackagingMaterials from string_split(@IncludePackagingMaterials, @Delimiter)
         ),
 
-        -- If a producer has moved (e.g. from/to a holding company) we only use the latest one.
-        -- we return org,sub rather than producer for acurate lookup of the pom data later
-        LatestForProducer as (
+        IncludePackagingTypesTable as (
+          select value as PackagingType from string_split(@IncludePackagingTypes, @Delimiter)
+        ),
+
+        RegistrationsWithObligations as (
           select
-            submission_period
-          , organisation_id
+            organisation_id
           , subsidiary_id
+          , organisation_name
+          , trading_name
+          , status_code  as leaver_code
+          , leaver_date
+          , joiner_date
           , submitter_id
-          from (
-            select
-              pom.submission_period
-            , pom.organisation_id
-            , pom.subsidiary_id
-            , pom.submitter_id
-            , row_number() over(partition by
-                  pom.submission_period
-                , pom.producer_id
-                order by pom.created desc
-              ) as rn
-            from LatestAcceptedPomsWith2Period as pom
-          ) a
-          where a.rn = 1
+          , submission_period_year
+          , obligation_status
+          , num_days_obligated
+          , error_code
+          , coalesce(subsidiary_id, cast(organisation_id as nvarchar(50))) as producer_id
+          from dbo.t_producer_obligation_determination
+          where submission_period_year = @RelevantYear
         ),
 
         LatestAcceptedPomEntries as (
@@ -254,7 +229,7 @@ BEGIN
               else pom.packaging_material_weight
             end as packaging_material_weight
           , pom.transitional_packaging_units
-          from LatestAcceptedPomsWith2Period as lap
+          from #LatestAcceptedPomsWith2Period as lap
           inner join rpd.Organisations prodOrg
             on prodOrg.ReferenceNumber = lap.producer_id
           inner join rpd.Pom as pom
@@ -265,7 +240,7 @@ BEGIN
 
         select
           pom.submission_period_year                     as SubmissionPeriod
-        , submitter_type                                 as SubmitterType
+        , pom.submitter_type                             as SubmitterType
         , cast(pom.submitter_id as uniqueidentifier)     as SubmitterId
         , cast(external_producer_id as uniqueidentifier) as OrganisationId
         , packaging_material                             as PackagingMaterial
@@ -277,7 +252,7 @@ BEGIN
           )                                              as PackagingMaterialWeight
         , obl.num_days_obligated                         as NumberOfDaysObligated
         from LatestAcceptedPomEntries as pom
-        inner join LatestForProducer as lfp
+        inner join #LatestAcceptedPomsWith2Period as lfp
           on  lfp.submission_period           =  pom.submission_period
           and lfp.organisation_id             =  pom.organisation_id
           and coalesce(lfp.subsidiary_id, '') =  coalesce(pom.subsidiary_id, '')
@@ -292,7 +267,7 @@ BEGIN
         group by
           pom.submission_period_year
         , pom.submitter_id
-        , submitter_type
+        , pom.submitter_type
         , external_producer_id
         , packaging_material
         , obl.num_days_obligated
