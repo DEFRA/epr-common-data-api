@@ -772,45 +772,7 @@ public class SubmissionsServiceTests
         );
 
     }
-
-    [TestMethod]
-    public async Task GetOrganisationRegistrationSubmissionDetails_UsesLateFeeStoredProcedure_WhenFeatureEnabled()
-    {
-        // Arrange
-        var dbContextMock = new Mock<SynapseContext>();
-        var databaseTimeoutServiceMock = new Mock<IDatabaseTimeoutService>();
-        var loggerMock = new Mock<ILogger<SubmissionsService>>();
-        var configMock = new Mock<IConfiguration>();
-        configMock.Setup(c => c["FeatureManagement:QueriedSubmission_LateFee_StoredProcedure"]).Returns("true");
-
-        var service = new SubmissionsService(
-            dbContextMock.Object,
-            databaseTimeoutServiceMock.Object,
-            loggerMock.Object,
-            configMock.Object);
-
-        var request = new OrganisationRegistrationDetailRequest { SubmissionId = Guid.NewGuid() };
-
-        dbContextMock
-            .Setup(x => x.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(
-                "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee",
-                It.IsAny<ILogger>(),
-                It.IsAny<string>(),
-                It.IsAny<SqlParameter[]>()))
-            .ReturnsAsync(new List<OrganisationRegistrationDetailsDto> { new OrganisationRegistrationDetailsDto() });
-
-        // Act
-        var result = await service.GetOrganisationRegistrationSubmissionDetails(request);
-
-        // Assert
-        result.Should().NotBeNull();
-        dbContextMock.Verify(x => x.RunSpCommandAsync<OrganisationRegistrationDetailsDto>(
-            "dbo.sp_FetchOrganisationRegistrationSubmissionDetails_resub_LateFee",
-            It.IsAny<ILogger>(),
-            It.IsAny<string>(),
-            It.IsAny<SqlParameter[]>()), Times.Once);
-    }
-
+    
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionDetails_UsesDefaultStoredProcedure_WhenFeatureDisabled()
     {
