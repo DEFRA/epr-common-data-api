@@ -40,7 +40,8 @@ WITH derivered_variables AS (
                 ELSE DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) - 1, 10, 11)
             END
             ELSE NULL
-        END AS CSLLateFeeCutoffDate
+        END AS CSLLateFeeCutoffDate,
+        s.RegistrationJourney
     FROM [rpd].[Submissions] AS S
     INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     WHERE TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
@@ -276,21 +277,20 @@ SubmissionStatusCTE AS (
             s.Comment AS SubmissionComment,
             s.DecisionDate AS SubmissionDate,
             fs.DecisionDate AS FirstSubmissionDate,
+
             CASE
                 WHEN vars.IsComplianceScheme = 1 THEN 'C'
                 ELSE s.organisation_size
             END AS OrganisationType,
-            CAST(CASE
-                WHEN vars.IsComplianceScheme = 1
-                    OR TRIM(s.organisation_size) = 'L' THEN CASE
-                    WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1
-                    ELSE 0
-                END
-                ELSE CASE
-                    WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1
-                    ELSE 0
-                END
-            END AS BIT) AS IsLateSubmission,
+
+            CASE
+                WHEN (vars.RegistrationJourney IN ('DirectSmallProducer', 'CsoSmallProducer') OR s.organisation_size = 'S')
+                    AND fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN CAST(1 AS BIT)
+                WHEN (vars.RegistrationJourney IN ('DirectLargeProducer', 'CsoLargeProducer') OR s.organisation_size = 'L' OR vars.IsComplianceScheme = 1)
+                    AND fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN CAST(1 AS BIT)
+                ELSE CAST(0 AS BIT)
+            END AS IsLateSubmission,
+
             s.FileId AS SubmittedFileId,
             COALESCE(r.UserId, s.UserId) AS SubmittedUserId,
             COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) AS RegulatorDecisionDate,
@@ -577,8 +577,7 @@ ComplianceSchemeMembersCTE AS (
                         AND csm.joiner_date IS NULL
                     ) THEN 0
             END AS IsNewJoiner
-        FROM CSSchemeDetailsCTE csm
-            ,
+        FROM CSSchemeDetailsCTE csm,
             SubmissionStatusCTE ss
         WHERE csm.FileId = ss.FileId
     ) s
@@ -668,6 +667,7 @@ CompliancePaycalCTE AS (
     LEFT JOIN derivered_variables vars ON vars.SubmissionId = csm.SubmissionId
     LEFT JOIN SubmissionStatusCTE ss ON ss.SubmissionId = csm.SubmissionId
     LEFT JOIN LatestRegistrationApplicationSubmittedCTE lras ON lras.SubmissionId = csm.SubmissionId
+    JOIN rpd.Submissions sub ON sub.SubmissionId = csm.SubmissionId
     WHERE vars.IsComplianceScheme = 1
 ),
 
