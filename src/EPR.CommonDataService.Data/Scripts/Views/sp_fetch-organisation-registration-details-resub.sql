@@ -283,13 +283,26 @@ SubmissionStatusCTE AS (
                 ELSE s.organisation_size
             END AS OrganisationType,
 
-            CASE
-                WHEN (vars.RegistrationJourney IN ('DirectSmallProducer', 'CsoSmallProducer') OR s.organisation_size = 'S')
-                    AND fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN CAST(1 AS BIT)
-                WHEN (vars.RegistrationJourney IN ('DirectLargeProducer', 'CsoLargeProducer') OR s.organisation_size = 'L' OR vars.IsComplianceScheme = 1)
-                    AND fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN CAST(1 AS BIT)
-                ELSE CAST(0 AS BIT)
-            END AS IsLateSubmission,
+            CAST(
+                CASE
+                    WHEN vars.RegistrationJourney IN ('DirectLargeProducer', 'CsoLargeProducer') THEN CASE
+                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                    END
+                    WHEN vars.RegistrationJourney IN ('DirectSmallProducer', 'CsoSmallProducer') THEN CASE
+                        WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                    END
+                    WHEN s.organisation_size = 'L' THEN CASE
+                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                    END
+                    WHEN s.organisation_size = 'S' THEN CASE
+                        WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                    END
+                    WHEN vars.IsComplianceScheme = 1 THEN CASE
+                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                    END
+                    ELSE CAST(0 AS BIT)
+                END
+            AS BIT) IsLateSubmission,
 
             s.FileId AS SubmittedFileId,
             COALESCE(r.UserId, s.UserId) AS SubmittedUserId,
