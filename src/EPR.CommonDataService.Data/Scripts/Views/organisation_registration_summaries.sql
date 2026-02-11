@@ -269,7 +269,7 @@ WITH
 				,ss.ProducerUserId
 				,ROW_NUMBER() OVER (
                     PARTITION BY s.OrganisationId,
-                    s.SubmissionPeriod, s.ComplianceSchemeId
+                    s.SubmissionPeriod, s.ComplianceSchemeId, s.AppReferenceNumber
                     ORDER BY s.Created DESC, s.load_ts DESC
                 ) AS RowNum
             FROM
