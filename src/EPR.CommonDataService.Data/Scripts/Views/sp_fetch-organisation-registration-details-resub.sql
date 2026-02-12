@@ -1,14 +1,5 @@
-﻿IF EXISTS (
-    SELECT 1
-    FROM sys.views
-    WHERE object_id = OBJECT_ID(N'[dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]')
-)
-    DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub];
-
-SET ANSI_NULLS ON;
-
-
-SET QUOTED_IDENTIFIER ON;
+﻿DROP VIEW IF EXISTS [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]
+GO
 
 
 CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS
@@ -785,4 +776,5 @@ LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.R
 INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
 INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
 INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
-INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
+INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId
+GO;
