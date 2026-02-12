@@ -3,7 +3,7 @@
     FROM sys.views
     WHERE object_id = OBJECT_ID(N'[dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]')
 )
-    DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub];
+    DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]
 GO
 
 SET ANSI_NULLS ON
