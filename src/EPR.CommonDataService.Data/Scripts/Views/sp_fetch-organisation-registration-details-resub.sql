@@ -3,14 +3,13 @@
     FROM sys.views
     WHERE object_id = OBJECT_ID(N'[dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]')
 )
-    DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]
-GO
+    DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub];
 
-SET ANSI_NULLS ON
-GO
+SET ANSI_NULLS ON;
 
-SET QUOTED_IDENTIFIER ON
-GO
+
+SET QUOTED_IDENTIFIER ON;
+
 
 CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS
 WITH derivered_variables AS (
@@ -787,4 +786,3 @@ INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
 INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
 INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
 INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
-GO
