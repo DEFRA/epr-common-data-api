@@ -777,4 +777,4 @@ INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
 INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
 INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
 INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId
-GO;
+GO
