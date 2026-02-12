@@ -6,10 +6,10 @@
     DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub];
 GO
 
-SET ANSI_NULLS ON;
+SET ANSI_NULLS ON
 GO
 
-SET QUOTED_IDENTIFIER ON;
+SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS
