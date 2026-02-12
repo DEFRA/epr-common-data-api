@@ -42,7 +42,8 @@ derivered_variables as
             ELSE DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) - 1, 10, 11)
         END
     ELSE NULL
-END AS CSLLateFeeCutoffDate
+END AS CSLLateFeeCutoffDate,
+s.RegistrationJourney
     FROM
         [rpd].[Submissions] AS S
         INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
@@ -241,18 +242,28 @@ END AS CSLLateFeeCutoffDate
 				,s.DecisionDate as SubmissionDate
 				,fs.DecisionDate as FirstSubmissionDate
 				,CASE WHEN vars.IsComplianceScheme = 1 THEN 'C' ELSE s.organisation_size END as OrganisationType -- removed @IsComplianceScheme var
-				,CAST(CASE WHEN vars.IsComplianceScheme = 1 OR UPPER(TRIM(s.organisation_size)) = 'L' THEN -- removed @IsComplianceScheme --added DG1 UPPER clasue
-						CASE
-							WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 --removed @CSLLateFeeCutoffDate var
-							ELSE 0
-						END
-				      ELSE
-						CASE
-							WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 --removed @SmallLateFeeCutoffDate var
-							ELSE 0
-						END
-				 END AS BIT
-                ) AS IsLateSubmission
+
+                ,CAST(
+                    CASE
+                        WHEN vars.RegistrationJourney IN ('DirectLargeProducer', 'CsoLargeProducer') THEN CASE
+                            WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        END
+                        WHEN vars.RegistrationJourney IN ('DirectSmallProducer', 'CsoSmallProducer') THEN CASE
+                            WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                        END
+                        WHEN s.organisation_size = 'L' THEN CASE
+                            WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        END
+                        WHEN s.organisation_size = 'S' THEN CASE
+                            WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                        END
+                        WHEN vars.IsComplianceScheme = 1 THEN CASE
+                            WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        END
+                        ELSE CAST(0 AS BIT)
+                    END
+                AS BIT) IsLateSubmission
+
 				,s.FileId as SubmittedFileId
 				,COALESCE(r.UserId, s.UserId) AS SubmittedUserId			
 				,COALESCE(ld.DecisionDate, reg.DecisionDate, id.DecisionDate) as RegulatorDecisionDate
