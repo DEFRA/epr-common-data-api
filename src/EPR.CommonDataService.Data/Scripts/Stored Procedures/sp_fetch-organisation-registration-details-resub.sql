@@ -71,6 +71,4 @@ BEGIN
 	from dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
     join apps.Submissions s on s.SubmissionId = o.SubmissionId
     where o.SubmissionId = @SubmissionId;
-END;
-go
-
+END
