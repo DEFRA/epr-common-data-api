@@ -1,4 +1,4 @@
-﻿using EPR.CommonDataService.Api.Configuration;
+using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +44,8 @@ public static class ServiceProviderExtensions
             {
                 options.UseSqlServer(connectionString);
             }
+
+            options.AddInterceptors(new TimeoutInterceptor());
         });
 
         return services;
