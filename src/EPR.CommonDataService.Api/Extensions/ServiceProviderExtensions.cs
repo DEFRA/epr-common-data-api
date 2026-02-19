@@ -1,8 +1,10 @@
+using System.IO.Compression;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
 
 namespace EPR.CommonDataService.Api.Extensions;
@@ -13,6 +15,7 @@ public static class ServiceProviderExtensions
     private const string BaseProblemTypePath = "ApiConfig:BaseProblemTypePath";
     public static IServiceCollection RegisterWebComponents(this IServiceCollection services, IConfiguration configuration)
     {
+        AddResponseCompression(services);
         AddControllers(services, configuration);
         ConfigureOptions(services, configuration);
         RegisterServices(services);
@@ -49,6 +52,21 @@ public static class ServiceProviderExtensions
         });
 
         return services;
+    }
+
+    private static void AddResponseCompression(IServiceCollection services)
+    {
+        services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true;
+            options.Providers.Add<GzipCompressionProvider>();
+            options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/x-ndjson"]);
+        });
+
+        services.Configure<GzipCompressionProviderOptions>(options =>
+        {
+            options.Level = CompressionLevel.Fastest;
+        });
     }
 
     private static void AddControllers(IServiceCollection services, IConfiguration configuration)
