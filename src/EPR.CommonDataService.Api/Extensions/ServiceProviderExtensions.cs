@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.Json.Serialization;
 using EPR.CommonDataService.Api.Configuration;
+using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -105,6 +106,7 @@ public static class ServiceProviderExtensions
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
+        services.AddScoped<IStreamOrganisationsRequestHandler, StreamOrganisationsRequestHandler>();
         services.AddScoped<IStreamPomsRequestHandler, StreamPomsRequestHandler>();
     }
 }
