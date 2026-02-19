@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
+using FluentValidation;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
 
@@ -96,6 +97,7 @@ public static class ServiceProviderExtensions
 
     private static void RegisterServices(IServiceCollection services)
     {
+        services.AddValidatorsFromAssemblyContaining(typeof(Program));
         services.AddScoped<IRegistrationFeeCalculationDetailsService, RegistrationFeeCalculationDetailsService>();
         services.AddScoped<IProducerDetailsService, ProducerDetailsService>();
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
