@@ -26,6 +26,8 @@ public class SynapseContext : DbContext
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
     public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
+    public DbSet<PayCalOrganisation> PayCalOrganisations { get; set; } = null!;
+    public DbSet<PayCalPom> PayCalPoms { get; set; } = null!;
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -45,6 +47,50 @@ public class SynapseContext : DbContext
         var stringToGuidConverter = StringToGuidConverter.Get();
         var intToBoolConverter = IntToBoolConverter.Get();
         var stringToIntConverter = StringToIntConverter.Get();
+
+        modelBuilder.Entity<PayCalOrganisation>(entity =>
+        {
+            // Must have a key to allow inserts for unit tests
+            if (Database.ProviderName == InMemoryProvider)
+                entity.HasKey(e => new{e.SubmissionPeriodYear, e.OrganisationId});
+            else
+                entity.HasNoKey();
+
+            entity.ToTable("t_producer_obligation_determination", schema: "dbo");
+            entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
+            entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
+            entity.Property(e => e.OrganisationName).HasColumnName("organisation_name").HasMaxLength(4000);
+            entity.Property(e => e.TradingName).HasColumnName("trading_name").HasMaxLength(4000);
+            entity.Property(e => e.StatusCode).HasColumnName("status_code").HasMaxLength(4000);
+            entity.Property(e => e.LeaverDate).HasColumnName("leaver_date").HasMaxLength(4000);
+            entity.Property(e => e.JoinerDate).HasColumnName("joiner_date").HasMaxLength(4000);
+            entity.Property(e => e.ObligationStatus).HasColumnName("obligation_status").HasMaxLength(1).IsFixedLength();
+            entity.Property(e => e.NumDaysObligated).HasColumnName("num_days_obligated");
+            entity.Property(e => e.ErrorCode).HasColumnName("error_code").HasMaxLength(4000);
+            entity.Property(e => e.SubmissionPeriodYear).HasColumnName("submission_period_year");
+        });
+
+        modelBuilder.Entity<PayCalPom>(entity =>
+        {
+            // Must have a key to allow inserts for unit tests
+            if (Database.ProviderName == InMemoryProvider)
+                entity.HasKey(e => new{e.SubmissionPeriod, e.OrganisationId, e.PackagingType, e.PackagingMaterial});
+            else
+                entity.HasNoKey();
+
+            entity.ToView("v_PayCal_Pom_MYC", schema: "dbo");
+            entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
+            entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
+            entity.Property(e => e.SubmissionPeriod).HasColumnName("submission_period").HasMaxLength(4000);
+            entity.Property(e => e.SubmissionPeriodDescription).HasColumnName("submission_period_desc").HasMaxLength(4000);
+            entity.Property(e => e.PackagingActivity).HasColumnName("packaging_activity").HasMaxLength(4000);
+            entity.Property(e => e.PackagingType).HasColumnName("packaging_type").HasMaxLength(4000);
+            entity.Property(e => e.PackagingClass).HasColumnName("packaging_class").HasMaxLength(4000);
+            entity.Property(e => e.PackagingMaterial).HasColumnName("packaging_material").HasMaxLength(4000);
+            entity.Property(e => e.PackagingMaterialWeight).HasColumnName("packaging_material_weight");
+        });
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
