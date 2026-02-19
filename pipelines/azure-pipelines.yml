@@ -24,6 +24,8 @@ variables:
     value: src
   - name: projectFolder
     value: EPR.CommonDataService.Api
+  - name: dataFolder
+    value: EPR.CommonDataService.Data
   - name: testProjectFolder
     value: EPR.CommonDataService.Core.UnitTests
   - name: sonarQubeProjectKey
@@ -51,6 +53,7 @@ extends:
   parameters:
     solutionFolder: ${{ variables.solutionFolder }}
     projectFolder: ${{ variables.projectFolder }}
+    dataFolder: ${{ variables.dataFolder }}
     testProjectFolder: ${{ variables.testProjectFolder }}
     sonarQubeProjectKey: ${{ variables.sonarQubeProjectKey }}
     sonarQubeProjectName: ${{ variables.sonarQubeProjectName }}
@@ -63,3 +66,4 @@ extends:
     serviceName: $(serviceName)
     dotnetVersion: ${{ variables.dotnetVersion }}
     sonarqubeInstance: ${{ parameters.sonarqubeInstance }}
+    buildMigrationScript: true
