@@ -27,6 +27,7 @@ public static class Program
 
         var app = builder.Build();
 
+        app.UseResponseCompression();
         app.UseSwagger();
         app.UseSwaggerUI();
 
