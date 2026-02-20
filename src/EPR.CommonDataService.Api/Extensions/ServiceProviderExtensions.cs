@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
+using EPR.CommonDataService.Api.Infrastructure;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using FluentValidation;
@@ -22,7 +23,7 @@ public static class ServiceProviderExtensions
         AddResponseCompression(services);
         AddControllers(services, configuration);
         ConfigureOptions(services, configuration);
-        RegisterServices(services);
+        RegisterServices(services, configuration);
 
         return services;
     }
@@ -98,7 +99,7 @@ public static class ServiceProviderExtensions
         services.Configure<ApiConfig>(configuration.GetSection(nameof(ApiConfig)));
     }
 
-    private static void RegisterServices(IServiceCollection services)
+    private static void RegisterServices(IServiceCollection services, IConfiguration configuration)
     {
         services.AddValidatorsFromAssemblyContaining(typeof(Program));
         services.AddScoped<IRegistrationFeeCalculationDetailsService, RegistrationFeeCalculationDetailsService>();
@@ -108,5 +109,7 @@ public static class ServiceProviderExtensions
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
         services.AddScoped<IStreamOrganisationsRequestHandler, StreamOrganisationsRequestHandler>();
         services.AddScoped<IStreamPomsRequestHandler, StreamPomsRequestHandler>();
+        services.AddSingleton(new ConcurrentRequestSemaphoreProvider(configuration.GetSection("ApiConfig:RequestLimits")));
+        services.AddScoped<ConcurrentRequestLimiter>();
     }
 }

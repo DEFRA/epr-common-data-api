@@ -19,6 +19,7 @@ public sealed class PomsController(
     : ApiControllerBase(apiConfig)
 {
     [HttpGet("stream")]
+    [ServiceFilter(typeof(ConcurrentRequestLimiter))]
     [ProducesResponseType(typeof(void), StatusCodes.Status200OK, "application/x-ndjson")] // typeof(void) as NDJSON stream can't be represented in OpenAPI spec
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
