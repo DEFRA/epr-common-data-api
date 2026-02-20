@@ -1,15 +1,18 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using FluentValidation;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Extensions;
 
@@ -17,9 +20,12 @@ namespace EPR.CommonDataService.Api.Extensions;
 public static class ServiceProviderExtensions
 {
     private const string BaseProblemTypePath = "ApiConfig:BaseProblemTypePath";
-    public static IServiceCollection RegisterWebComponents(this IServiceCollection services, IConfiguration configuration)
+
+    public static IServiceCollection RegisterWebComponents(this IServiceCollection services,
+        IConfiguration configuration)
     {
         AddResponseCompression(services);
+        AddRateLimiter(services);
         AddControllers(services, configuration);
         ConfigureOptions(services, configuration);
         RegisterServices(services);
@@ -27,7 +33,42 @@ public static class ServiceProviderExtensions
         return services;
     }
 
-    public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
+    private static void AddRateLimiter(IServiceCollection services)
+    {
+        services.AddRateLimiter(_ => { });
+
+        services
+            .AddOptions<RateLimiterOptions>()
+            .Configure<IOptions<ApiRateLimitOptions>>((options, apiRateLimits) =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                AddLimiter(ApiRateLimitOptions.PayCalOrganisationsStreamPolicy);
+                AddLimiter(ApiRateLimitOptions.PayCalPomsStreamPolicy);
+
+                void AddLimiter(string policyName)
+                {
+                    var policy = apiRateLimits.Value.Policies
+                        .GetValueOrDefault(policyName, new ApiRateLimitOptions.ConcurrentLimitPolicy());
+
+                    if (!apiRateLimits.Value.Enabled || !policy.Enabled)
+                    {
+                        // We still need a policy to be registered otherwise the endpoint will error when called.
+                        options.AddPolicy(policyName, _ => RateLimitPartition.GetNoLimiter(string.Empty));
+                        return;
+                    }
+
+                    options.AddConcurrencyLimiter(policyName, limiterOpts =>
+                    {
+                        limiterOpts.PermitLimit = policy.PermitLimit;
+                        limiterOpts.QueueLimit = policy.QueueLimit;
+                    });
+                }
+            });
+    }
+
+    public static IServiceCollection RegisterDataComponents(this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddDbContext<SynapseContext>(options =>
         {
@@ -48,9 +89,7 @@ public static class ServiceProviderExtensions
                 options.UseSqlServer(sqlConnection);
             }
             else
-            {
                 options.UseSqlServer(connectionString);
-            }
 
             options.AddInterceptors(new TimeoutInterceptor());
         });
@@ -67,10 +106,7 @@ public static class ServiceProviderExtensions
             options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/x-ndjson"]);
         });
 
-        services.Configure<GzipCompressionProviderOptions>(options =>
-        {
-            options.Level = CompressionLevel.Fastest;
-        });
+        services.Configure<GzipCompressionProviderOptions>(options => { options.Level = CompressionLevel.Fastest; });
     }
 
     private static void AddControllers(IServiceCollection services, IConfiguration configuration)
@@ -96,6 +132,11 @@ public static class ServiceProviderExtensions
     private static void ConfigureOptions(IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<ApiConfig>(configuration.GetSection(nameof(ApiConfig)));
+
+        services
+            .AddOptionsWithValidateOnStart<ApiRateLimitOptions>()
+            .Bind(configuration.GetSection(ApiRateLimitOptions.ConfigSection))
+            .ValidateDataAnnotations();
     }
 
     private static void RegisterServices(IServiceCollection services)

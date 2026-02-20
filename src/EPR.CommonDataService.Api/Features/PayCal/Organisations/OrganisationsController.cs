@@ -1,10 +1,11 @@
-﻿using System.Net.Mime;
+using System.Net.Mime;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Controllers;
 using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Infrastructure;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Features.PayCal.Organisations;
@@ -19,6 +20,7 @@ public sealed class OrganisationsController(
     : ApiControllerBase(apiConfig)
 {
     [HttpGet("stream")]
+    [EnableRateLimiting(ApiRateLimitOptions.PayCalOrganisationsStreamPolicy)]
     [ProducesResponseType(typeof(void), StatusCodes.Status200OK, "application/x-ndjson")] // typeof(void) as NDJSON stream can't be represented in OpenAPI spec
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
