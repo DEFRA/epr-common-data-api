@@ -11,10 +11,10 @@ RUN mkdir /home/nonroot/sql
 WORKDIR /home/nonroot/sql
 
 # Copy the migration files and scripts
-COPY ["Create Tables/.", "/Tables/"]
-COPY Functions/. /Functions/
-COPY ["Stored Procedures/.", "/Procedures/"]
-COPY Views/. /Views/
+COPY ["Create Tables/.", "./scripts/tables/"]
+COPY Functions/. ./scripts/functions/
+COPY ["Stored Procedures/.", "./scripts/procedures/"]
+COPY Views/. ./scripts/views/
 COPY --chown=nonroot run-migrations.sh .
 
 RUN chmod +x run-migrations.sh
