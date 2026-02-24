@@ -8,8 +8,7 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-CREATE VIEW [apps].[v_OrganisationRegistrationSummaries] AS 
-WITH
+CREATE VIEW [apps].[v_OrganisationRegistrationSummaries] AS WITH
 	SubmissionEventsCTE as (
 		select * from (
 			SELECT
@@ -20,9 +19,9 @@ WITH
 				decisions.UserId,
 				decisions.Type,
 				decisions.FileId,
-				CASE 
+				CASE
 					WHEN decisions.Type = 'RegulatorRegistrationDecision' AND decisions.FileId IS NULL THEN
-						CASE 
+						CASE
 							WHEN LTRIM(RTRIM(decisions.Decision)) = 'Accepted' THEN 'Granted'
 							WHEN LTRIM(RTRIM(decisions.Decision)) = 'Rejected' THEN 'Refused'
 							WHEN decisions.Decision IS NULL THEN 'Pending'
@@ -30,9 +29,9 @@ WITH
 						END
 					ELSE NULL
 				END AS SubmissionStatus,
-				CASE 
+				CASE
 					WHEN decisions.Type = 'RegulatorRegistrationDecision' AND decisions.FileId IS NOT NULL THEN
-						CASE 
+						CASE
 							WHEN decisions.Decision IS NULL THEN 'Pending'
 							ELSE decisions.Decision
 						END
@@ -41,10 +40,10 @@ WITH
 				CASE WHEN decisions.Type = 'RegulatorRegistrationDecision' AND FileId IS NULL THEN 1 ELSE 0 END AS IsRegulatorDecision,
 				CASE WHEN decisions.Type = 'RegulatorRegistrationDecision' AND FileId IS NOT NULL THEN 1 ELSE 0 END AS IsRegulatorResubmissionDecision,
 				CASE WHEN decisions.Type = 'Submitted' THEN 1 ELSE 0 END AS UploadEvent,
-				CASE 
+				CASE
 					WHEN decisions.Type = 'RegistrationApplicationSubmitted' AND ISNULL(decisions.IsResubmission,0) = 0 THEN 1 ELSE 0
 				END AS IsProducerSubmission,
-				CASE 
+				CASE
 					WHEN decisions.Type = 'RegistrationApplicationSubmitted' AND ISNULL(decisions.IsResubmission,0) = 1 THEN 1 ELSE 0
 				END AS IsProducerResubmission,
 				decisions.RegistrationReferenceNumber,
@@ -108,7 +107,7 @@ WITH
 			FROM ReconciledSubmissionEvents
 			WHERE IsRegulatorDecision = 1 AND IsRegulatorResubmissionDecision = 0
 			AND SubmissionStatus = 'Granted'
-		) t where RowNum = 1		
+		) t where RowNum = 1
 	)
 	,LatestDecisionCTE AS (
 		SELECT * FROM (
@@ -153,7 +152,7 @@ WITH
 			rd.SubmissionEventId AS ResubmissionDecisionEventId,
 			r.DecisionDate as ResubmissionDate,
 			r.Comment as ResubmissionComment,
-			r.UserId as ResubmittedUserId, 
+			r.UserId as ResubmittedUserId,
 			r.SubmissionEventId AS ResubmissionEventId,
 			COALESCE(r.FileId, s.FileId) AS FileId,
 			COALESCE(r.UserId, s.UserId) AS ProducerUserId,
@@ -185,7 +184,7 @@ WITH
 				,o.Id as OrganisationInternalId
 				,o.ExternalId as OrganisationId
                 ,s.AppReferenceNumber AS ApplicationReferenceNumber
-                ,CASE 
+                ,CASE
 					WHEN cs.NationId IS NOT NULL THEN cs.NationId
 					ELSE
 					CASE UPPER(org.NationCode)
@@ -217,7 +216,7 @@ WITH
 				,ss.RegistrationDate
 				,ss.SubmissionDate as SubmittedDateTime
 				,ss.FirstSubmissionDate
-                ,CASE WHEN ss.ResubmissionDate IS NOT NULL 
+                ,CASE WHEN ss.ResubmissionDate IS NOT NULL
 						  THEN 1
 						  ELSE 0
 				 END as IsResubmission
@@ -239,9 +238,9 @@ WITH
 				,CASE UPPER(TRIM(org.organisationsize))
 					WHEN 'S' THEN 'Small'
 					WHEN 'L' THEN 'Large'
-				 END 
+				 END
 				 as ProducerSize
-				,CASE WHEN s.ComplianceSchemeId is not null THEN 1 ELSE 0 END 
+				,CASE WHEN s.ComplianceSchemeId is not null THEN 1 ELSE 0 END
 				 as IsComplianceScheme
 				,ss.RegulatorUserId
 				,ss.ProducerSubmissionEventId
@@ -274,12 +273,12 @@ WITH
                 ) AS RowNum
             FROM
                 [rpd].[Submissions] AS s
-                INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org 
-					ON org.SubmittingExternalId = s.OrganisationId 
+                INNER JOIN [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] org
+					ON org.SubmittingExternalId = s.OrganisationId
 					and org.SubmissionPeriod = s.SubmissionPeriod
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
-				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId 
+				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
 				AND s.IsSubmitted = 1
@@ -298,7 +297,7 @@ WITH
             ,ReferenceNumber as OrganisationReference
             ,SubmittedUserId
             ,IsComplianceScheme
-			,CASE 
+			,CASE
 				WHEN IsComplianceScheme = 1 THEN 'Compliance'
 				ELSE ProducerSize
 			END AS OrganisationType

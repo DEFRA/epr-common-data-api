@@ -12,8 +12,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS
-WITH derivered_variables AS (
+CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WITH
+    derivered_variables AS (
     SELECT O.Id AS OrganisationIDForSubmission,
         O.ExternalId AS OrganisationUUIDForSubmission,
         O.ReferenceNumber AS CSOReferenceNumber,
@@ -490,7 +490,11 @@ SubmissionDetails AS (
             END AS NationCode,
             ss.RegulatorUserId,
             ss.ResubmissionEventId,
-            GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) AS RegulatorDecisionDate,
+            --GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) AS RegulatorDecisionDate,
+            CASE
+                WHEN ss.RegistrationDecisionDate > ss.RegulatorDecisionDate THEN ss.RegistrationDecisionDate
+                ELSE ss.RegulatorDecisionDate
+            END AS RegulatorDecisionDate,
             ss.ResubmissionDecisionDate AS RegulatorResubmissionDecisionDate,
             CASE
                 WHEN ss.SubmissionStatus = 'Cancelled' THEN ss.StatusPendingDate

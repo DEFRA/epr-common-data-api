@@ -6,9 +6,7 @@
 
 GO
 
-CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] 
-AS 
-WITH
+CREATE VIEW [dbo].[v_UploadedRegistrationDataBySubmissionPeriod] AS WITH
     LatestUploadedData
     AS
     (
@@ -133,5 +131,5 @@ SELECT
     *
 FROM
     companyandfiledetails;
-    
+
 GO
