@@ -3,10 +3,7 @@
 GO
 
 CREATE FUNCTION [dbo].[fn_GetUploadedOrganisationDetails_resub] (@OrganisationUUID [nvarchar](40),@SubmissionPeriod [nvarchar](25)) RETURNS TABLE
-AS
-RETURN (	   
-
-WITH
+AS RETURN ( WITH
     LatestUploadedData
     AS
     (

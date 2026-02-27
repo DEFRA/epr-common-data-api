@@ -6,9 +6,7 @@
 
 GO
 
-CREATE VIEW [dbo].[v_ProducerPaycalParameters]
-AS
-WITH 
+CREATE VIEW [dbo].[v_ProducerPaycalParameters] AS WITH
     SubsidiaryCountsCTE
     AS
     (
@@ -18,7 +16,7 @@ WITH
             ,COUNT(DISTINCT subsidiary_id) AS NumberOfSubsidiaries
         FROM
             rpd.companydetails cd
-        WHERE organisation_id IS NOT NULL 
+        WHERE organisation_id IS NOT NULL
         GROUP BY organisation_id, FileName
     )
 	,OnlineMarketSubsidiaryCountCTE
@@ -43,15 +41,15 @@ WITH
             ,ISNULL(sc.NumberOfSubsidiaries,0) as NumberOfSubsidiaries
             ,ISNULL(ms.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) as NumberOfSubsidiariesBeingOnlineMarketPlace
         FROM
-            SubsidiaryCountsCTE AS sc 
-            LEFT OUTER JOIN OnlineMarketSubsidiaryCountCTE AS ms 
+            SubsidiaryCountsCTE AS sc
+            LEFT OUTER JOIN OnlineMarketSubsidiaryCountCTE AS ms
 				ON sc.OrganisationReference = ms.OrganisationReference
 				AND sc.FileName = ms.FileName
     )
 	,MostRecentOrganisationSizeCTE
     AS
     (
-        select a.* from 
+        select a.* from
 		(SELECT
             DISTINCT
             organisation_id	as OrganisationReference
@@ -66,7 +64,7 @@ WITH
 				WHEN 'SECONDARY' THEN 1
 				WHEN 'PRIMARY' THEN 1
 				ELSE 0
-			END AS IsOnlineMarketPlace        
+			END AS IsOnlineMarketPlace
 			,ROW_NUMBER() OVER (
 				PARTITION BY organisation_id, FileName
 				ORDER BY cd.load_ts DESC
@@ -90,7 +88,7 @@ WITH
             ,ISNULL(smp.NumberOfSubsidiariesBeingOnlineMarketPlace, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace
         FROM
             SubsidiaryAndMarketPlaceCountsCTE AS smp
-            LEFT JOIN MostRecentOrganisationSizeCTE mros 
+            LEFT JOIN MostRecentOrganisationSizeCTE mros
 				ON mros.OrganisationReference = smp.OrganisationReference
 				AND mros.FileName = smp.FileName
             LEFT JOIN rpd.Organisations o ON o.ReferenceNumber = smp.OrganisationReference

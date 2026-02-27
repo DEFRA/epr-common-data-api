@@ -12,8 +12,8 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS
-WITH derivered_variables AS (
+CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WITH
+    derivered_variables AS (
     SELECT O.Id AS OrganisationIDForSubmission,
         O.ExternalId AS OrganisationUUIDForSubmission,
         O.ReferenceNumber AS CSOReferenceNumber,
