@@ -490,11 +490,7 @@ SubmissionDetails AS (
             END AS NationCode,
             ss.RegulatorUserId,
             ss.ResubmissionEventId,
-            --GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) AS RegulatorDecisionDate,
-            CASE
-                WHEN ss.RegistrationDecisionDate > ss.RegulatorDecisionDate THEN ss.RegistrationDecisionDate
-                ELSE ss.RegulatorDecisionDate
-            END AS RegulatorDecisionDate,
+            GREATEST(ss.RegistrationDecisionDate, ss.RegulatorDecisionDate) AS RegulatorDecisionDate,
             ss.ResubmissionDecisionDate AS RegulatorResubmissionDecisionDate,
             CASE
                 WHEN ss.SubmissionStatus = 'Cancelled' THEN ss.StatusPendingDate
