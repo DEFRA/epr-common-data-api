@@ -97,7 +97,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
         try
         {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 640);
             var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
                 new SqlParameter("@PeriodYear", SqlDbType.VarChar) { Value = periodYear.ToString() },
                 new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
