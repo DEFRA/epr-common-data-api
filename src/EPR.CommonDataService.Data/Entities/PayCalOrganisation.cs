@@ -18,4 +18,6 @@ public record PayCalOrganisation
     public short? NumDaysObligated { get; init; }
     public string? ErrorCode { get; init; }
     public int? SubmissionPeriodYear { get; init; }
+    public bool HasH1 { get; init; }
+    public bool HasH2 { get; init; }
 }

@@ -50,13 +50,8 @@ public class SynapseContext : DbContext
 
         modelBuilder.Entity<PayCalOrganisation>(entity =>
         {
-            // Must have a key to allow inserts for unit tests
-            if (Database.ProviderName == InMemoryProvider)
-                entity.HasKey(e => new{e.SubmissionPeriodYear, e.OrganisationId});
-            else
-                entity.HasNoKey();
-
-            entity.ToTable("t_producer_obligation_determination", schema: "dbo");
+            // The data source for this entity is a stored procedure - sp_GetPaycalOrgData
+            entity.HasNoKey();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
             entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
@@ -69,6 +64,8 @@ public class SynapseContext : DbContext
             entity.Property(e => e.NumDaysObligated).HasColumnName("num_days_obligated");
             entity.Property(e => e.ErrorCode).HasColumnName("error_code").HasMaxLength(4000);
             entity.Property(e => e.SubmissionPeriodYear).HasColumnName("submission_period_year");
+            entity.Property(e => e.HasH1).HasColumnName("has_h1");
+            entity.Property(e => e.HasH2).HasColumnName("has_h2");
         });
 
         modelBuilder.Entity<PayCalPom>(entity =>
