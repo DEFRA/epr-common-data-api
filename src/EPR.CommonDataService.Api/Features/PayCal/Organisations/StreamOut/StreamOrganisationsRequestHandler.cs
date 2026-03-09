@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,8 @@ public interface IStreamOrganisationsRequestHandler
     IAsyncEnumerable<OrganisationResponse> Handle(StreamOrganisationsRequest request);
 }
 
+[ExcludeFromCodeCoverage(Justification =
+    "The stored procedure call is not compatible with SQLite or InMemory databases.")]
 public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
     : IStreamOrganisationsRequestHandler
 {
@@ -15,8 +18,9 @@ public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
     {
         var organisations = dbContext
             .PayCalOrganisations
+            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalOrgData] @RelativeYear={request.RelativeYear}")
             .AsNoTracking()
-            .Where(org => org.SubmissionPeriodYear == request.RelativeYear)
+            .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
             .AsAsyncEnumerable();
 
         await foreach (var org in organisations)
@@ -32,7 +36,9 @@ public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
                 LeaverDate = org.LeaverDate,
                 ObligationStatus = org.ObligationStatus,
                 NumDaysObligated = org.NumDaysObligated,
-                SubmitterId = org.SubmitterId
+                SubmitterId = org.SubmitterId,
+                HasH1 = org.HasH1,
+                HasH2 = org.HasH2,
             };
     }
 }
