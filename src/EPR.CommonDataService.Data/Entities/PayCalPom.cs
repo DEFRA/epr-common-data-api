@@ -15,5 +15,7 @@ public record PayCalPom
     public string? PackagingType { get; init; }
     public string? PackagingClass { get; init; }
     public string? PackagingMaterial { get; init; }
+    public string? PackagingMaterialSubtype { get; init; }
     public double? PackagingMaterialWeight { get; init; }
+    public string? RamRagRating { get; init; }
 }
