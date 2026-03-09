@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,22 +9,18 @@ public interface IStreamPomsRequestHandler
     IAsyncEnumerable<PomResponse> Handle(StreamPomsRequest request);
 }
 
+[ExcludeFromCodeCoverage(Justification =
+    "The stored procedure call is not compatible with SQLite or InMemory databases.")]
 public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
     : IStreamPomsRequestHandler
 {
     public async IAsyncEnumerable<PomResponse> Handle(StreamPomsRequest request)
     {
-        // SQL filter to match all POM SubmissionPeriods for the requested RelativeYear.
-        // For POMs this should be the year prior to RelativeYear.
-        var filter = $"{request.RelativeYear - 1}%";
-
         var poms = dbContext
             .PayCalPoms
-            .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to the poor performance of the underlying view
+            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalPomData] @RelativeYear={request.RelativeYear}")
             .AsNoTracking()
-            // ReSharper disable once EntityFramework.ClientSideDbFunctionCall - Incorrect analysis result (due to WithTimeout extension method)
-            // Synapse requires use of EF.Functions
-            .Where(x => EF.Functions.Like(x.SubmissionPeriod, filter))
+            .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
             .AsAsyncEnumerable();
 
         await foreach (var pom in poms)
@@ -35,9 +32,11 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
                 SubsidiaryId = pom.SubsidiaryId,
                 PackagingType = pom.PackagingType,
                 PackagingMaterial = pom.PackagingMaterial,
+                PackagingMaterialSubType = pom.PackagingMaterialSubType,
                 PackagingMaterialWeight = pom.PackagingMaterialWeight,
                 PackagingClass = pom.PackagingClass,
                 PackagingActivity = pom.PackagingActivity,
+                RamRagRating = pom.RamRagRating,
                 SubmitterId = pom.SubmitterId
             };
     }
