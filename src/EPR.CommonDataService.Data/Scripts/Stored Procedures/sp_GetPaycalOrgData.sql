@@ -1,9 +1,9 @@
 -- Dropping stored procedure if it exists
-IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_getPaycalOrgData]'))
-DROP PROCEDURE [dbo].[sp_getPaycalOrgData];
+IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_GetPaycalOrgData]'))
+DROP PROCEDURE [dbo].[sp_GetPaycalOrgData];
 GO
 
-CREATE PROC [dbo].[sp_getPaycalOrgData]
+CREATE PROC [dbo].[sp_GetPaycalOrgData]
 AS
 BEGIN
 
@@ -104,7 +104,7 @@ BEGIN
     ([ID], [ProcessName], [SubProcessName], [Count], [start_time_stamp], [end_time_stamp], [Comments], batch_id)
   SELECT
     (SELECT ISNULL(MAX(id), 1) + 1 FROM [dbo].[batch_log]),
-    'dbo.sp_getPaycalOrgData',
+    'dbo.sp_GetPaycalOrgData',
     '',
     NULL,
     @start_dt,
