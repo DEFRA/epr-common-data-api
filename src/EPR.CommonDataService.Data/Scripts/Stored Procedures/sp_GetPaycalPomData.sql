@@ -142,6 +142,8 @@ BEGIN
         , p.packaging_class
         , p.packaging_material
         , p.packaging_material_weight
+		, p.ram_rag_rating
+        , p.packaging_material_subtype
         , lap.submission_period_desc
         , lap.submitter_id
         FROM rpd.POM p
