@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 	DROP PROCEDURE [dbo].[sp_GetPaycalPomData];
 GO
 
-CREATE PROCEDURE [dbo].[sp_GetPaycalPomData] @SubmissionPeriodYear INT
+CREATE PROCEDURE [dbo].[sp_GetPaycalPomData] @RelativeYear INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -162,7 +162,7 @@ BEGIN
         and p.organisation_size = 'L'
         AND (p.to_country IS NULL OR trim(p.to_country) = '')
         AND p.organisation_id IS NOT NULL
-        AND LEFT(p.submission_period,4) = @SubmissionPeriodYear 
+        AND LEFT(p.submission_period,4) = (@RelativeYear - 1)
 
 	  END
 
