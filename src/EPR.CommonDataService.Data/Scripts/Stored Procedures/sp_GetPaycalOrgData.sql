@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 	DROP PROCEDURE [dbo].[sp_GetPaycalOrgData];
 GO
 
-CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData] @SubmissionPeriodYear INT
+CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData] @RelativeYear INT
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -95,7 +95,7 @@ BEGIN
 	       AND ISNULL(ob.subsidiary_id, '') = ISNULL(opf.subsidiary_id, '')
 	       AND ISNULL(ob.submitter_id, '') = ISNULL(opf.submitter_id, '')
 	       AND ob.submission_period_year = opf.submission_period_year
-           WHERE ob.submission_period_year = @SubmissionPeriodYear;
+           WHERE ob.submission_period_year = @RelativeYear;
 	  END
 
     INSERT INTO [dbo].[batch_log]
