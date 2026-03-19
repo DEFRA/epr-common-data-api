@@ -1,18 +1,29 @@
-﻿using EPR.CommonDataService.Api.Configuration;
+using System.Diagnostics.CodeAnalysis;
+using System.IO.Compression;
+using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using EPR.CommonDataService.Api.Configuration;
+using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
+using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json.Serialization;
+using FluentValidation;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Extensions;
 
-[System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute]
+[ExcludeFromCodeCoverage]
 public static class ServiceProviderExtensions
 {
     private const string BaseProblemTypePath = "ApiConfig:BaseProblemTypePath";
     public static IServiceCollection RegisterWebComponents(this IServiceCollection services, IConfiguration configuration)
     {
+        AddResponseCompression(services);
+        AddRateLimiter(services, configuration);
         AddControllers(services, configuration);
         ConfigureOptions(services, configuration);
         RegisterServices(services);
@@ -20,7 +31,8 @@ public static class ServiceProviderExtensions
         return services;
     }
 
-    public static IServiceCollection RegisterDataComponents(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection RegisterDataComponents(this IServiceCollection services,
+        IConfiguration configuration)
     {
         services.AddDbContext<SynapseContext>(options =>
         {
@@ -44,9 +56,65 @@ public static class ServiceProviderExtensions
             {
                 options.UseSqlServer(connectionString);
             }
+
+            options.AddInterceptors(new TimeoutInterceptor());
         });
 
         return services;
+    }
+
+    private static void AddResponseCompression(IServiceCollection services)
+    {
+        services.AddResponseCompression(options =>
+        {
+            options.EnableForHttps = true;
+            options.Providers.Add<GzipCompressionProvider>();
+            options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(["application/x-ndjson"]);
+        });
+
+        services.Configure<GzipCompressionProviderOptions>(options =>
+        {
+            options.Level = CompressionLevel.Fastest;
+        });
+    }
+
+    private static void AddRateLimiter(IServiceCollection services, IConfiguration configuration)
+    {
+        services
+            .AddOptionsWithValidateOnStart<ApiRateLimitOptions>()
+            .Bind(configuration.GetSection(ApiRateLimitOptions.ConfigSection))
+            .ValidateDataAnnotations();
+
+        services
+            .AddOptions<RateLimiterOptions>()
+            .Configure<IOptions<ApiRateLimitOptions>>((options, apiRateLimits) =>
+            {
+                options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+                AddLimiter(ApiRateLimitOptions.PayCalOrganisationsStreamPolicy);
+                AddLimiter(ApiRateLimitOptions.PayCalPomsStreamPolicy);
+
+                void AddLimiter(string policyName)
+                {
+                    var policy = apiRateLimits.Value.Policies
+                        .GetValueOrDefault(policyName, new ApiRateLimitOptions.ConcurrentLimitPolicy());
+
+                    if (!apiRateLimits.Value.Enabled || !policy.Enabled)
+                    {
+                        // We still need a policy to be registered otherwise the endpoint will error when called.
+                        options.AddPolicy(policyName, _ => RateLimitPartition.GetNoLimiter(string.Empty));
+                        return;
+                    }
+
+                    options.AddConcurrencyLimiter(policyName, limiterOpts =>
+                    {
+                        limiterOpts.PermitLimit = policy.PermitLimit;
+                        limiterOpts.QueueLimit = policy.QueueLimit;
+                    });
+                }
+            });
+
+        services.AddRateLimiter(_ => { });
     }
 
     private static void AddControllers(IServiceCollection services, IConfiguration configuration)
@@ -76,10 +144,13 @@ public static class ServiceProviderExtensions
 
     private static void RegisterServices(IServiceCollection services)
     {
+        services.AddValidatorsFromAssemblyContaining(typeof(Program));
         services.AddScoped<IRegistrationFeeCalculationDetailsService, RegistrationFeeCalculationDetailsService>();
         services.AddScoped<IProducerDetailsService, ProducerDetailsService>();
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
+        services.AddScoped<IStreamOrganisationsRequestHandler, StreamOrganisationsRequestHandler>();
+        services.AddScoped<IStreamPomsRequestHandler, StreamPomsRequestHandler>();
     }
 }
