@@ -33,7 +33,7 @@ BEGIN
 	                    PARTITION BY p.organisation_id, COALESCE(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
 	                    ORDER BY cfm.created DESC
 	                  ) AS latest_producer_accepted_record_per_SP
-	                , RIGHT(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod), 4) AS submission_period_year
+	                , CAST(RIGHT(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod), 4) AS INT) AS submission_period_year
 	                , COALESCE(cfm.ComplianceSchemeId, o.ExternalId) AS submitter_id
 	            FROM rpd.Pom p
 	            INNER JOIN rpd.Organisations o
@@ -53,7 +53,7 @@ BEGIN
 	              organisation_id
 	            , subsidiary_id
 	            , submitter_id
-	            , CAST(submission_period_year AS INT) AS submission_period_year
+	            , submission_period_year
 	            , MAX(CASE
                         WHEN submission_period = '2024-P1' THEN 1
                         WHEN submission_period = '2024-P2' THEN 1
