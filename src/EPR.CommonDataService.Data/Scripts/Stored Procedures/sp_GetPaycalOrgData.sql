@@ -94,7 +94,7 @@ BEGIN
 	        ON ob.organisation_id = opf.organisation_id
 	       AND ISNULL(ob.subsidiary_id, '') = ISNULL(opf.subsidiary_id, '')
 	       AND ISNULL(ob.submitter_id, '') = ISNULL(opf.submitter_id, '')
-	       AND ob.submission_period_year = opf.submission_period_year
+	       AND ob.submission_period_year = opf.submission_period_year-1
            WHERE ob.submission_period_year = @RelativeYear;
 	  END
 
