@@ -67,7 +67,6 @@ BEGIN
                         ELSE 0
 	                    END) AS has_h2
 	        FROM latest_accepted_pom
-		    WHERE submission_period_year = @RelativeYear-1
 	        GROUP BY
 	              organisation_id
 	            , subsidiary_id
@@ -95,6 +94,7 @@ BEGIN
 	        ON ob.organisation_id = opf.organisation_id
 	       AND ISNULL(ob.subsidiary_id, '') = ISNULL(opf.subsidiary_id, '')
 	       AND ISNULL(ob.submitter_id, '') = ISNULL(opf.submitter_id, '')
+		   AND ob.submission_period_year = opf.submission_period_year+1
            WHERE ob.submission_period_year = @RelativeYear;
 	  END
 
