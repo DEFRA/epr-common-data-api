@@ -30,7 +30,7 @@ BEGIN
 	                , NULLIF(p.subsidiary_id, '') AS subsidiary_id
 	                , p.submission_period
 	                , ROW_NUMBER() OVER (
-	                    PARTITION BY p.organisation_id, COALESCE(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
+	                    PARTITION BY p.organisation_id, p.subsidiary_id, COALESCE(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
 	                    ORDER BY cfm.created DESC
 	                  ) AS latest_producer_accepted_record_per_SP
 	                , CAST(RIGHT(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod), 4) AS INT) AS submission_period_year
