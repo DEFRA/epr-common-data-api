@@ -35,13 +35,9 @@ derivered_variables AS (
         END AS SmallLateFeeCutoffDate,
 
         CASE
-            WHEN CA.SubmissionPeriodYear IS NOT NULL THEN
-                CASE
-                    WHEN CA.SubmissionPeriodYear >= 2026
-                        THEN DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 1)
-                    ELSE DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
-                END
-            ELSE NULL
+            WHEN CA.SubmissionPeriodYear IS NULL THEN NULL
+            WHEN CA.SubmissionPeriodYear >= 2026 THEN DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 1)
+            ELSE DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
         END AS CSLLateFeeCutoffDate,
         S.RegistrationJourney
     FROM [rpd].[Submissions] AS S
