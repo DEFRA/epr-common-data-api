@@ -39,7 +39,7 @@ derivered_variables AS (
                 CASE
                     WHEN CA.SubmissionPeriodYear < 2026
                         THEN DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
-                    ELSE DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 11)
+                    ELSE DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 1)
                 END
             ELSE NULL
         END AS CSLLateFeeCutoffDate,
