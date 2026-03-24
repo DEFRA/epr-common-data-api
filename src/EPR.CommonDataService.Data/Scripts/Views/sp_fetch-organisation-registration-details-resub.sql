@@ -13,18 +13,20 @@ SET QUOTED_IDENTIFIER ON;
 GO
 
 CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WITH
-    derivered_variables AS (
-    SELECT O.Id AS OrganisationIDForSubmission,
+derivered_variables AS (
+    SELECT
+        O.Id AS OrganisationIDForSubmission,
         O.ExternalId AS OrganisationUUIDForSubmission,
         O.ReferenceNumber AS CSOReferenceNumber,
+
         CASE
             WHEN S.ComplianceSchemeId IS NOT NULL THEN 1
             ELSE 0
         END AS IsComplianceScheme,
-        S.ComplianceSchemeId AS ComplianceSchemeId,
-        S.SubmissionPeriod AS SubmissionPeriod,
+        S.ComplianceSchemeId,
+        S.SubmissionPeriod,
         S.AppReferenceNumber AS ApplicationReferenceNumber,
-        s.submissionid AS submissionid,
+        S.SubmissionId,
         CASE
             WHEN RIGHT(s.SubmissionPeriod, 4) LIKE '%[^0-9]%' THEN NULL
             ELSE CAST(RIGHT(s.SubmissionPeriod, 4) AS INT)
@@ -33,17 +35,19 @@ CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WI
             WHEN RIGHT(s.SubmissionPeriod, 4) LIKE '%[^0-9]%' THEN NULL
             ELSE DATEFROMPARTS(RIGHT(s.SubmissionPeriod, 4), 4, 1)
         END AS SmallLateFeeCutoffDate,
+
         CASE
             WHEN TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
                 AND RIGHT(s.SubmissionPeriod, 4) NOT LIKE '%[^0-9]%' THEN CASE
                 WHEN RIGHT(s.SubmissionPeriod, 4) < '2026' THEN DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT), 4, 1)
                 ELSE DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) - 1, 10, 11)
-            END
+                END
             ELSE NULL
         END AS CSLLateFeeCutoffDate,
         s.RegistrationJourney
     FROM [rpd].[Submissions] AS S
-    INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
+    INNER JOIN [rpd].[Organisations] O
+        ON S.OrganisationId = O.ExternalId
     WHERE TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
 ),
 
