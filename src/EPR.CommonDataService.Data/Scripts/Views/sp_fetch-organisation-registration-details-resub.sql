@@ -23,32 +23,35 @@ derivered_variables AS (
             WHEN S.ComplianceSchemeId IS NOT NULL THEN 1
             ELSE 0
         END AS IsComplianceScheme,
+
         S.ComplianceSchemeId,
         S.SubmissionPeriod,
         S.AppReferenceNumber AS ApplicationReferenceNumber,
         S.SubmissionId,
+        CA.SubmissionPeriodYear,
         CASE
-            WHEN RIGHT(s.SubmissionPeriod, 4) LIKE '%[^0-9]%' THEN NULL
-            ELSE CAST(RIGHT(s.SubmissionPeriod, 4) AS INT)
-        END AS RelYear,
-        CASE
-            WHEN RIGHT(s.SubmissionPeriod, 4) LIKE '%[^0-9]%' THEN NULL
-            ELSE DATEFROMPARTS(RIGHT(s.SubmissionPeriod, 4), 4, 1)
+            WHEN CA.SubmissionPeriodYear IS NOT NULL
+            THEN DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
         END AS SmallLateFeeCutoffDate,
 
         CASE
-            WHEN TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
-                AND RIGHT(s.SubmissionPeriod, 4) NOT LIKE '%[^0-9]%' THEN CASE
-                WHEN RIGHT(s.SubmissionPeriod, 4) < '2026' THEN DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT), 4, 1)
-                ELSE DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) - 1, 10, 11)
+            WHEN CA.SubmissionPeriodYear IS NOT NULL THEN
+                CASE
+                    WHEN CA.SubmissionPeriodYear < 2026
+                        THEN DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
+                    ELSE DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 11)
                 END
             ELSE NULL
         END AS CSLLateFeeCutoffDate,
-        s.RegistrationJourney
+        S.RegistrationJourney
     FROM [rpd].[Submissions] AS S
     INNER JOIN [rpd].[Organisations] O
         ON S.OrganisationId = O.ExternalId
-    WHERE TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
+    CROSS APPLY (
+        SELECT TRY_CAST(RIGHT(S.SubmissionPeriod, 4) AS INT) AS SubmissionPeriodYear
+    ) CA
+
+    WHERE CA.SubmissionPeriodYear IS NOT NULL
 ),
 
 SubmissionEventsCTE AS (
@@ -696,7 +699,7 @@ JsonifiedCompliancePaycalCTE AS (
             WHEN IsOnlineMarketPlace = 1 THEN 'true'
             ELSE 'false'
         END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS NVARCHAR(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
-            WHEN vars.RelYear < 2026 THEN CASE
+            WHEN vars.SubmissionPeriodYear < 2026 THEN CASE
                 WHEN IsLateFeeApplicable = 1 THEN 'true'
                 ELSE 'false'
             END
