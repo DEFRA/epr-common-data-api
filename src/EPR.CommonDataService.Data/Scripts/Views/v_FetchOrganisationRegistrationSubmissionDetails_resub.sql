@@ -13,7 +13,7 @@ SET QUOTED_IDENTIFIER ON;
 GO
 
 CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WITH
-derivered_variables AS (
+    derivered_variables AS (
     SELECT
         O.Id AS OrganisationIDForSubmission,
         O.ExternalId AS OrganisationUUIDForSubmission,
@@ -41,10 +41,17 @@ derivered_variables AS (
         END AS CSLLateFeeCutoffDate,
         S.RegistrationJourney
     FROM [rpd].[Submissions] AS S
-    INNER JOIN [rpd].[Organisations] O
-        ON S.OrganisationId = O.ExternalId
+    INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
     CROSS APPLY (
-        SELECT TRY_CAST(RIGHT(S.SubmissionPeriod, 4) AS INT) AS SubmissionPeriodYear
+        SELECT
+            CASE
+                WHEN TRY_CAST(RIGHT(S.SubmissionPeriod, 4) AS INT) IS NOT NULL
+                    THEN TRY_CAST(RIGHT(S.SubmissionPeriod, 4) AS INT)
+
+                WHEN TRY_CAST(RIGHT(S.SubmissionPeriod, 2) AS INT) IS NOT NULL
+                    THEN 2000 + TRY_CAST(RIGHT(S.SubmissionPeriod, 2) AS INT)
+
+            END AS SubmissionPeriodYear
     ) CA
 
     WHERE CA.SubmissionPeriodYear IS NOT NULL
