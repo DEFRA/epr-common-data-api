@@ -251,16 +251,7 @@ CREATE VIEW [apps].[v_OrganisationRegistrationSummaries] AS WITH
 				,s.OrganisationId AS InternalOrgId
                 ,s.SubmissionType
                 ,s.UserId AS SubmittedUserId
-                ,CAST(
-                    CASE
-                        WHEN ss.SubmissionDate > DATEFROMPARTS(CONVERT( int, SUBSTRING(
-                                        s.SubmissionPeriod,
-                                        PATINDEX('%[0-9][0-9][0-9][0-9]', s.SubmissionPeriod),
-                                        4
-                                    )),4,1) THEN 1
-                        ELSE 0
-                    END AS BIT
-                ) AS IsLateSubmission
+                ,reg_sum.IsLateSubmission       -- not used by Regulator portal. Consolidating business logic for now. Candidate for removal in the future
 				,s.ComplianceSchemeId
 				,ss.FileId
 				,ss.ResubmissionComment
@@ -279,6 +270,7 @@ CREATE VIEW [apps].[v_OrganisationRegistrationSummaries] AS WITH
 				INNER JOIN [rpd].[Organisations] o on o.ExternalId = s.OrganisationId
 				INNER JOIN SubmissionStatusCTE ss on ss.SubmissionId = s.SubmissionId
 				LEFT JOIN [rpd].[ComplianceSchemes] cs on cs.ExternalId = s.ComplianceSchemeId
+                LEFT JOIN t_FetchOrganisationRegistrationSubmissionDetails_resub reg_sum on reg_sum.SubmissionId = s.SubmissionId
             WHERE s.AppReferenceNumber IS NOT NULL
                 AND s.SubmissionType = 'Registration'
 				AND s.IsSubmitted = 1
