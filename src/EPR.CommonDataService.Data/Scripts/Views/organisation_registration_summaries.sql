@@ -285,7 +285,7 @@ CREATE VIEW [apps].[v_OrganisationRegistrationSummaries] AS WITH
 			,OrganisationId
 			,OrganisationInternalId
             ,OrganisationName
-			,UploadedOrganisationName
+			,UploadedOrganisationName   -- not used by Regulator portal. Candidate for removal in the future. AMCR-149
             ,ReferenceNumber as OrganisationReference
             ,SubmittedUserId
             ,IsComplianceScheme
