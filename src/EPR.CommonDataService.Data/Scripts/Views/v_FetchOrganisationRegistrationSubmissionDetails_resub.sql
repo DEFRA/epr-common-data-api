@@ -31,13 +31,13 @@ CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WI
         CA.SubmissionPeriodYear,
         CASE
             WHEN CA.SubmissionPeriodYear IS NOT NULL
-            THEN DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
+            THEN DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 2)
         END AS SmallLateFeeCutoffDate,
 
         CASE
             WHEN CA.SubmissionPeriodYear IS NULL THEN NULL
-            WHEN CA.SubmissionPeriodYear >= 2026 THEN DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 1)
-            ELSE DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 1)
+            WHEN CA.SubmissionPeriodYear >= 2026 THEN DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 2)
+            ELSE DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 2)
         END AS CSLLateFeeCutoffDate,
         S.RegistrationJourney
     FROM [rpd].[Submissions] AS S
