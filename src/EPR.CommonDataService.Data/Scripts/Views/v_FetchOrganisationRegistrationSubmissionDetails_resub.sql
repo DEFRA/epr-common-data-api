@@ -296,19 +296,19 @@ SubmissionStatusCTE AS (
             CAST(
                 CASE
                     WHEN vars.RegistrationJourney IN ('DirectLargeProducer', 'CsoLargeProducer') THEN CASE
-                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN vars.RegistrationJourney IN ('DirectSmallProducer', 'CsoSmallProducer') THEN CASE
-                        WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN s.organisation_size = 'L' THEN CASE
-                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN s.organisation_size = 'S' THEN CASE
-                        WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN vars.IsComplianceScheme = 1 THEN CASE
-                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     ELSE CAST(0 AS BIT)
                 END
@@ -332,12 +332,11 @@ SubmissionStatusCTE AS (
             CAST(CASE
                 WHEN vars.IsComplianceScheme = 1 OR s.organisation_size = 'L'
                 THEN CASE
-                        WHEN r.DecisionDate > vars.CSLLateFeeCutoffDate
-                        THEN 1
+                        WHEN r.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1
                         ELSE 0
                     END
                 ELSE CASE
-                    WHEN r.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1
+                    WHEN r.DecisionDate >= vars.SmallLateFeeCutoffDate THEN 1
                     ELSE 0
                 END
             END AS BIT) AS IsResubmissionLate,
@@ -625,19 +624,19 @@ CompliancePaycalCTE AS (
             END
 
             -- Latest Submission On Time for Member Type
-            WHEN TRIM(csm.organisation_size) = 'L' AND lras.LatestRegistrationApplicationSubmittedDate <= vars.CSLLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'L' AND lras.LatestRegistrationApplicationSubmittedDate < vars.CSLLateFeeCutoffDate
                 THEN 0 -- no late fee
 
             -- Latest Submission On Time for Member Type
-            WHEN TRIM(csm.organisation_size) = 'S' AND lras.LatestRegistrationApplicationSubmittedDate <= vars.SmallLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'S' AND lras.LatestRegistrationApplicationSubmittedDate < vars.SmallLateFeeCutoffDate
                  THEN 0 -- no late fee
 
             --Original Submission Was Late So All Members are late
-            WHEN TRIM(csm.organisation_size) = 'L' AND csm.FirstApplicationSubmissionDate > vars.CSLLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'L' AND csm.FirstApplicationSubmissionDate >= vars.CSLLateFeeCutoffDate
                 THEN 1
 
             --Original Submission Was Late So All Members are late
-            WHEN TRIM(csm.organisation_size) = 'S' AND csm.FirstApplicationSubmissionDate > vars.SmallLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'S' AND csm.FirstApplicationSubmissionDate >= vars.SmallLateFeeCutoffDate
                 THEN 1
 
             --Original Submission Was On Time So Calculate LateFee if joiner_date presesnt
@@ -653,14 +652,12 @@ CompliancePaycalCTE AS (
                 ELSE CASE
                     WHEN TRIM(csm.organisation_size) = 'S' THEN CASE
                         -- Check if the first application submitted date is after the small late fee cutoff date
-                        WHEN csm.FirstApplicationSubmittedDate > vars.SmallLateFeeCutoffDate
-                            THEN 1 -- late fee
+                        WHEN csm.FirstApplicationSubmittedDate >= vars.SmallLateFeeCutoffDate THEN 1 -- late fee
                         ELSE 0 -- no late fee
                     END
                     -- For large organizations
                     WHEN TRIM(csm.organisation_size) = 'L' THEN CASE
-                        WHEN csm.FirstApplicationSubmittedDate > vars.CSLLateFeeCutoffDate
-                            THEN 1
+                        WHEN csm.FirstApplicationSubmittedDate >= vars.CSLLateFeeCutoffDate THEN 1
                         ELSE 0
                     END
                     ELSE csm.IsLateSubmission
