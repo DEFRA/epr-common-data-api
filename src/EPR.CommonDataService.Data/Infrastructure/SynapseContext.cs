@@ -188,6 +188,10 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
             .HasConversion(stringToGuidConverter);
+        
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.IsClosedLoopRecycler)
+            .HasConversion(intToBoolConverter);
     }
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)
