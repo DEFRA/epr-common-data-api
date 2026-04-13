@@ -24,7 +24,7 @@ BEGIN
                                                    :Added registrationYear to use the year of lastupdatedon when SubmissionPeriodYear is NULL to CS Deleted
                                                    :Updated OrganisationType to either be S for compliance scheme or DP for large companies
                                                    :Updated status to be either Registered or Deleted
-
+    Updated: 2026-03-26     MO-25:                 :Updated partition by logic to include SubmissionPeriod
 ******************************************************************************************************************************/
 WITH latest_record AS(
 select
@@ -47,7 +47,7 @@ select
     ,Country
     ,Postcode
     ,subsidiary_id
-	,row_number() over(partition by OrganisationId, ReferenceNumber order by Submission_time desc) as Last_submission
+	,row_number() over(partition by OrganisationId, ReferenceNumber, SubmissionPeriodYear order by Submission_time desc) as Last_submission
 		from 
 		(
 				select distinct o.id as OrganisationId, cd.organisation_id as ReferenceNumber
@@ -72,7 +72,6 @@ select
 			left join rpd.Organisations o on o.ReferenceNumber = cd.organisation_id
 			left join [rpd].[cosmos_file_metadata] cfm on cfm.FileName = cd.FileName
 			left join [rpd].[ComplianceSchemes] cs on cs.ExternalId = cfm.ComplianceSchemeId
-            WHERE '20'+RIGHT(rtrim(cfm.SubmissionPeriod),2) >= '2026'	
 		) A
 		WHERE subsidiary_id is null 
 		--ORDER BY ReferenceNumber asc, Last_submission asc)
@@ -90,14 +89,13 @@ AS (
                 cs.id as ComplianceSchemeId
                 ,CONVERT(DATETIME,substring(cfm2.Created,1,23)) as submission_time
                 ,'20'+RIGHT(rtrim(cfm2.SubmissionPeriod),2) AS SubmissionPeriodYear
-                ,row_number() over(partition by cs.id order by CONVERT(DATETIME,substring(cfm2.Created,1,23)) desc) as Last_submission
+                ,row_number() over(partition by cs.id, cfm2.SubmissionPeriod order by CONVERT(DATETIME,substring(cfm2.Created,1,23)) desc) as Last_submission
             from
                 rpd.cosmos_file_metadata cfm2
                 left join [rpd].[ComplianceSchemes] cs on cs.ExternalId = cfm2.ComplianceSchemeId	
             where
                 cs.id is not null
                 and FileType = 'CompanyDetails'
-                and '20'+RIGHT(rtrim(cfm2.SubmissionPeriod),2) >= '2026'
         ) AS A
     WHERE
         Last_submission = 1
