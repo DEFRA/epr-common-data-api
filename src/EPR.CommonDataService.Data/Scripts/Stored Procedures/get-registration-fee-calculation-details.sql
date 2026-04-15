@@ -43,17 +43,16 @@ SET NOCOUNT ON;
  
     ),
 	SubsidiaryCount AS
-
-(
-	(
-	SELECT OrganisationID
-			, COUNT(*) AS subsidiarycounter
-			, COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries 
-	 FROM OrganisationDetails od  
-	 WHERE SubsidiaryId IS NOT NULL 
-	 GROUP BY OrganisationID
-	)
-)
+		(
+			(
+			SELECT OrganisationID
+					, COUNT(*) AS subsidiarycounter
+					, COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries 
+			 FROM OrganisationDetails od  
+			 WHERE SubsidiaryId IS NOT NULL 
+			 GROUP BY OrganisationID
+			)
+		)
 
 
     SELECT
