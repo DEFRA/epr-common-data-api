@@ -23,6 +23,7 @@ SET NOCOUNT ON;
 	OrganisationDetails AS (
         SELECT 
             cd.Organisation_Id AS OrganisationId,
+			cd.closed_loop_registration,
             CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
             cd.Organisation_Size AS OrganisationSize,
             CASE UPPER(cd.home_nation_code)
@@ -42,10 +43,16 @@ SET NOCOUNT ON;
  
     ),
 	SubsidiaryCount AS
-
-	(
-	(select OrganisationID, count(*) as subsidiarycounter,COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries from OrganisationDetails od  where SubsidiaryId IS NOT NULL group by OrganisationID)
-	)
+		(
+			(
+			SELECT OrganisationID
+					, COUNT(*) AS subsidiarycounter
+					, COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries 
+			 FROM OrganisationDetails od  
+			 WHERE SubsidiaryId IS NOT NULL 
+			 GROUP BY OrganisationID
+			)
+		)
 
 
     SELECT
@@ -55,10 +62,13 @@ SET NOCOUNT ON;
 		ISNULL(sc.OnlineMarketPlaceSubsidiaries, 0)as NumberOfSubsidiariesBeingOnlineMarketPlace,     
 	    CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
         CAST(od.IsNewJoiner AS BIT) AS IsNewJoiner,
-        NationId
+        NationId,
+		COALESCE(od.closed_loop_registration, 'No') AS closed_loop_registration
     FROM
-        OrganisationDetails od left join SubsidiaryCount sc on od.OrganisationID=sc.OrganisationID
-		where SubsidiaryId is null;
+        OrganisationDetails od 
+	left join 
+		SubsidiaryCount sc on od.OrganisationID=sc.OrganisationID
+	WHERE SubsidiaryId is null;
 
 
 END;
