@@ -63,7 +63,7 @@ SET NOCOUNT ON;
 	    CAST(od.IsOnlineMarketPlace AS BIT) AS IsOnlineMarketPlace,
         CAST(od.IsNewJoiner AS BIT) AS IsNewJoiner,
         NationId,
-		od.closed_loop_registration
+		COALESCE(od.closed_loop_registration, 'No') AS closed_loop_registration
     FROM
         OrganisationDetails od 
 	left join 
