@@ -187,6 +187,7 @@ InitialSubmissionCTE AS (
     FROM (
         SELECT rse.*,
             cd.organisation_size,
+            cd.closed_loop_registration,
             Row_number() OVER (
                 PARTITION BY rse.submissionid ORDER BY RowNum ASC
             ) AS RowNumber
@@ -340,7 +341,8 @@ SubmissionStatusCTE AS (
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
-            Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
+            Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber,
+            COALESCE(s.closed_loop_registration, 'No') AS closed_loop_registration
         FROM InitialSubmissionCTE s
         LEFT JOIN FirstSubmissionCTE fs ON fs.SubmissionId = s.SubmissionId
         LEFT JOIN InitialDecisionCTE id ON id.SubmissionId = s.SubmissionId
@@ -524,6 +526,7 @@ SubmissionDetails AS (
             ss.LatestProducerUserId AS SubmittedUserId,
             s.ComplianceSchemeId,
             d.ComplianceSchemeId AS CSId,
+            ss.closed_loop_registration,
             ROW_NUMBER() OVER (
                 PARTITION BY s.OrganisationId,
                 s.SubmissionPeriod,
@@ -778,6 +781,7 @@ SELECT DISTINCT r.SubmissionId,
     r.BrandsBlobName,
     r.ComplianceSchemeId,
     r.CSId,
+    r.closed_loop_registration,
     acpp.FinalJson AS CSOJson
 FROM SubmissionDetails r
 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
