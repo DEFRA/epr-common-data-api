@@ -61,6 +61,7 @@ BEGIN
 		[BrandsBlobName] [nvarchar](4000) NULL,
 		[ComplianceSchemeId] [nvarchar](4000) NULL,
 		[CSId] [nvarchar](4000) NULL,
+	 	[closed_loop_registration] [nvarchar](3) NULL,
 		[CSOJson] [nvarchar](max) NULL
 	)
 	WITH
