@@ -153,10 +153,6 @@ AS WITH
         decision.IsResubmissionRequired
         FROM LatestSubmittedEventsCTE submitted
         LEFT JOIN LatestRelatedDecisionEventsCTE decision ON decision.FileId = submitted.FileId
-        WHERE
-        decision.Decision IS NULL -- get ALL pending
-        OR
-        submitted.SubmittedDate >= FORMAT(DATEADD(MONTH, -6, GETDATE()), 'yyyy-MM-dd') -- or last 6 months with decisions (accepted/rejected)
         )
 
         ,AllRelatedSubmissionsCTE AS (
