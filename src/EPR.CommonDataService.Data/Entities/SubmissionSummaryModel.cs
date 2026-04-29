@@ -9,7 +9,7 @@ public class SubmissionSummaryModel
     public Guid? OrganisationId { get; set; }
     public Guid? ComplianceSchemeId { get; set; }
     public string OrganisationName { get; set; }
-    public string OrganisationReference { get; set; }
+    public int OrganisationReference { get; set; }
     public string OrganisationType { get; set; }
     public string ProducerType { get; set; }
     public Guid? UserId { get; set; }
@@ -23,5 +23,5 @@ public class SubmissionSummaryModel
     public string Comments { get; set; }
     public bool IsResubmission { get; set; }
     public string PreviousRejectionComments { get; set; }
-    public int NationId { get; set; }
+    public Byte NationId { get; set; }
 }
