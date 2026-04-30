@@ -113,7 +113,7 @@ AS WITH
                 decision.SubmissionId,
                 decision.Decision,
                 decision.Comments,
-                decision.IsResubmissionRequired,
+                cast(decision.IsResubmissionRequired as int) as IsResubmissionRequired,
                 decision.Created AS DecisionDate,
                 ROW_NUMBER() OVER(
                     PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
