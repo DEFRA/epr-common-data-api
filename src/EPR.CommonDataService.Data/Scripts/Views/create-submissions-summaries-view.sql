@@ -94,15 +94,15 @@ AS WITH
 
     -- Get LATEST submitted event by load_ts per SubmissionEventId (to remove cosmos sync duplicates)
         ,LatestSubmittedEventsCTE AS (
-        SELECT
-        SubmissionEventId,
-        SubmissionId,
-        Type,
-        FileId,
-        SubmittedDate,
-		SubmittedUserId
-        FROM AllSubmittedEventsCTE
-        WHERE RowNum = 1
+            SELECT
+                SubmissionEventId,
+                SubmissionId,
+                Type,
+                FileId,
+                SubmittedDate,
+                SubmittedUserId
+            FROM AllSubmittedEventsCTE
+            WHERE RowNum = 1
         )
 		
     -- Get Decision events for submitted (match by fileId)
