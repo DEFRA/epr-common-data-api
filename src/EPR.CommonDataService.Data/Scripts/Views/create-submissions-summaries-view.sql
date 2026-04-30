@@ -107,25 +107,21 @@ AS WITH
 		
     -- Get Decision events for submitted (match by fileId)
         ,AllRelatedDecisionEventsCTE AS (
-        SELECT
-        decision.FileId,
-        decision.SubmissionEventId,
-        decision.SubmissionId,
-        decision.Decision,
-        decision.Comments,
-        CASE
-            WHEN UPPER( ISNULL(decision.IsResubmissionRequired,'FALSE')) = 'TRUE' THEN 1
-            ELSE 0
-        END AS IsResubmissionRequired ,
-        decision.Created AS DecisionDate,
-        ROW_NUMBER() OVER(
-        PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
-        ORDER BY decision.load_ts DESC
-        ) as RowNum
-        FROM [apps].[SubmissionEvents] decision
-        INNER JOIN LatestSubmittedEventsCTE submitted ON submitted.FileId = decision.FileId
-        WHERE
-        decision.Type='RegulatorPomDecision'
+            SELECT
+                decision.FileId,
+                decision.SubmissionEventId,
+                decision.SubmissionId,
+                decision.Decision,
+                decision.Comments,
+                decision.IsResubmissionRequired,
+                decision.Created AS DecisionDate,
+                ROW_NUMBER() OVER(
+                    PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
+                    ORDER BY decision.load_ts DESC
+                ) as RowNum
+            FROM [apps].[SubmissionEvents] decision
+            INNER JOIN LatestSubmittedEventsCTE submitted ON submitted.FileId = decision.FileId
+            WHERE decision.Type='RegulatorPomDecision'
         )
 
         ,LatestRelatedDecisionEventsCTE AS (
