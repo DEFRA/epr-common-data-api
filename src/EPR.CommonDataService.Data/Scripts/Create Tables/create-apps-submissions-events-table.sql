@@ -41,7 +41,7 @@ BEGIN
         )
         WITH
             (
-            DISTRIBUTION = HASH ( [SubmissionEventId] ),
+            DISTRIBUTION = HASH ( [SubmissionId] ),
         CLUSTERED COLUMNSTORE INDEX
     )
 END;
