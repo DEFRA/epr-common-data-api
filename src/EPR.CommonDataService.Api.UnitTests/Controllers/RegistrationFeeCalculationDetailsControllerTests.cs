@@ -67,7 +67,21 @@ public class RegistrationFeeCalculationDetailsControllerTests
         // Arrange
         var fileId = Guid.NewGuid();
 
-        var expectedResult = new[] { new RegistrationFeeCalculationDetails { OrganisationSize = "Large", NumberOfSubsidiaries = 10, NumberOfSubsidiariesBeingOnlineMarketPlace = 20, IsOnlineMarketplace = true, IsNewJoiner = false, NationId = 1, OrganisationId = "1234" } }; // Mock result
+        var expectedResult = new[]
+        {
+            new RegistrationFeeCalculationDetails
+            {
+                OrganisationSize = "Large",
+                NumberOfSubsidiaries = 10,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 20,
+                NumberOfSubsidiariesBeingClosedLoopRecycling = 5,
+                IsOnlineMarketplace = true,
+                IsClosedLoopRecycling = true,
+                IsNewJoiner = false,
+                NationId = 1,
+                OrganisationId = "1234"
+            }
+        };
 
         _registrationFeeCalculationDetailsServiceMock
             .Setup(service => service.GetRegistrationFeeCalculationDetails(fileId))
@@ -78,6 +92,13 @@ public class RegistrationFeeCalculationDetailsControllerTests
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
-        (result as OkObjectResult)!.Value.Should().Be(expectedResult);
+        var okResult = (OkObjectResult)result;
+        okResult.Value.Should().Be(expectedResult);
+
+        var payload = (RegistrationFeeCalculationDetails[])okResult.Value!;
+        payload[0].IsClosedLoopRecycling.Should().BeTrue();
+        payload[0].NumberOfSubsidiariesBeingClosedLoopRecycling.Should().Be(5);
+        payload[0].IsOnlineMarketplace.Should().BeTrue();
+        payload[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(20);
     }
 }

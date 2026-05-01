@@ -22,7 +22,7 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
     public async Task<PaginatedResponse<PomSubmissionSummary>> GetSubmissionPomSummaries<T>(SubmissionsSummariesRequest<T> request)
     {
-        var sql = "EXECUTE [apps].[sp_FilterAndPaginateSubmissionsSummaries_resub] @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
+        var sql = "EXECUTE [apps].[sp_FilterAndPaginateSubmissionsSummaries_resub_dd_sub40] @OrganisationName, @OrganisationReference, @RegulatorUserId, @StatusesCommaSeperated, @OrganisationType, @PageSize, @PageNumber, @DecisionsDelta, @SubmissionYearsCommaSeperated, @SubmissionPeriodsCommaSeperated, @ActualSubmissionPeriodsCommaSeperated";
 
         var sqlParameters = request.ToProcParams();
         logger.LogInformation("{LogPrefix}: SubmissionsService - GetSubmissionPomSummaries: query {Query} parameters {Parameters}", _logPrefix, sql, JsonConvert.SerializeObject(sqlParameters));
@@ -176,8 +176,8 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
 
     public async Task<PomResubmissionPaycalParametersDto?> GetResubmissionPaycalParameters(string sanitisedSubmissionId, string? sanitisedComplianceSchemeId)
     {
-        logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get sp_PomResubmissionPaycalParameters for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
-        var sql = "[dbo].[sp_PomResubmissionPaycalParameters]";
+        logger.LogInformation("{Logprefix}: SubmissionsService - GetResubmissionPaycalParameters: Get sp_PomResubmissionPaycalParameters_js_sub40 for given submission {SubmissionId}/{ComplianceSchemeId}", _logPrefix, sanitisedSubmissionId, sanitisedComplianceSchemeId);
+        var sql = "[dbo].[sp_PomResubmissionPaycalParameters_js_sub40]";
 
         SqlParameter[] sqlParameters =
         {
