@@ -113,10 +113,7 @@ AS WITH
                 decision.SubmissionId,
                 decision.Decision,
                 decision.Comments,
-                CASE
-                    WHEN decision.IsResubmissionRequired = '1' THEN 1
-                    ELSE 0
-                END AS IsResubmissionRequired,
+                CAST(decision.IsResubmissionRequired AS BIT) AS IsResubmissionRequired,
                 decision.Created AS DecisionDate,
                 ROW_NUMBER() OVER(
                     PARTITION BY decision.FileId  -- mark latest submissionEvent synced from cosmos
