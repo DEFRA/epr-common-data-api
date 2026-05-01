@@ -1,9 +1,7 @@
-﻿-- Dropping view if it exists
-IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_SubmissionsSummaries]'))
+﻿IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_SubmissionsSummaries]'))
 DROP VIEW [apps].[v_SubmissionsSummaries];
 GO
 
-/****** Object:  View [apps].[v_SubmissionsSummaries_596704_PT]    Script Date: 12/11/2025 15:06:58 ******/
 CREATE VIEW [apps].[v_SubmissionsSummaries]
 AS WITH 
     cf_meta_first_record as
@@ -54,8 +52,6 @@ AS WITH
         WHERE submitted.Type='Submitted'
         )
 		
--------596704-----------
-
  -- This is the first fee resubmission record
     ,FirstResubmissionReferenceNumberCreated AS (
      SELECT se.SubmissionId, MIN(CONVERT(DATETIME,substring(Created,1,23))) AS FirstReferenceNumberCreated
@@ -89,9 +85,6 @@ AS WITH
      SELECT FileId, SubmissionId FROM SubmittedOrResubmissionWithoutNewEvents
     )
 	
--------596704-----------
-
-
     -- Get LATEST submitted event by load_ts per SubmissionEventId (to remove cosmos sync duplicates)
         ,LatestSubmittedEventsCTE AS (
             SELECT
@@ -133,7 +126,7 @@ AS WITH
         IsResubmissionRequired,
         DecisionDate
         FROM AllRelatedDecisionEventsCTE
-        WHERE RowNum = 1 --  get only latest
+        WHERE RowNum = 1
         )
 
         ,JoinedSubmittedAndDecisionsCTE AS (
@@ -190,7 +183,7 @@ AS WITH
         jsd.DecisionDate,
 		jsd.SubmittedUserId,
         ROW_NUMBER() OVER(
-        PARTITION BY s.SubmissionId --, jsd.FileId (commented out to fix incorrect ressubmission details issue) -- to match the count with power bi
+        PARTITION BY s.SubmissionId
         ORDER BY jsd.SubmittedDate DESC
         ) as RowNum -- original row number based on submitted date
         FROM JoinedSubmittedAndDecisionsCTE jsd
@@ -299,10 +292,8 @@ LatestUserSubmissions AS(
 				PARTITION BY r.SubmittedUserId, r.SubmissionPeriod, r.FileId
 				ORDER BY p.IsDeleted ASC, CONVERT(DATETIME,SUBSTRING(p.LastUpdatedOn,1,23)) DESC
 			) AS UserRowNumber,
-		----ST-----
 		CASE WHEN sa.FileId IS NULL THEN 0 ELSE 1 END AS NEW_FLAG
-		-----------
-		
+
 	FROM JoinedSubmissionsAndEventsWithResubmissionCTE r
 			 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
 		LEFT JOIN [rpd].[ProducerTypes] pt ON pt.Id = o.ProducerTypeId
@@ -311,12 +302,10 @@ LatestUserSubmissions AS(
 		INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
 		LEFT JOIN LatestEnrolment le ON le.ConnectionId = poc.Id AND le.rn = 1 -- join on only latest enrolment
 		LEFT JOIN [rpd].[ServiceRoles] sr on sr.Id = le.ServiceRoleId
-		LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId -- join CS to get nation above
+		LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = r.ComplianceSchemeId
 	    LEFT JOIN File_id_code_description_combined file_desc on file_desc.fileid = r.FileId
         LEFT JOIN cf_meta_first_record meta on meta.FileId = r.FileId 
-		-----ST-----
 		LEFT JOIN SubmissionsAggregated sa on r.FileId = sa.FileId AND r.SubmissionId = sa.SubmissionId
-		---------------
         WHERE o.IsDeleted=0
 )
 
