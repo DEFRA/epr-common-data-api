@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+using EPR.CommonDataService.Data.Converters;
 
 namespace EPR.CommonDataService.Data.Entities;
 
@@ -9,7 +11,12 @@ public class SubmissionSummaryModel
     public Guid? OrganisationId { get; set; }
     public Guid? ComplianceSchemeId { get; set; }
     public string OrganisationName { get; set; }
-    public string OrganisationReference { get; set; }
+    
+    // The value returned from the database is an int, but we
+    // must return a string via webapi
+    [JsonConverter(typeof(IntToStringJsonConverter))]
+    public int? OrganisationReference { get; set; }
+    
     public string OrganisationType { get; set; }
     public string ProducerType { get; set; }
     public Guid? UserId { get; set; }
@@ -23,5 +30,5 @@ public class SubmissionSummaryModel
     public string Comments { get; set; }
     public bool IsResubmission { get; set; }
     public string PreviousRejectionComments { get; set; }
-    public int NationId { get; set; }
+    public Byte NationId { get; set; }
 }
