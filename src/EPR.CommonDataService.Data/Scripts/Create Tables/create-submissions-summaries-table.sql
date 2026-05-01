@@ -5,39 +5,42 @@ END;
 
 CREATE TABLE [apps].[SubmissionsSummaries]
 (
-	[SubmissionId] [nvarchar](4000) NULL,
-	[OrganisationId] [nvarchar](4000) NULL,
-	[ComplianceSchemeId] [nvarchar](4000) NULL,
-	[OrganisationName] [nvarchar](4000) NULL,
-	[OrganisationReference] [nvarchar](4000) NULL,
-	[OrganisationType] [nvarchar](4000) NULL,
-	[ProducerType] [nvarchar](4000) NULL,
-	[UserId] [nvarchar](4000) NULL,
-	[FirstName] [nvarchar](4000) NULL,
-	[LastName] [nvarchar](4000) NULL,
-	[Email] [nvarchar](4000) NULL,
-	[Telephone] [nvarchar](4000) NULL,
-	[ServiceRole] [nvarchar](4000) NULL,
-	[FileId] [nvarchar](4000) NULL,
-	[SubmissionYear] [int] NULL,
-	[SubmissionCode] [nvarchar](4000) NULL,
-	[ActualSubmissionPeriod] [nvarchar](4000) NULL,
-	[Combined_SubmissionCode] [nvarchar](4000) NULL,
-	[Combined_ActualSubmissionPeriod] [nvarchar](4000) NULL,
-	[SubmissionPeriod] [nvarchar](4000) NULL,
-	[SubmittedDate] [nvarchar](4000) NULL,
-	[Decision] [nvarchar](4000) NULL,
+	[SubmissionId] [nvarchar](38) NOT NULL,
+	[OrganisationId] [nvarchar](38) NULL,
+	[ComplianceSchemeId] [nvarchar](38) NULL,
+	[UserId] [nvarchar](38) NULL,
+	[FileId] [nvarchar](38) NULL,
+	[OrganisationName] [nvarchar](255) NULL,
+	[OrganisationReference] [int] NULL,
+	[OrganisationType] [nvarchar](25) NULL,
+	[ProducerType] [nvarchar](30) NULL,
+	[FirstName] [nvarchar](255) NULL,
+	[LastName] [nvarchar](255) NULL,
+	[Email] [nvarchar](255) NULL,
+	[Telephone] [nvarchar](25) NULL,
+	[ServiceRole] [nvarchar](30) NULL,
+	[SubmissionYear] [smallint] NULL,
+	[SubmissionCode] [nvarchar](10) NULL,
+	[ActualSubmissionPeriod] [nvarchar](50) NULL,
+	[Combined_SubmissionCode] [nvarchar](55) NULL,
+	[Combined_ActualSubmissionPeriod] [nvarchar](255) NULL,
+	[SubmissionPeriod] [nvarchar](30) NULL,
+	[SubmittedDate] [nvarchar](55) NULL,
+	[Decision] [nvarchar](20) NULL,
 	[IsResubmissionRequired] [bit] NULL,
 	[Comments] [nvarchar](4000) NULL,
 	[IsResubmission] [bit] NULL,
 	[PreviousRejectionComments] [nvarchar](4000) NULL,
-	[NationId] [int] NULL,
-	[PomFileName] NVARCHAR(4000),
-	[PomBlobName] NVARCHAR(4000),
-	[NEW_FLAG] BIT NULL
+	[NationId] [tinyint] NULL,
+	[PomFileName] [nvarchar](150) NULL,
+	[PomBlobName] [nvarchar](38) NULL,
+	[NEW_FLAG] [bit] NULL
 )
 WITH
 (
 	DISTRIBUTION = HASH ( [SubmissionId] ),
-	CLUSTERED COLUMNSTORE INDEX
+	CLUSTERED INDEX
+	(
+		[SubmissionId] ASC
+	)
 );
