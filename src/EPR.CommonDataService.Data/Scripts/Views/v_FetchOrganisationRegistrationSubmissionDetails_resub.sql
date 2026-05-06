@@ -14,37 +14,47 @@ GO
 
 CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WITH
     derivered_variables AS (
-    SELECT O.Id AS OrganisationIDForSubmission,
+    SELECT
+        O.Id AS OrganisationIDForSubmission,
         O.ExternalId AS OrganisationUUIDForSubmission,
         O.ReferenceNumber AS CSOReferenceNumber,
+
         CASE
             WHEN S.ComplianceSchemeId IS NOT NULL THEN 1
             ELSE 0
         END AS IsComplianceScheme,
-        S.ComplianceSchemeId AS ComplianceSchemeId,
-        S.SubmissionPeriod AS SubmissionPeriod,
+
+        S.ComplianceSchemeId,
+        S.SubmissionPeriod,
         S.AppReferenceNumber AS ApplicationReferenceNumber,
-        s.submissionid AS submissionid,
+        S.SubmissionId,
+        CA.SubmissionPeriodYear,
         CASE
-            WHEN RIGHT(s.SubmissionPeriod, 4) LIKE '%[^0-9]%' THEN NULL
-            ELSE CAST(RIGHT(s.SubmissionPeriod, 4) AS INT)
-        END AS RelYear,
-        CASE
-            WHEN RIGHT(s.SubmissionPeriod, 4) LIKE '%[^0-9]%' THEN NULL
-            ELSE DATEFROMPARTS(RIGHT(s.SubmissionPeriod, 4), 4, 1)
+            WHEN CA.SubmissionPeriodYear IS NOT NULL
+            THEN DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 2)
         END AS SmallLateFeeCutoffDate,
+
         CASE
-            WHEN TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
-                AND RIGHT(s.SubmissionPeriod, 4) NOT LIKE '%[^0-9]%' THEN CASE
-                WHEN RIGHT(s.SubmissionPeriod, 4) < '2026' THEN DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT), 4, 1)
-                ELSE DATEFROMPARTS(CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) - 1, 10, 11)
-            END
-            ELSE NULL
+            WHEN CA.SubmissionPeriodYear IS NULL THEN NULL
+            WHEN CA.SubmissionPeriodYear >= 2026 THEN DATEFROMPARTS(CA.SubmissionPeriodYear - 1, 10, 2)
+            ELSE DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 2)
         END AS CSLLateFeeCutoffDate,
-        s.RegistrationJourney
+        S.RegistrationJourney
     FROM [rpd].[Submissions] AS S
     INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
-    WHERE TRY_CAST(RIGHT(s.SubmissionPeriod, 4) AS INT) IS NOT NULL
+    CROSS APPLY (
+        SELECT
+            CASE
+                WHEN TRY_CAST(RIGHT(S.SubmissionPeriod, 4) AS INT) IS NOT NULL
+                    THEN TRY_CAST(RIGHT(S.SubmissionPeriod, 4) AS INT)
+
+                WHEN TRY_CAST(RIGHT(S.SubmissionPeriod, 2) AS INT) IS NOT NULL
+                    THEN 2000 + TRY_CAST(RIGHT(S.SubmissionPeriod, 2) AS INT)
+
+            END AS SubmissionPeriodYear
+    ) CA
+
+    WHERE CA.SubmissionPeriodYear IS NOT NULL
 ),
 
 SubmissionEventsCTE AS (
@@ -286,19 +296,19 @@ SubmissionStatusCTE AS (
             CAST(
                 CASE
                     WHEN vars.RegistrationJourney IN ('DirectLargeProducer', 'CsoLargeProducer') THEN CASE
-                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN vars.RegistrationJourney IN ('DirectSmallProducer', 'CsoSmallProducer') THEN CASE
-                        WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN s.organisation_size = 'L' THEN CASE
-                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN s.organisation_size = 'S' THEN CASE
-                        WHEN fs.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.SmallLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     WHEN vars.IsComplianceScheme = 1 THEN CASE
-                        WHEN fs.DecisionDate > vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
+                        WHEN fs.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1 ELSE 0
                     END
                     ELSE CAST(0 AS BIT)
                 END
@@ -322,12 +332,11 @@ SubmissionStatusCTE AS (
             CAST(CASE
                 WHEN vars.IsComplianceScheme = 1 OR s.organisation_size = 'L'
                 THEN CASE
-                        WHEN r.DecisionDate > vars.CSLLateFeeCutoffDate
-                        THEN 1
+                        WHEN r.DecisionDate >= vars.CSLLateFeeCutoffDate THEN 1
                         ELSE 0
                     END
                 ELSE CASE
-                    WHEN r.DecisionDate > vars.SmallLateFeeCutoffDate THEN 1
+                    WHEN r.DecisionDate >= vars.SmallLateFeeCutoffDate THEN 1
                     ELSE 0
                 END
             END AS BIT) AS IsResubmissionLate,
@@ -615,19 +624,19 @@ CompliancePaycalCTE AS (
             END
 
             -- Latest Submission On Time for Member Type
-            WHEN TRIM(csm.organisation_size) = 'L' AND lras.LatestRegistrationApplicationSubmittedDate <= vars.CSLLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'L' AND lras.LatestRegistrationApplicationSubmittedDate < vars.CSLLateFeeCutoffDate
                 THEN 0 -- no late fee
 
             -- Latest Submission On Time for Member Type
-            WHEN TRIM(csm.organisation_size) = 'S' AND lras.LatestRegistrationApplicationSubmittedDate <= vars.SmallLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'S' AND lras.LatestRegistrationApplicationSubmittedDate < vars.SmallLateFeeCutoffDate
                  THEN 0 -- no late fee
 
             --Original Submission Was Late So All Members are late
-            WHEN TRIM(csm.organisation_size) = 'L' AND csm.FirstApplicationSubmissionDate > vars.CSLLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'L' AND csm.FirstApplicationSubmissionDate >= vars.CSLLateFeeCutoffDate
                 THEN 1
 
             --Original Submission Was Late So All Members are late
-            WHEN TRIM(csm.organisation_size) = 'S' AND csm.FirstApplicationSubmissionDate > vars.SmallLateFeeCutoffDate
+            WHEN TRIM(csm.organisation_size) = 'S' AND csm.FirstApplicationSubmissionDate >= vars.SmallLateFeeCutoffDate
                 THEN 1
 
             --Original Submission Was On Time So Calculate LateFee if joiner_date presesnt
@@ -643,14 +652,12 @@ CompliancePaycalCTE AS (
                 ELSE CASE
                     WHEN TRIM(csm.organisation_size) = 'S' THEN CASE
                         -- Check if the first application submitted date is after the small late fee cutoff date
-                        WHEN csm.FirstApplicationSubmittedDate > vars.SmallLateFeeCutoffDate
-                            THEN 1 -- late fee
+                        WHEN csm.FirstApplicationSubmittedDate >= vars.SmallLateFeeCutoffDate THEN 1 -- late fee
                         ELSE 0 -- no late fee
                     END
                     -- For large organizations
                     WHEN TRIM(csm.organisation_size) = 'L' THEN CASE
-                        WHEN csm.FirstApplicationSubmittedDate > vars.CSLLateFeeCutoffDate
-                            THEN 1
+                        WHEN csm.FirstApplicationSubmittedDate >= vars.CSLLateFeeCutoffDate THEN 1
                         ELSE 0
                     END
                     ELSE csm.IsLateSubmission
@@ -692,7 +699,7 @@ JsonifiedCompliancePaycalCTE AS (
             WHEN IsOnlineMarketPlace = 1 THEN 'true'
             ELSE 'false'
         END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS NVARCHAR(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
-            WHEN vars.RelYear < 2026 THEN CASE
+            WHEN vars.SubmissionPeriodYear < 2026 THEN CASE
                 WHEN IsLateFeeApplicable = 1 THEN 'true'
                 ELSE 'false'
             END
