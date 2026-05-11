@@ -91,6 +91,7 @@ resources:
 extends:
   template: epr-deployment-pipeline.yaml@CommonTemplates
   parameters:
+    envToDeploy: ${{ parameters.envToDeploy }}
     ${{ if contains(parameters.imageTag, 'RELEASE') }}:
       imageTag: $(DEVRWDWEBWAx415)
     ${{ else }}:
