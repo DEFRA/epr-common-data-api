@@ -1,8 +1,10 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
 using EPR.CommonDataService.Data.Converters;
 
 namespace EPR.CommonDataService.Data.Entities;
 
+[ExcludeFromCodeCoverage]
 public class PomSubmissionSummary
 {
     public Guid? FileId { get; set; }

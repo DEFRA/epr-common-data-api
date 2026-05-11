@@ -1,5 +1,8 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace EPR.CommonDataService.Data.Entities;
 
+[ExcludeFromCodeCoverage]
 public class RegistrationSubmissionSummary
 {
     public string CompaniesHouseNumber { get; set; }
