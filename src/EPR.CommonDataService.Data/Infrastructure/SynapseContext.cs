@@ -191,6 +191,7 @@ public class SynapseContext : DbContext
         
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.IsClosedLoopRecycler)
+            .HasColumnName("ClosedLoopRegistration")
             .HasConversion(intToBoolConverter);
     }
 
