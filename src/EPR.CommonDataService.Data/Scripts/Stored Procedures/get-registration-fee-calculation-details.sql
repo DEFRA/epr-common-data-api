@@ -24,7 +24,7 @@ SET NOCOUNT ON;
         SELECT 
             cd.Organisation_Id AS OrganisationId,
             CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 ELSE 0 END AS IsOnlineMarketPlace,
-            CASE WHEN UPPER(LTRIM(RTRIM(cd.closed_loop_registration))) = 'YES' THEN 1 ELSE 0 END AS IsClosedLoopRecycling,
+            CASE WHEN UPPER(TRIM(cd.closed_loop_registration)) = 'YES' THEN 1 ELSE 0 END AS IsClosedLoopRecycling,
             cd.Organisation_Size AS OrganisationSize,
             CASE UPPER(cd.home_nation_code)
                 WHEN 'EN' THEN 1
@@ -46,7 +46,7 @@ SET NOCOUNT ON;
 	SubsidiaryCount AS
 
 	(
-	(select OrganisationID, count(*) as subsidiarycounter,COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries,COUNT(CASE WHEN UPPER(LTRIM(RTRIM(od.closed_loop_registration))) = 'YES' THEN 1 END) AS ClosedLoopRecyclingSubsidiaries from OrganisationDetails od  where SubsidiaryId IS NOT NULL group by OrganisationID)
+	(select OrganisationID, count(*) as subsidiarycounter,COUNT(CASE WHEN od.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries,COUNT(CASE WHEN UPPER(TRIM(od.closed_loop_registration)) = 'YES' THEN 1 END) AS ClosedLoopRecyclingSubsidiaries from OrganisationDetails od  where SubsidiaryId IS NOT NULL group by OrganisationID)
 	)
 
 
