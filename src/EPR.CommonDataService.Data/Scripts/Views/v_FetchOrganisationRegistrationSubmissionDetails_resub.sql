@@ -200,7 +200,7 @@ InitialSubmissionCTE AS (
             CASE
                 WHEN cd.closed_loop_registration = 'yes' THEN 1
                 ELSE 0
-            END AS closed_loop_registration,
+            END AS ClosedLoopRegistration,
             Row_number() OVER (
                 PARTITION BY rse.submissionid ORDER BY RowNum ASC
             ) AS RowNumber
@@ -352,7 +352,7 @@ SubmissionStatusCTE AS (
             COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
-            s.closed_loop_registration,
+            s.ClosedLoopRegistration,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
             Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
         FROM InitialSubmissionCTE s
@@ -538,7 +538,7 @@ SubmissionDetails AS (
             ss.LatestProducerUserId AS SubmittedUserId,
             s.ComplianceSchemeId,
             d.ComplianceSchemeId AS CSId,
-            ss.closed_loop_registration,
+            ss.ClosedLoopRegistration,
             ROW_NUMBER() OVER (
                 PARTITION BY s.OrganisationId,
                 s.SubmissionPeriod,
@@ -792,7 +792,7 @@ SELECT DISTINCT r.SubmissionId,
     r.ComplianceSchemeId,
     r.CSId,
     acpp.FinalJson AS CSOJson,
-    r.closed_loop_registration
+    r.ClosedLoopRegistration
 FROM SubmissionDetails r
 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
 LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.ReferenceNumber
