@@ -26,9 +26,11 @@ public class RegistrationFeeCalculationDetailsService(SynapseContext synapseCont
                 var response = dbResponse.Select(resp => new RegistrationFeeCalculationDetails
                 {
                     IsOnlineMarketplace = resp.IsOnlineMarketplace,
+                    IsClosedLoopRecycling = resp.IsClosedLoopRecycling,
                     IsNewJoiner = resp.IsNewJoiner,
                     NumberOfSubsidiaries = resp.NumberOfSubsidiaries,
                     NumberOfSubsidiariesBeingOnlineMarketPlace = resp.NumberOfSubsidiariesBeingOnlineMarketPlace,
+                    NumberOfSubsidiariesBeingClosedLoopRecycling = resp.NumberOfSubsidiariesBeingClosedLoopRecycling,
                     OrganisationSize = OrganisationSizeMapper.Map(resp.OrganisationSize),
                     OrganisationId = resp.OrganisationId.ToString(),
                     NationId = resp.NationId

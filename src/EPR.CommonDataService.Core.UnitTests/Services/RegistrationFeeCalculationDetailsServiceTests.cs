@@ -31,7 +31,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "L",
                 NumberOfSubsidiaries = 54,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 29,
+                NumberOfSubsidiariesBeingClosedLoopRecycling = 12,
                 IsOnlineMarketplace = true,
+                IsClosedLoopRecycling = true,
                 IsNewJoiner = true
             }
         };
@@ -47,7 +49,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result![0].OrganisationSize.Should().Be("Large");
         result[0].NumberOfSubsidiaries.Should().Be(54);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(29);
+        result[0].NumberOfSubsidiariesBeingClosedLoopRecycling.Should().Be(12);
         result[0].IsOnlineMarketplace.Should().BeTrue();
+        result[0].IsClosedLoopRecycling.Should().BeTrue();
         result[0].IsNewJoiner.Should().BeTrue();
 
         _synapseContextMock
@@ -69,7 +73,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "s",
                 NumberOfSubsidiaries = 100,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 200,
+                NumberOfSubsidiariesBeingClosedLoopRecycling = 0,
                 IsOnlineMarketplace = false,
+                IsClosedLoopRecycling = false,
                 IsNewJoiner = false
             }
         };
@@ -86,8 +92,51 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result![0].OrganisationSize.Should().Be("Small");
         result[0].NumberOfSubsidiaries.Should().Be(100);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(200);
+        result[0].NumberOfSubsidiariesBeingClosedLoopRecycling.Should().Be(0);
         result[0].IsOnlineMarketplace.Should().BeFalse();
+        result[0].IsClosedLoopRecycling.Should().BeFalse();
         result[0].IsNewJoiner.Should().BeFalse();
+    }
+
+    [TestMethod]
+    [DataRow(true, 5, false, 0)]
+    [DataRow(false, 0, true, 7)]
+    [DataRow(true, 3, true, 4)]
+    [DataRow(false, 0, false, 0)]
+    public async Task GetRegistrationFeeCalculationDetails_MapsClosedLoopRecyclingFields(
+        bool isClosedLoopRecycling,
+        int numberOfSubsidiariesBeingClosedLoopRecycling,
+        bool isOnlineMarketplace,
+        int numberOfSubsidiariesBeingOnlineMarketplace)
+    {
+        // Arrange
+        var fileId = Guid.NewGuid();
+        var expectedData = new List<RegistrationFeeCalculationDetailsModel>
+        {
+            new RegistrationFeeCalculationDetailsModel
+            {
+                OrganisationSize = "L",
+                NumberOfSubsidiaries = 10,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = numberOfSubsidiariesBeingOnlineMarketplace,
+                NumberOfSubsidiariesBeingClosedLoopRecycling = numberOfSubsidiariesBeingClosedLoopRecycling,
+                IsOnlineMarketplace = isOnlineMarketplace,
+                IsClosedLoopRecycling = isClosedLoopRecycling,
+                IsNewJoiner = false
+            }
+        };
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+            .ReturnsAsync(expectedData);
+
+        // Act
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result![0].IsClosedLoopRecycling.Should().Be(isClosedLoopRecycling);
+        result[0].NumberOfSubsidiariesBeingClosedLoopRecycling.Should().Be(numberOfSubsidiariesBeingClosedLoopRecycling);
+        result[0].IsOnlineMarketplace.Should().Be(isOnlineMarketplace);
+        result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(numberOfSubsidiariesBeingOnlineMarketplace);
     }
 
     [TestMethod]
@@ -140,7 +189,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
                 OrganisationSize = "X", // Invalid size
                 NumberOfSubsidiaries = 10,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 5,
+                NumberOfSubsidiariesBeingClosedLoopRecycling = 2,
                 IsOnlineMarketplace = false,
+                IsClosedLoopRecycling = true,
                 IsNewJoiner = false
             }
         };
@@ -156,7 +207,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result![0].OrganisationSize.Should().Be("Unknown"); // Validate fallback to "Unknown"
         result[0].NumberOfSubsidiaries.Should().Be(10);
         result[0].NumberOfSubsidiariesBeingOnlineMarketPlace.Should().Be(5);
+        result[0].NumberOfSubsidiariesBeingClosedLoopRecycling.Should().Be(2);
         result[0].IsOnlineMarketplace.Should().BeFalse();
+        result[0].IsClosedLoopRecycling.Should().BeTrue();
         result[0].IsNewJoiner.Should().BeFalse();
 
         _synapseContextMock
