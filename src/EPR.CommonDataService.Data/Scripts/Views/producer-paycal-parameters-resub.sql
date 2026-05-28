@@ -46,6 +46,7 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS
             ,cd.organisation_id
             ,COUNT(DISTINCT subsidiary_id) AS NumberOfSubsidiaries
             ,COUNT(CASE WHEN cd.Packaging_Activity_OM IN ('Primary', 'Secondary') THEN 1 END) AS OnlineMarketPlaceSubsidiaries
+            ,COUNT(CASE WHEN UPPER(TRIM(cd.closed_loop_registration)) = 'YES' THEN 1 END) AS ClosedLoopRecyclingSubsidiaries
         FROM
             rpd.companydetails cd
         WHERE cd.Subsidiary_Id IS NOT NULL -- and leaver_date is null
@@ -64,6 +65,7 @@ CREATE VIEW [dbo].[v_ProducerPaycalParameters_resub] AS
 		   ,NationId
 		   ,ISNULL(NumberOfSubsidiaries,0) as NumberOfSubsidiaries
 		   ,ISNULL(OnlineMarketPlaceSubsidiaries,0) as OnlineMarketPlaceSubsidiaries
+		   ,ISNULL(ClosedLoopRecyclingSubsidiaries,0) as ClosedLoopRecyclingSubsidiaries
 		FROM OrganisationDetailsCTE od
 		left join SubsidiaryCountsCTE sc on sc.FileName = od.FileName AND od.OrganisationId = sc.organisation_id
     )

@@ -50,6 +50,7 @@ BEGIN
 		[IsOnlineMarketplace] [bit] NULL,
 		[NumberOfSubsidiaries] [int] NOT NULL,
 		[NumberOfOnlineSubsidiaries] [int] NOT NULL,
+		[NumberOfSubsidiariesClosedLoopRecycling] [int] NOT NULL,
 		[CompanyDetailsFileId] [nvarchar](4000) NULL,
 		[CompanyDetailsFileName] [nvarchar](4000) NULL,
 		[CompanyDetailsBlobName] [nvarchar](4000) NULL,
