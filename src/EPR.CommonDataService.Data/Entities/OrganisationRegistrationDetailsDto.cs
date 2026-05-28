@@ -70,6 +70,7 @@ public class OrganisationRegistrationDetailsDto
     public bool IsOnlineMarketPlace { get; set; }
     public int NumberOfSubsidiaries { get; set; }
     public int NumberOfOnlineSubsidiaries { get; set; }
+    public int NumberOfSubsidiariesClosedLoopRecycling { get; set; }
 
     public Guid? CompanyDetailsFileId { get; set; }
     public string CompanyDetailsFileName { get; set; }

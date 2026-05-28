@@ -180,6 +180,9 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.NumberOfSubsidiaries)
             .HasConversion(stringToIntConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.NumberOfSubsidiariesClosedLoopRecycling)
+            .HasConversion(stringToIntConverter);
 
         modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
             .Property(e => e.ComplianceSchemeId)
