@@ -20,6 +20,7 @@ public class OrganisationRegistrationDetailsDto
     public string StatusPendingDate { get; set; }
     public string SubmittedDateTime { get; set; }
     public bool IsLateSubmission { get; set; }
+    public bool IsClosedLoopRecycler { get; set; }
     public string SubmissionPeriod { get; set; }
     public int RelevantYear { get; set; }
     public string ResubmissionFileId { get; set; }
