@@ -1,4 +1,4 @@
-﻿IF EXISTS (
+IF EXISTS (
     SELECT 1
     FROM sys.views
     WHERE object_id = OBJECT_ID(N'[dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]')
@@ -441,6 +441,7 @@ ProducerPaycalParametersCTE AS (
         IsOnlineMarketplace,
         NumberOfSubsidiaries,
         OnlineMarketPlaceSubsidiaries,
+        ClosedLoopRecyclingSubsidiaries,
         dv.SubmissionId
     FROM [dbo].[t_ProducerPaycalParameters_resub] AS ppp
     LEFT JOIN [rpd].[cosmos_file_metadata] c ON c.FileName = ppp.FileName -- added to join to derivered_variables
@@ -526,6 +527,7 @@ SubmissionDetails AS (
             CONVERT(BIT, ISNULL(ppp.IsOnlineMarketplace, 0)) AS IsOnlineMarketplace,
             ISNULL(ppp.NumberOfSubsidiaries, 0) AS NumberOfSubsidiaries,
             ISNULL(ppp.OnlineMarketPlaceSubsidiaries, 0) AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+            ISNULL(ppp.ClosedLoopRecyclingSubsidiaries, 0) AS NumberOfSubsidiariesClosedLoopRecycling,
             org.CompanyFileId AS CompanyDetailsFileId,
             org.CompanyUploadFileName AS CompanyDetailsFileName,
             org.CompanyBlobName AS CompanyDetailsBlobName,
@@ -685,6 +687,7 @@ CompliancePaycalCTE AS (
         ppp.IsOnlineMarketPlace,
         ppp.NumberOfSubsidiaries,
         ppp.OnlineMarketPlaceSubsidiaries AS NumberOfSubsidiariesBeingOnlineMarketPlace,
+        ppp.ClosedLoopRecyclingSubsidiaries AS NumberOfSubsidiariesClosedLoopRecycling,
         csm.submissionperiod,
         csm.SubmissionId
     FROM ComplianceSchemeMembersCTE csm
@@ -704,7 +707,7 @@ JsonifiedCompliancePaycalCTE AS (
         '{"MemberId": "' + CAST(ReferenceNumber AS NVARCHAR(25)) + '", ' + '"MemberType": "' + ProducerSize + '", ' + '"IsOnlineMarketPlace": ' + CASE
             WHEN IsOnlineMarketPlace = 1 THEN 'true'
             ELSE 'false'
-        END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS NVARCHAR(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
+        END + ', ' + '"NumberOfSubsidiaries": ' + CAST(NumberOfSubsidiaries AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesOnlineMarketPlace": ' + CAST(NumberOfSubsidiariesBeingOnlineMarketPlace AS NVARCHAR(6)) + ', ' + '"NumberOfSubsidiariesClosedLoopRecycling": ' + CAST(NumberOfSubsidiariesClosedLoopRecycling AS NVARCHAR(6)) + ', ' + '"RelevantYear": ' + CAST(RelevantYear AS NVARCHAR(4)) + ', ' + '"SubmittedDate": "' + CAST(SubmittedDate AS NVARCHAR(16)) + '", ' + '"IsLateFeeApplicable": ' + CASE
             WHEN vars.SubmissionPeriodYear < 2026 THEN CASE
                 WHEN IsLateFeeApplicable = 1 THEN 'true'
                 ELSE 'false'
@@ -780,6 +783,7 @@ SELECT DISTINCT r.SubmissionId,
     r.IsOnlineMarketplace,
     r.NumberOfSubsidiaries,
     r.NumberOfSubsidiariesBeingOnlineMarketPlace AS NumberOfOnlineSubsidiaries,
+    r.NumberOfSubsidiariesClosedLoopRecycling,
     r.CompanyDetailsFileId,
     r.CompanyDetailsFileName,
     r.CompanyDetailsBlobName,
