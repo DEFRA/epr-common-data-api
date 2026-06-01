@@ -197,10 +197,6 @@ InitialSubmissionCTE AS (
     FROM (
         SELECT rse.*,
             cd.organisation_size,
-            CASE
-                WHEN cd.closed_loop_registration = 'yes' THEN 1
-                ELSE 0
-            END AS ClosedLoopRegistration,
             Row_number() OVER (
                 PARTITION BY rse.submissionid ORDER BY RowNum ASC
             ) AS RowNumber
@@ -279,6 +275,18 @@ ResubmissionDecisionCTE AS (
     WHERE IsRegulatorResubmissionDecision = 1
 ),
 
+CLR AS (
+    SELECT FileId,
+        cfm.filename,
+        Subsidiary_Id,
+        CASE
+            WHEN closed_loop_registration = 'yes' THEN 1
+            ELSE 0
+        END AS ClosedLoopRegistration
+    FROM rpd.cosmos_file_metadata cfm
+    LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename
+),
+
 SubmissionStatusCTE AS (
     SELECT *
     FROM (
@@ -352,7 +360,7 @@ SubmissionStatusCTE AS (
             COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
-            s.ClosedLoopRegistration,
+            ClosedLoopRegistration,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
             Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
         FROM InitialSubmissionCTE s
@@ -364,6 +372,8 @@ SubmissionStatusCTE AS (
         LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId
             AND rd.FileId = r.FileId
         LEFT JOIN derivered_variables vars ON vars.SubmissionId = s.SubmissionId -- added join to variables CTE
+        LEFT JOIN CLR ON CLR.FileId = COALESCE(r.FileId, s.FileId)
+            AND CLR.Subsidiary_Id IS NULL -- Todo: temporarily use Parent's CLR. Need granularity at subsidiary level.
     ) x
     WHERE x.RowNumber = 1
 ),
