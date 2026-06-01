@@ -276,15 +276,19 @@ ResubmissionDecisionCTE AS (
 ),
 
 CLR AS (
-    SELECT FileId,
+    SELECT
+        cfm.SubmissionId,
+        cfm.FileId,
         cfm.filename,
         Subsidiary_Id,
+        companies_house_number,
         CASE
             WHEN closed_loop_registration = 'yes' THEN 1
             ELSE 0
         END AS ClosedLoopRegistration
     FROM rpd.cosmos_file_metadata cfm
     LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename
+    JOIN rpd.submissions s ON s.SubmissionId = cfm.SubmissionId
 ),
 
 SubmissionStatusCTE AS (
