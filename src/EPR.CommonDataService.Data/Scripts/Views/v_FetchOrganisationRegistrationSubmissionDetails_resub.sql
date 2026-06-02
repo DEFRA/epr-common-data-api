@@ -287,9 +287,11 @@ clr_raw as (
     LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename),
 
 parent_clr as (
-    select FileId, IsClosedLoopRecycling
-    from clr_raw c
-    where Subsidiary_Id is null
+    SELECT FileId,
+        SUM(IsClosedLoopRecycling) AS NoOfHoldingCompaniesClosedLoopRecycling
+    FROM clr_raw c
+    WHERE Subsidiary_Id IS NULL
+    GROUP BY FileId
 ),
 
 subsidiary_clr_counts as (
@@ -303,7 +305,7 @@ subsidiary_clr_counts as (
 clr_aggregated as (
     select distinct
         clr_raw.FileId,
-        pc.IsClosedLoopRecycling,
+        pc.NoOfHoldingCompaniesClosedLoopRecycling,
         isnull(NoOfSubsidiariesClosedLoopRecycling, 0) as NoOfSubsidiariesClosedLoopRecycling
     from clr_raw
     join parent_clr pc on pc.FileId = clr_raw.FileId
@@ -382,7 +384,7 @@ SubmissionStatusCTE AS (
             COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
-            IsClosedLoopRecycling,
+            NoOfHoldingCompaniesClosedLoopRecycling,
             NoOfSubsidiariesClosedLoopRecycling,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
             Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
@@ -570,7 +572,7 @@ SubmissionDetails AS (
             ss.LatestProducerUserId AS SubmittedUserId,
             s.ComplianceSchemeId,
             d.ComplianceSchemeId AS CSId,
-            ss.IsClosedLoopRecycling,
+            ss.NoOfHoldingCompaniesClosedLoopRecycling,
             ss.NoOfSubsidiariesClosedLoopRecycling,
             ROW_NUMBER() OVER (
                 PARTITION BY s.OrganisationId,
@@ -825,7 +827,7 @@ SELECT DISTINCT r.SubmissionId,
     r.ComplianceSchemeId,
     r.CSId,
     acpp.FinalJson AS CSOJson,
-    r.IsClosedLoopRecycling,
+    r.NoOfHoldingCompaniesClosedLoopRecycling,
     r.NoOfSubsidiariesClosedLoopRecycling
 FROM SubmissionDetails r
 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
