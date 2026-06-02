@@ -277,9 +277,7 @@ ResubmissionDecisionCTE AS (
 
 clr_raw as (
     SELECT
-        cfm.SubmissionId,
         cfm.FileId,
-        cfm.filename,
         Subsidiary_Id,
         CASE
             WHEN closed_loop_registration = 'yes' THEN 1
@@ -289,29 +287,27 @@ clr_raw as (
     LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename),
 
 parent_clr as (
-    select SubmissionId, FileId, filename, IsClosedLoopRecycling
+    select FileId, IsClosedLoopRecycling
     from clr_raw c
     where Subsidiary_Id is null
 ),
 
 subsidiary_clr_counts as (
-    select SubmissionId, FileId, filename, count(*) as NoOfSubsidiariesClosedLoopRecycling
+    select FileId, count(*) as NoOfSubsidiariesClosedLoopRecycling
     from clr_raw
     where Subsidiary_Id is not null
         and IsClosedLoopRecycling = 1
-    group by SubmissionId, FileId, filename
+    group by FileId
 ),
 
 clr_aggregated as (
     select distinct
-        clr_raw.SubmissionId,
         clr_raw.FileId,
-        clr_raw.filename,
         pc.IsClosedLoopRecycling,
         isnull(NoOfSubsidiariesClosedLoopRecycling, 0) as NoOfSubsidiariesClosedLoopRecycling
     from clr_raw
-    join parent_clr pc on pc.filename = clr_raw.filename
-    left join subsidiary_clr_counts sc on sc.filename = clr_raw.filename),
+    join parent_clr pc on pc.FileId = clr_raw.FileId
+    left join subsidiary_clr_counts sc on sc.FileId = clr_raw.FileId),
 
 SubmissionStatusCTE AS (
     SELECT *
@@ -387,6 +383,7 @@ SubmissionStatusCTE AS (
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
             IsClosedLoopRecycling,
+            NoOfSubsidiariesClosedLoopRecycling,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
             Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
         FROM InitialSubmissionCTE s
@@ -574,6 +571,7 @@ SubmissionDetails AS (
             s.ComplianceSchemeId,
             d.ComplianceSchemeId AS CSId,
             ss.IsClosedLoopRecycling,
+            ss.NoOfSubsidiariesClosedLoopRecycling,
             ROW_NUMBER() OVER (
                 PARTITION BY s.OrganisationId,
                 s.SubmissionPeriod,
@@ -827,7 +825,8 @@ SELECT DISTINCT r.SubmissionId,
     r.ComplianceSchemeId,
     r.CSId,
     acpp.FinalJson AS CSOJson,
-    r.IsClosedLoopRecycling
+    r.IsClosedLoopRecycling,
+    r.NoOfSubsidiariesClosedLoopRecycling
 FROM SubmissionDetails r
 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
 LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.ReferenceNumber
