@@ -62,7 +62,8 @@ BEGIN
 		[ComplianceSchemeId] [nvarchar](4000) NULL,
 		[CSId] [nvarchar](4000) NULL,
 		[CSOJson] [nvarchar](max) NULL,
-		[ClosedLoopRegistration] [bit]
+		[NoOfHoldingCompaniesClosedLoopRecycling] [int] NULL,
+		[NoOfSubsidiariesClosedLoopRecycling] [int] NULL
 	)
 	WITH
 	(

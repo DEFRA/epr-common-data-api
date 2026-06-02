@@ -68,7 +68,8 @@ BEGIN
            o.CSId,
            o.CSOJson,
            s.RegistrationJourney,
-           o.ClosedLoopRegistration AS IsClosedLoopRecycler
+           o.NoOfHoldingCompaniesClosedLoopRecycling,
+           o.NoOfSubsidiariesClosedLoopRecycling
 	from dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
     join apps.Submissions s on s.SubmissionId = o.SubmissionId
     where o.SubmissionId = @SubmissionId;
