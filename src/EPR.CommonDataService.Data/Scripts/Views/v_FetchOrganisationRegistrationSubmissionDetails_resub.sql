@@ -275,21 +275,43 @@ ResubmissionDecisionCTE AS (
     WHERE IsRegulatorResubmissionDecision = 1
 ),
 
-CLR AS (
+clr_raw as (
     SELECT
         cfm.SubmissionId,
         cfm.FileId,
         cfm.filename,
         Subsidiary_Id,
-        companies_house_number,
         CASE
             WHEN closed_loop_registration = 'yes' THEN 1
             ELSE 0
-        END AS ClosedLoopRegistration
+        END AS IsClosedLoopRecycling
     FROM rpd.cosmos_file_metadata cfm
-    LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename
-    JOIN rpd.submissions s ON s.SubmissionId = cfm.SubmissionId
+    LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename),
+
+parent_clr as (
+    select SubmissionId, FileId, filename, IsClosedLoopRecycling
+    from clr_raw c
+    where Subsidiary_Id is null
 ),
+
+subsidiary_clr_counts as (
+    select SubmissionId, FileId, filename, count(*) as NoOfSubsidiariesClosedLoopRecycling
+    from clr_raw
+    where Subsidiary_Id is not null
+        and IsClosedLoopRecycling = 1
+    group by SubmissionId, FileId, filename
+),
+
+clr_aggregated as (
+    select distinct
+        clr_raw.SubmissionId,
+        clr_raw.FileId,
+        clr_raw.filename,
+        pc.IsClosedLoopRecycling,
+        isnull(NoOfSubsidiariesClosedLoopRecycling, 0) as NoOfSubsidiariesClosedLoopRecycling
+    from clr_raw
+    join parent_clr pc on pc.filename = clr_raw.filename
+    left join subsidiary_clr_counts sc on sc.filename = clr_raw.filename),
 
 SubmissionStatusCTE AS (
     SELECT *
@@ -364,7 +386,7 @@ SubmissionStatusCTE AS (
             COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
-            ClosedLoopRegistration,
+            IsClosedLoopRecycling,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
             Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
         FROM InitialSubmissionCTE s
@@ -376,8 +398,7 @@ SubmissionStatusCTE AS (
         LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId
             AND rd.FileId = r.FileId
         LEFT JOIN derivered_variables vars ON vars.SubmissionId = s.SubmissionId -- added join to variables CTE
-        LEFT JOIN CLR ON CLR.FileId = COALESCE(r.FileId, s.FileId)
-            AND CLR.Subsidiary_Id IS NULL -- Todo: temporarily use Parent's CLR. Need granularity at subsidiary level.
+        LEFT JOIN clr_aggregated ca ON ca.FileId = COALESCE(r.FileId, s.FileId)
     ) x
     WHERE x.RowNumber = 1
 ),
@@ -552,7 +573,7 @@ SubmissionDetails AS (
             ss.LatestProducerUserId AS SubmittedUserId,
             s.ComplianceSchemeId,
             d.ComplianceSchemeId AS CSId,
-            ss.ClosedLoopRegistration,
+            ss.IsClosedLoopRecycling,
             ROW_NUMBER() OVER (
                 PARTITION BY s.OrganisationId,
                 s.SubmissionPeriod,
@@ -806,7 +827,7 @@ SELECT DISTINCT r.SubmissionId,
     r.ComplianceSchemeId,
     r.CSId,
     acpp.FinalJson AS CSOJson,
-    r.ClosedLoopRegistration
+    r.IsClosedLoopRecycling
 FROM SubmissionDetails r
 INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
 LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.ReferenceNumber
