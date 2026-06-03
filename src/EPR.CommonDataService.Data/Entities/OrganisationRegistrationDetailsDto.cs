@@ -20,7 +20,6 @@ public class OrganisationRegistrationDetailsDto
     public string StatusPendingDate { get; set; }
     public string SubmittedDateTime { get; set; }
     public bool IsLateSubmission { get; set; }
-    public bool IsClosedLoopRecycler { get; set; }
     public string SubmissionPeriod { get; set; }
     public int RelevantYear { get; set; }
     public string ResubmissionFileId { get; set; }
@@ -70,6 +69,8 @@ public class OrganisationRegistrationDetailsDto
     public bool IsOnlineMarketPlace { get; set; }
     public int NumberOfSubsidiaries { get; set; }
     public int NumberOfOnlineSubsidiaries { get; set; }
+    public int NumberOfHoldingCompaniesClosedLoopRecycling { get; set; }
+    public int NumberOfSubsidiariesClosedLoopRecycling { get; set; }
 
     public Guid? CompanyDetailsFileId { get; set; }
     public string CompanyDetailsFileName { get; set; }
