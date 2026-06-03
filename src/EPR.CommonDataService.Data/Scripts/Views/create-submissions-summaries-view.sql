@@ -110,7 +110,7 @@ AS WITH
                 ) AS RowNum
             FROM apps.SubmissionEvents se
             INNER JOIN ResubmissionApplicationSubmittedData rad
-                ON rad.FileId = se.FileId AND rad.SubmissionId = se.SubmissionId
+                ON rad.FileId = se.FileId
             WHERE se.[Type] = 'PackagingResubmissionApplicationSubmitted'
         )
 
