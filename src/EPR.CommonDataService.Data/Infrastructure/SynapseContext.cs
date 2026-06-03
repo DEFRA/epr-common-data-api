@@ -182,11 +182,11 @@ public class SynapseContext : DbContext
             .HasConversion(stringToIntConverter);
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.NumberOfHoldingCompaniesClosedLoopRecycling)
-            .HasColumnName("NoOfHoldingCompaniesClosedLoopRecycling")
+            .HasColumnName("NumberOfHoldingCompaniesClosedLoopRecycling")
             .HasConversion(stringToIntConverter);
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.NumberOfSubsidiariesClosedLoopRecycling)
-            .HasColumnName("NoOfSubsidiariesClosedLoopRecycling")
+            .HasColumnName("NumberOfSubsidiariesClosedLoopRecycling")
             .HasConversion(stringToIntConverter);
 
         modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()

@@ -112,8 +112,8 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 			,Target.[ComplianceSchemeId]				        = Source.[ComplianceSchemeId]
 			,Target.[CSId]								        = Source.[CSId]
 			,Target.[CSOJson]							        = Source.[CSOJson]
-			,Target.[NoOfHoldingCompaniesClosedLoopRecycling]	= Source.[NoOfHoldingCompaniesClosedLoopRecycling]
-			,Target.[NoOfSubsidiariesClosedLoopRecycling]       = Source.[NoOfSubsidiariesClosedLoopRecycling]
+			,Target.[NumberOfHoldingCompaniesClosedLoopRecycling]	= Source.[NumberOfHoldingCompaniesClosedLoopRecycling]
+			,Target.[NumberOfSubsidiariesClosedLoopRecycling]       = Source.[NumberOfSubsidiariesClosedLoopRecycling]
 			WHEN NOT MATCHED BY TARGET THEN
 		INSERT (
 		[SubmissionId]
@@ -176,8 +176,8 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
       ,[ComplianceSchemeId]
       ,[CSId]
       ,[CSOJson]
-      ,[NoOfHoldingCompaniesClosedLoopRecycling]
-      ,[NoOfSubsidiariesClosedLoopRecycling]
+      ,[NumberOfHoldingCompaniesClosedLoopRecycling]
+      ,[NumberOfSubsidiariesClosedLoopRecycling]
 	)
 	VALUES (
 		Source.[SubmissionId]
@@ -240,8 +240,8 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
 		,Source.[ComplianceSchemeId]
 		,Source.[CSId]
 		,Source.[CSOJson]
-		,Source.[NoOfHoldingCompaniesClosedLoopRecycling]
-		,Source.[NoOfSubsidiariesClosedLoopRecycling]
+		,Source.[NumberOfHoldingCompaniesClosedLoopRecycling]
+		,Source.[NumberOfSubsidiariesClosedLoopRecycling]
 		)
 	    WHEN NOT MATCHED BY SOURCE THEN
         DELETE; -- delete from table when no longer in source
