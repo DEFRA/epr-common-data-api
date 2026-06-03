@@ -176,7 +176,7 @@ select @batch_id  = ISNULL(max(batch_id),0)+1 from [dbo].[batch_log]
       ,[ComplianceSchemeId]
       ,[CSId]
       ,[CSOJson]
-      ,[NoOfHoldingCompaniesClosedLoopRecycling],
+      ,[NoOfHoldingCompaniesClosedLoopRecycling]
       ,[NoOfSubsidiariesClosedLoopRecycling]
 	)
 	VALUES (
