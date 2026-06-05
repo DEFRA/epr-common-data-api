@@ -68,6 +68,7 @@ BEGIN
            o.CSId,
            o.CSOJson,
            IsNull(ORS.RegistrationJourney, s.RegistrationJourney) AS RegistrationJourney,
+           cast(0 as bit) AS IsClosedLoopRecycler,  -- DEPRECATION STUB: to be removed shortly
            o.NumberOfHoldingCompaniesClosedLoopRecycling,
            o.NumberOfSubsidiariesClosedLoopRecycling
     FROM dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
