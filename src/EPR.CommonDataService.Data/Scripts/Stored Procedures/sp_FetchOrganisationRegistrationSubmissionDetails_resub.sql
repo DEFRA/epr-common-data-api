@@ -67,10 +67,11 @@ BEGIN
            o.ComplianceSchemeId,
            o.CSId,
            o.CSOJson,
-           s.RegistrationJourney,
+           IsNull(ORS.RegistrationJourney, s.RegistrationJourney) AS RegistrationJourney,
            o.NumberOfHoldingCompaniesClosedLoopRecycling,
            o.NumberOfSubsidiariesClosedLoopRecycling
-	from dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
-    join apps.Submissions s on s.SubmissionId = o.SubmissionId
-    where o.SubmissionId = @SubmissionId;
+    FROM dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
+             LEFT JOIN apps.OrgRegistrationsSummaries ors ON ors.SubmissionId = o.Submissionid
+             JOIN apps.Submissions s ON s.SubmissionId = o.SubmissionId
+    WHERE o.SubmissionId = @SubmissionId;
 END
