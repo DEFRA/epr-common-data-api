@@ -71,4 +71,15 @@ BEGIN
 		HEAP
 	)
 END;
+
+-- Todo: remove below after this change is released
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]') AND name = 'NumberOfHoldingCompaniesClosedLoopRecycling')
+BEGIN
+	ALTER TABLE [dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub] ADD [NumberOfHoldingCompaniesClosedLoopRecycling] [int] NULL;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub]') AND name = 'NumberOfSubsidiariesClosedLoopRecycling')
+BEGIN
+	ALTER TABLE [dbo].[t_FetchOrganisationRegistrationSubmissionDetails_resub] ADD [NumberOfSubsidiariesClosedLoopRecycling] [int] NULL;
+END;
 GO
