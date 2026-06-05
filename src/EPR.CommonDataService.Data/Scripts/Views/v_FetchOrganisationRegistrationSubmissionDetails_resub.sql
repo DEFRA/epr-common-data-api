@@ -275,41 +275,25 @@ ResubmissionDecisionCTE AS (
     WHERE IsRegulatorResubmissionDecision = 1
 ),
 
-clr_raw as (
-    SELECT
+clr_aggregated AS (
+    SELECT 
         cfm.FileId,
-        Subsidiary_Id,
-        CASE
-            WHEN closed_loop_registration = 'yes' THEN 1
-            ELSE 0
-        END AS IsClosedLoopRecycling
+        SUM(
+            CASE
+                WHEN cd.Subsidiary_Id IS NULL AND cd.closed_loop_registration = 'yes' THEN 1
+                ELSE 0
+            END
+        ) AS NumberOfHoldingCompaniesClosedLoopRecycling,
+        SUM(
+            CASE
+                WHEN cd.Subsidiary_Id IS NOT NULL AND cd.closed_loop_registration = 'yes' THEN 1
+                ELSE 0
+            END
+        ) AS NumberOfSubsidiariesClosedLoopRecycling
     FROM rpd.cosmos_file_metadata cfm
-    LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename),
-
-parent_clr as (
-    SELECT FileId,
-        SUM(IsClosedLoopRecycling) AS NumberOfHoldingCompaniesClosedLoopRecycling
-    FROM clr_raw c
-    WHERE Subsidiary_Id IS NULL
-    GROUP BY FileId
+    LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename
+    GROUP BY cfm.FileId
 ),
-
-subsidiary_clr_counts as (
-    select FileId, count(*) as NumberOfSubsidiariesClosedLoopRecycling
-    from clr_raw
-    where Subsidiary_Id is not null
-        and IsClosedLoopRecycling = 1
-    group by FileId
-),
-
-clr_aggregated as (
-    select distinct
-        clr_raw.FileId,
-        pc.NumberOfHoldingCompaniesClosedLoopRecycling,
-        isnull(NumberOfSubsidiariesClosedLoopRecycling, 0) as NumberOfSubsidiariesClosedLoopRecycling
-    from clr_raw
-    join parent_clr pc on pc.FileId = clr_raw.FileId
-    left join subsidiary_clr_counts sc on sc.FileId = clr_raw.FileId),
 
 SubmissionStatusCTE AS (
     SELECT *
