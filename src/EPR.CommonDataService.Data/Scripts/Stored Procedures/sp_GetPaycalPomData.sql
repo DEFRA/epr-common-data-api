@@ -107,7 +107,6 @@ BEGIN
             on cfm.FileName = cd.FileName
             --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
             AND Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) > 2024
-            AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
             -- Only considering Granted/Accepted files--
             --ST007 Added Accepted Status to cater for resubmission registration files
             INNER JOIN granted_registration_files sofs
@@ -138,7 +137,6 @@ BEGIN
             --Restricting to just accepted pom files
             INNER JOIN [rpd].[cosmos_file_metadata] cfm
             on cfm.FileName = p.FileName
-            AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
             INNER JOIN accepted_pom_files sofs ON sofs.cfm_fileid = cfm.fileid
         ) a
         WHERE latest_producer_accepted_record_per_SP = 1

@@ -64,7 +64,6 @@ BEGIN
 	               AND o.IsDeleted = 0
 	            INNER JOIN rpd.cosmos_file_metadata cfm
 	                ON cfm.FileName = p.FileName
-	               AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
 	            INNER JOIN accepted_pom_files sofs
 	                ON sofs.cfm_fileid = cfm.fileid
 	        ) a
