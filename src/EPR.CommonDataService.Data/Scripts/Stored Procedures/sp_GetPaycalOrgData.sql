@@ -17,15 +17,14 @@ BEGIN
 
     BEGIN
 
-	    WITH pom_status_as_of_cutoff AS (
-	        -- Replaces the join to v_submitted_pom_org_file_status so that decisions
-	        -- (e.g. cancellations) made after @CutOffDate are excluded. When @CutOffDate
-	        -- is NULL, all decisions are considered and behaviour matches the original.
-	        SELECT cfm_fileid, Regulator_Status
+	    WITH accepted_pom_files AS (
+	        -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate
+	        -- is 'Accepted'. When @CutOffDate is NULL all decisions are considered.
+	        SELECT cfm_fileid
 	        FROM (
 	            SELECT
 	                cfm.FileId AS cfm_fileid,
-	                se.Decision AS Regulator_Status,
+	                se.Decision,
 	                ROW_NUMBER() OVER (
 	                    PARTITION BY cfm.FileId
 	                    ORDER BY CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
@@ -39,6 +38,7 @@ BEGIN
 	              AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
 	        ) ranked
 	        WHERE rn = 1
+	          AND Decision = 'Accepted'
 	    ),
 	    latest_accepted_pom AS (
 	        SELECT
@@ -65,9 +65,8 @@ BEGIN
 	            INNER JOIN rpd.cosmos_file_metadata cfm
 	                ON cfm.FileName = p.FileName
 	               AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
-	            INNER JOIN pom_status_as_of_cutoff sofs
+	            INNER JOIN accepted_pom_files sofs
 	                ON sofs.cfm_fileid = cfm.fileid
-	               AND sofs.Regulator_Status = 'Accepted'
 	        ) a
 	        WHERE a.latest_producer_accepted_record_per_SP = 1
 	    ),

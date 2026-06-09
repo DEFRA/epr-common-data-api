@@ -19,12 +19,14 @@ BEGIN
         -- Replaces the joins to v_submitted_pom_org_file_status so that decisions
         -- (e.g. cancellations) made after @CutOffDate are excluded. When @CutOffDate
         -- is NULL, all decisions are considered and behaviour matches the original.
-        WITH pom_status_as_of_cutoff AS (
-            SELECT cfm_fileid, Regulator_Status
+        WITH accepted_pom_files AS (
+            -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate
+            -- is 'Accepted'. When @CutOffDate is NULL all decisions are considered.
+            SELECT cfm_fileid
             FROM (
                 SELECT
                     cfm.FileId AS cfm_fileid,
-                    se.Decision AS Regulator_Status,
+                    se.Decision,
                     ROW_NUMBER() OVER (
                         PARTITION BY cfm.FileId
                         ORDER BY CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
@@ -38,11 +40,12 @@ BEGIN
                   AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
             ) ranked
             WHERE rn = 1
+              AND Decision = 'Accepted'
         ),
         reg_decisions_as_of_cutoff AS (
             -- Resolves null FileId on RegulatorRegistrationDecision events by finding
             -- the most recent Submitted event for the same submission prior to the
-            -- decision timestamp (mirrors the view's Set A and Set C null-fileid resolution).
+            -- decision timestamp (covers the view's Set A and Set C cases).
             SELECT
                 ISNULL(se.FileId, resolved.fileid) AS resolved_fileid,
                 CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
@@ -61,12 +64,14 @@ BEGIN
             WHERE se.Type = 'RegulatorRegistrationDecision'
               AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
         ),
-        registration_status_as_of_cutoff AS (
-            SELECT cfm_fileid, Regulator_Status
+        granted_registration_files AS (
+            -- CompanyDetails files whose most recent RegulatorRegistrationDecision on or
+            -- before @CutOffDate is 'Accepted' or 'Granted'.
+            SELECT cfm_fileid
             FROM (
                 SELECT
                     cfm.FileId AS cfm_fileid,
-                    rd.Decision AS Regulator_Status,
+                    rd.Decision,
                     ROW_NUMBER() OVER (
                         PARTITION BY cfm.FileId
                         ORDER BY rd.Decision_ts DESC
@@ -78,6 +83,7 @@ BEGIN
                   AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
             ) ranked
             WHERE rn = 1
+              AND Decision IN ('Accepted', 'Granted')
         ),
         ----Find latest Registration file with data submitted for a given organisation--
         --ST006
@@ -103,10 +109,9 @@ BEGIN
             AND Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) > 2024
             AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
             -- Only considering Granted/Accepted files--
-            INNER JOIN registration_status_as_of_cutoff sofs
-            ON sofs.cfm_fileid = cfm.fileid
             --ST007 Added Accepted Status to cater for resubmission registration files
-            AND sofs.Regulator_Status IN ('Granted','Accepted')
+            INNER JOIN granted_registration_files sofs
+            ON sofs.cfm_fileid = cfm.fileid
         ) a
         WHERE latest_producer_accepted_record_per_SP = 1
         ),
@@ -134,8 +139,7 @@ BEGIN
             INNER JOIN [rpd].[cosmos_file_metadata] cfm
             on cfm.FileName = p.FileName
             AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
-            INNER JOIN pom_status_as_of_cutoff sofs ON sofs.cfm_fileid = cfm.fileid
-            AND sofs.Regulator_Status = 'Accepted'
+            INNER JOIN accepted_pom_files sofs ON sofs.cfm_fileid = cfm.fileid
         ) a
         WHERE latest_producer_accepted_record_per_SP = 1
         ),
