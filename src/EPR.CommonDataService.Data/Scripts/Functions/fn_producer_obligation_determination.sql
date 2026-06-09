@@ -136,13 +136,13 @@ raw_obligation AS (
         submission_period_year,
         producer_id,
         CASE
-            WHEN Regulator_Status = 'Cancelled'                                              THEN 'Not Obligated'
-            WHEN leaver_code IS NULL OR leaver_code = ''                                     THEN 'Blank'
-            WHEN leaver_code IN ('09', '18')       AND subsidiary_id IS NOT NULL             THEN 'Invalid leaver code'
-            WHEN leaver_code IN ('06', '07', '08', '10') AND subsidiary_id IS NULL          THEN 'Invalid leaver code'
-            WHEN leaver_code IN ('11', '12')                                                 THEN 'Blank'
+            WHEN Regulator_Status = 'Cancelled'                                               THEN 'Not Obligated'
+            WHEN leaver_code IS NULL OR leaver_code = ''                                      THEN 'Blank'
+            WHEN leaver_code IN ('09', '18')             AND subsidiary_id IS NOT NULL        THEN 'Invalid leaver code'
+            WHEN leaver_code IN ('06', '07', '08', '10') AND subsidiary_id IS NULL            THEN 'Invalid leaver code'
+            WHEN leaver_code IN ('11', '12')                                                  THEN 'Blank'
             WHEN leaver_code IN ('01','02','03','04','05','06','08','10','15','17','19','20') THEN 'Obligated'
-            WHEN leaver_code IN ('07','09','13','14','16','18','21')                         THEN 'Not Obligated'
+            WHEN leaver_code IN ('07','09','13','14','16','18','21')                          THEN 'Not Obligated'
             ELSE 'Invalid leaver code'
         END AS raw_obligation_status
     FROM latest_accepted_registrations
@@ -201,7 +201,7 @@ decision_tree AS (
             WHEN df.status_code IN ('02','03')
              AND TRY_CONVERT(DATE, df.joiner_date, 103) IS NOT NULL
              AND CAST(df.submission_period_year AS INT) <> YEAR(TRY_CONVERT(DATE, df.joiner_date, 103))
-                                                                                            THEN 'E'
+                                                                                           THEN 'E'
             WHEN df.raw_obligation_status = 'Invalid leaver code'                          THEN 'E'
             WHEN p.obligated_count = 0 AND p.blank_count = 0 AND p.not_obligated_count > 0 THEN 'E'
             WHEN p.obligated_count = 0 AND p.blank_count > 1                               THEN 'E'
@@ -209,20 +209,20 @@ decision_tree AS (
                 THEN CASE WHEN df.raw_obligation_status = 'Blank' THEN 'O' ELSE 'N' END
             WHEN p.obligated_count = 1
                 THEN CASE WHEN df.raw_obligation_status = 'Obligated' THEN 'O' ELSE 'N' END
-            WHEN p.obligated_count > 1                                                      THEN 'E'
+            WHEN p.obligated_count > 1                                                    THEN 'E'
             ELSE 'E'
         END AS obligation_status,
         CASE
             WHEN df.status_code IN ('02','03')
              AND TRY_CONVERT(DATE, df.joiner_date, 103) IS NOT NULL
              AND CAST(df.submission_period_year AS INT) <> YEAR(TRY_CONVERT(DATE, df.joiner_date, 103))
-                                                                                            THEN 'Date input issue'
+                                                                                           THEN 'Date input issue'
             WHEN df.raw_obligation_status = 'Invalid leaver code'                          THEN 'Invalid leaver code'
             WHEN p.obligated_count = 0 AND p.blank_count = 0 AND p.not_obligated_count > 0 THEN 'Not Obligated'
             WHEN p.obligated_count = 0 AND p.blank_count > 1                               THEN 'Conflicting Obligations (Blanks)'
             WHEN p.obligated_count = 0 AND p.blank_count = 1                               THEN NULL
-            WHEN p.obligated_count = 1                                                      THEN NULL
-            WHEN p.obligated_count > 1                                                      THEN 'Conflicting Obligations (Leaver Codes)'
+            WHEN p.obligated_count = 1                                                     THEN NULL
+            WHEN p.obligated_count > 1                                                     THEN 'Conflicting Obligations (Leaver Codes)'
             ELSE 'E'
         END AS error_code,
         -- days remaining in submission year from joiner date (inclusive), for partial-year joiners
@@ -307,18 +307,18 @@ rule_16 AS (
 )
 
 SELECT DISTINCT
-    CAST(organisation_id AS INT)           AS organisation_id,
-    CAST(subsidiary_id AS NVARCHAR(256))   AS subsidiary_id,
-    CAST(submitter_id AS NVARCHAR(256))    AS submitter_id,
+    CAST(organisation_id AS INT)             AS organisation_id,
+    CAST(subsidiary_id AS NVARCHAR(256))     AS subsidiary_id,
+    CAST(submitter_id AS NVARCHAR(256))      AS submitter_id,
     CAST(organisation_name AS NVARCHAR(512)) AS organisation_name,
-    CAST(trading_name AS NVARCHAR(512))    AS trading_name,
-    CAST(status_code AS NVARCHAR(10))      AS status_code,
-    CAST(leaver_date AS NVARCHAR(50))      AS leaver_date,
-    CAST(joiner_date AS NVARCHAR(50))      AS joiner_date,
-    CAST(obligation_status AS NVARCHAR(1)) AS obligation_status,
-    CAST(num_days_obligated AS SMALLINT)   AS num_days_obligated,
-    CAST(error_code AS NVARCHAR(256))      AS error_code,
-    CAST(submission_period_year AS INT)    AS submission_period_year
+    CAST(trading_name AS NVARCHAR(512))      AS trading_name,
+    CAST(status_code AS NVARCHAR(10))        AS status_code,
+    CAST(leaver_date AS NVARCHAR(50))        AS leaver_date,
+    CAST(joiner_date AS NVARCHAR(50))        AS joiner_date,
+    CAST(obligation_status AS NVARCHAR(1))   AS obligation_status,
+    CAST(num_days_obligated AS SMALLINT)     AS num_days_obligated,
+    CAST(error_code AS NVARCHAR(256))        AS error_code,
+    CAST(submission_period_year AS INT)      AS submission_period_year
 FROM rule_16
 WHERE organisation_id IS NOT NULL
   AND obligation_status IS NOT NULL
