@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 	DROP PROCEDURE [dbo].[sp_GetPaycalOrgData];
 GO
 
-CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData] @RelativeYear INT
+CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData] @RelativeYear INT, @CutOffDate DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -14,16 +14,39 @@ BEGIN
     FROM [dbo].[batch_log]
 
     SET @start_dt = GETDATE();
-    
+
     BEGIN
 
-	    WITH latest_accepted_pom AS (
-	        SELECT 
-                 a.organisation_id
-                ,a.subsidiary_id
-                ,a.submission_period
-                ,a.submission_period_year
-                ,a.submitter_id
+	    WITH pom_status_as_of_cutoff AS (
+	        -- Replaces the join to v_submitted_pom_org_file_status so that decisions
+	        -- (e.g. cancellations) made after @CutOffDate are excluded. When @CutOffDate
+	        -- is NULL, all decisions are considered and behaviour matches the original.
+	        SELECT cfm_fileid, Regulator_Status
+	        FROM (
+	            SELECT
+	                cfm.FileId AS cfm_fileid,
+	                se.Decision AS Regulator_Status,
+	                ROW_NUMBER() OVER (
+	                    PARTITION BY cfm.FileId
+	                    ORDER BY CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
+	                ) AS rn
+	            FROM rpd.cosmos_file_metadata cfm
+	            INNER JOIN rpd.SubmissionEvents se
+	                ON se.FileId = cfm.FileId
+	               AND se.Type = 'RegulatorPoMDecision'
+	               AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+	            WHERE cfm.FileType = 'Pom'
+	              AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+	        ) ranked
+	        WHERE rn = 1
+	    ),
+	    latest_accepted_pom AS (
+	        SELECT
+	          a.organisation_id
+	         ,a.subsidiary_id
+	         ,a.submission_period
+	         ,a.submission_period_year
+	         ,a.submitter_id
 	        FROM (
 	            SELECT
 	                  p.organisation_id
@@ -41,9 +64,9 @@ BEGIN
 	               AND o.IsDeleted = 0
 	            INNER JOIN rpd.cosmos_file_metadata cfm
 	                ON cfm.FileName = p.FileName
-	            INNER JOIN dbo.v_submitted_pom_org_file_status sofs
+	               AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+	            INNER JOIN pom_status_as_of_cutoff sofs
 	                ON sofs.cfm_fileid = cfm.fileid
-	               AND sofs.filetype = 'Pom'
 	               AND sofs.Regulator_Status = 'Accepted'
 	        ) a
 	        WHERE a.latest_producer_accepted_record_per_SP = 1
@@ -55,17 +78,17 @@ BEGIN
 	            , submitter_id
 	            , submission_period_year
 	            , MAX(CASE
-                        WHEN submission_period = '2024-P1' THEN 1
-                        WHEN submission_period = '2024-P2' THEN 1
-                        WHEN submission_period = '2024-P3' THEN 1
-                        WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H1' THEN 1
-                        ELSE 0
-                      END) AS has_h1
-                , MAX(CASE 
-                        WHEN submission_period = '2024-P4' THEN 1
-	                    WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H2' THEN 1
-                        ELSE 0
-	                    END) AS has_h2
+	                WHEN submission_period = '2024-P1' THEN 1
+	                WHEN submission_period = '2024-P2' THEN 1
+	                WHEN submission_period = '2024-P3' THEN 1
+	                WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H1' THEN 1
+	                ELSE 0
+	              END) AS has_h1
+	            , MAX(CASE
+	                WHEN submission_period = '2024-P4' THEN 1
+		              WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H2' THEN 1
+	                ELSE 0
+		            END) AS has_h2
 	        FROM latest_accepted_pom
 	        GROUP BY
 	              organisation_id
@@ -73,7 +96,7 @@ BEGIN
 	            , submitter_id
 	            , submission_period_year
 	    )
-	    
+
 	    SELECT
 	           ob.organisation_id
 	          ,ob.subsidiary_id

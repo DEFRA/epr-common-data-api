@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 	DROP PROCEDURE [dbo].[sp_GetPaycalPomData];
 GO
 
-CREATE PROCEDURE [dbo].[sp_GetPaycalPomData] @RelativeYear INT
+CREATE PROCEDURE [dbo].[sp_GetPaycalPomData] @RelativeYear INT, @CutOffDate DATETIME = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -14,11 +14,74 @@ BEGIN
     FROM [dbo].[batch_log]
 
     SET @start_dt = GETDATE();
-    
+
     BEGIN
+        -- Replaces the joins to v_submitted_pom_org_file_status so that decisions
+        -- (e.g. cancellations) made after @CutOffDate are excluded. When @CutOffDate
+        -- is NULL, all decisions are considered and behaviour matches the original.
+        WITH pom_status_as_of_cutoff AS (
+            SELECT cfm_fileid, Regulator_Status
+            FROM (
+                SELECT
+                    cfm.FileId AS cfm_fileid,
+                    se.Decision AS Regulator_Status,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY cfm.FileId
+                        ORDER BY CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
+                    ) AS rn
+                FROM rpd.cosmos_file_metadata cfm
+                INNER JOIN rpd.SubmissionEvents se
+                    ON se.FileId = cfm.FileId
+                   AND se.Type = 'RegulatorPoMDecision'
+                   AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+                WHERE cfm.FileType = 'Pom'
+                  AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+            ) ranked
+            WHERE rn = 1
+        ),
+        reg_decisions_as_of_cutoff AS (
+            -- Resolves null FileId on RegulatorRegistrationDecision events by finding
+            -- the most recent Submitted event for the same submission prior to the
+            -- decision timestamp (mirrors the view's Set A and Set C null-fileid resolution).
+            SELECT
+                ISNULL(se.FileId, resolved.fileid) AS resolved_fileid,
+                CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
+                se.Decision
+            FROM rpd.SubmissionEvents se
+            OUTER APPLY (
+                SELECT TOP 1 sub.FileId AS fileid
+                FROM rpd.SubmissionEvents sub
+                WHERE se.FileId IS NULL
+                  AND sub.SubmissionId = se.SubmissionId
+                  AND sub.Type = 'Submitted'
+                  AND sub.FileId IS NOT NULL
+                  AND CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) <= CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
+                ORDER BY CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) DESC
+            ) resolved
+            WHERE se.Type = 'RegulatorRegistrationDecision'
+              AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+        ),
+        registration_status_as_of_cutoff AS (
+            SELECT cfm_fileid, Regulator_Status
+            FROM (
+                SELECT
+                    cfm.FileId AS cfm_fileid,
+                    rd.Decision AS Regulator_Status,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY cfm.FileId
+                        ORDER BY rd.Decision_ts DESC
+                    ) AS rn
+                FROM rpd.cosmos_file_metadata cfm
+                INNER JOIN reg_decisions_as_of_cutoff rd
+                    ON rd.resolved_fileid = cfm.FileId
+                WHERE cfm.FileType = 'CompanyDetails'
+                  AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+            ) ranked
+            WHERE rn = 1
+        ),
         ----Find latest Registration file with data submitted for a given organisation--
         --ST006
-        WITH latest_accepted_registration AS (
+        latest_accepted_registration AS (
         SELECT * FROM (
             SELECT DISTINCT
             cfm.filename
@@ -38,10 +101,10 @@ BEGIN
             on cfm.FileName = cd.FileName
             --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
             AND Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) > 2024
-            -- Only considering Granted files--
-            INNER JOIN dbo.v_submitted_pom_org_file_status sofs
+            AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+            -- Only considering Granted/Accepted files--
+            INNER JOIN registration_status_as_of_cutoff sofs
             ON sofs.cfm_fileid = cfm.fileid
-            AND sofs.filetype = 'CompanyDetails'
             --ST007 Added Accepted Status to cater for resubmission registration files
             AND sofs.Regulator_Status IN ('Granted','Accepted')
         ) a
@@ -70,8 +133,8 @@ BEGIN
             --Restricting to just accepted pom files
             INNER JOIN [rpd].[cosmos_file_metadata] cfm
             on cfm.FileName = p.FileName
-            INNER JOIN dbo.v_submitted_pom_org_file_status sofs ON sofs.cfm_fileid = cfm.fileid
-            AND sofs.filetype = 'Pom'
+            AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+            INNER JOIN pom_status_as_of_cutoff sofs ON sofs.cfm_fileid = cfm.fileid
             AND sofs.Regulator_Status = 'Accepted'
         ) a
         WHERE latest_producer_accepted_record_per_SP = 1
@@ -83,17 +146,17 @@ BEGIN
 	            , submitter_id
 	            , CAST(submission_period_year AS INT) AS submission_period_year
 	            , MAX(CASE
-                        WHEN submission_period = '2024-P1' THEN 1
-                        WHEN submission_period = '2024-P2' THEN 1
-                        WHEN submission_period = '2024-P3' THEN 1
-                        WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H1' THEN 1
-                        ELSE 0
-                      END) AS has_h1
-                , MAX(CASE 
-                        WHEN submission_period = '2024-P4' THEN 1
-	                    WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H2' THEN 1
-                        ELSE 0
-	                    END) AS has_h2
+	                WHEN submission_period = '2024-P1' THEN 1
+	                WHEN submission_period = '2024-P2' THEN 1
+	                WHEN submission_period = '2024-P3' THEN 1
+	                WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H1' THEN 1
+	                ELSE 0
+	              END) AS has_h1
+	            , MAX(CASE
+	                WHEN submission_period = '2024-P4' THEN 1
+		            WHEN CAST(submission_period_year AS INT) > 2024 AND RIGHT(submission_period, 3) = '-H2' THEN 1
+	                ELSE 0
+		          END) AS has_h2
 	        FROM latest_accepted_pom
 	        GROUP BY
 	              organisation_id
