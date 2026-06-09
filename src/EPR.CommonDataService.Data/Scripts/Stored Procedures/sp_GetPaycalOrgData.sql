@@ -109,7 +109,7 @@ BEGIN
 	          ,ob.submission_period_year
 	          ,CAST(COALESCE(opf.has_h1, 0) AS BIT) AS has_h1
 	          ,CAST(COALESCE(opf.has_h2, 0) AS BIT) AS has_h2
-	    FROM dbo.t_producer_obligation_determination ob
+	    FROM dbo.fn_producer_obligation_determination(@CutOffDate) ob
 	    LEFT JOIN organisation_period_flags opf
 	        ON ob.organisation_id = opf.organisation_id
 	       AND ISNULL(ob.subsidiary_id, '') = ISNULL(opf.subsidiary_id, '')
