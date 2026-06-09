@@ -40,8 +40,34 @@ BEGIN
             WHERE rn = 1
               AND Decision = 'Accepted'
         ),
+        submitted_reg_events AS (
+            SELECT se.SubmissionId, se.FileId, se.Created
+            FROM rpd.SubmissionEvents se
+            WHERE se.Type = 'Submitted'
+              AND se.FileId IS NOT NULL
+        ),
+        null_fileid_reg_decisions AS (
+            -- RegulatorRegistrationDecision events with a null FileId, resolved to
+            -- the most recent prior Submitted event on the same submission.
+            -- Mirrors the `v_submitted_pom_org_file_status` view's null-fileid handling (final_result_set_A/C).
+            SELECT
+                se.Decision,
+                se.Created,
+                sre.FileId AS resolved_fileid,
+                ROW_NUMBER() OVER (
+                    PARTITION BY se.SubmissionEventId
+                    ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(sre.Created, 1, 23)) DESC
+                ) AS rn
+            FROM rpd.SubmissionEvents se
+            INNER JOIN submitted_reg_events sre
+                ON sre.SubmissionId = se.SubmissionId
+               AND TRY_CONVERT(DATETIME, SUBSTRING(sre.Created, 1, 23))
+                   <= TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
+            WHERE se.Type = 'RegulatorRegistrationDecision'
+              AND se.FileId IS NULL
+              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
+        ),
         reg_decisions_as_of_cutoff AS (
-            -- Direct FileId match (majority of rows) — no subquery needed
             SELECT
                 se.FileId AS resolved_fileid,
                 TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
@@ -50,27 +76,13 @@ BEGIN
             WHERE se.Type = 'RegulatorRegistrationDecision'
               AND se.FileId IS NOT NULL
               AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
-
             UNION ALL
-
-            -- Null FileId: resolve via most recent prior Submitted event (Set A and Set C cases)
             SELECT
-                resolved.fileid AS resolved_fileid,
-                TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
-                se.Decision
-            FROM rpd.SubmissionEvents se
-            CROSS APPLY (
-                SELECT TOP 1 sub.FileId AS fileid
-                FROM rpd.SubmissionEvents sub
-                WHERE sub.SubmissionId = se.SubmissionId
-                  AND sub.Type = 'Submitted'
-                  AND sub.FileId IS NOT NULL
-                  AND TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) <= TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
-                ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) DESC
-            ) resolved
-            WHERE se.Type = 'RegulatorRegistrationDecision'
-              AND se.FileId IS NULL
-              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
+                m.resolved_fileid,
+                TRY_CONVERT(DATETIME, SUBSTRING(m.Created, 1, 23)) AS Decision_ts,
+                m.Decision
+            FROM null_fileid_reg_decisions m
+            WHERE m.rn = 1
         ),
         granted_registration_files AS (
             -- CompanyDetails files whose most recent RegulatorRegistrationDecision on or
@@ -105,7 +117,7 @@ BEGIN
                 partition by cd.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
                 order by cfm.created desc
             ) as latest_producer_accepted_record_per_SP
-            , Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) as Submission_Period_Year
+            , TRY_CAST(RIGHT(cfm.SubmissionPeriod,4) AS INT) as Submission_Period_Year
             FROM [rpd].[CompanyDetails] cd
             INNER JOIN rpd.Organisations o
             on o.ReferenceNumber = cd.organisation_id
@@ -114,7 +126,7 @@ BEGIN
             INNER JOIN [rpd].[cosmos_file_metadata] cfm
             on cfm.FileName = cd.FileName
             --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
-            AND Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) > 2024
+            AND TRY_CAST(RIGHT(cfm.SubmissionPeriod,4) AS INT) > 2024
             -- Only considering Granted/Accepted files--
             --ST007 Added Accepted Status to cater for resubmission registration files
             INNER JOIN granted_registration_files sofs
@@ -135,7 +147,7 @@ BEGIN
                 partition by p.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
                 order by cfm.created desc
             ) as latest_producer_accepted_record_per_SP
-            , Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) as Submission_Period_Year
+            , TRY_CAST(RIGHT(cfm.SubmissionPeriod,4) AS INT) as Submission_Period_Year
             , coalesce(cfm.ComplianceSchemeId, o.ExternalId) as submitter_id
             FROM rpd.Pom p
             INNER JOIN rpd.Organisations o
