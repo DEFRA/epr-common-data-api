@@ -67,9 +67,12 @@ BEGIN
            o.ComplianceSchemeId,
            o.CSId,
            o.CSOJson,
-           s.RegistrationJourney,
-           o.ClosedLoopRegistration AS IsClosedLoopRecycler
-	from dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
-    join apps.Submissions s on s.SubmissionId = o.SubmissionId
-    where o.SubmissionId = @SubmissionId;
+           IsNull(ORS.RegistrationJourney, s.RegistrationJourney) AS RegistrationJourney,
+           cast(0 as bit) AS IsClosedLoopRecycler,  -- DEPRECATION STUB: to be removed shortly
+           o.NumberOfHoldingCompaniesClosedLoopRecycling,
+           o.NumberOfSubsidiariesClosedLoopRecycling
+    FROM dbo.t_FetchOrganisationRegistrationSubmissionDetails_resub o
+             LEFT JOIN apps.OrgRegistrationsSummaries ors ON ors.SubmissionId = o.Submissionid
+             JOIN apps.Submissions s ON s.SubmissionId = o.SubmissionId
+    WHERE o.SubmissionId = @SubmissionId;
 END
