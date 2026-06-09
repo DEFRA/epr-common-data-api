@@ -112,8 +112,8 @@ BEGIN
 	    FROM dbo.fn_producer_obligation_determination(@CutOffDate) ob
 	    LEFT JOIN organisation_period_flags opf
 	        ON ob.organisation_id = opf.organisation_id
-	       AND ISNULL(ob.subsidiary_id, '') = ISNULL(opf.subsidiary_id, '')
-	       AND ISNULL(ob.submitter_id, '') = ISNULL(opf.submitter_id, '')
+	       AND (ob.subsidiary_id = opf.subsidiary_id OR (ob.subsidiary_id IS NULL AND opf.subsidiary_id IS NULL))
+         AND (ob.submitter_id = opf.submitter_id OR (ob.submitter_id IS NULL AND opf.submitter_id IS NULL))
 		   AND ob.submission_period_year = opf.submission_period_year+1
            WHERE ob.submission_period_year = @RelativeYear;
 	  END

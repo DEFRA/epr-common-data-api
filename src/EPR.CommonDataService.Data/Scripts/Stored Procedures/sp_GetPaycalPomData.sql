@@ -45,6 +45,7 @@ BEGIN
             FROM rpd.SubmissionEvents se
             WHERE se.Type = 'Submitted'
               AND se.FileId IS NOT NULL
+              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
         ),
         null_fileid_reg_decisions AS (
             -- RegulatorRegistrationDecision events with a null FileId, resolved to
