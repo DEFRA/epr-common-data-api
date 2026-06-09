@@ -27,13 +27,13 @@ BEGIN
 	                se.Decision,
 	                ROW_NUMBER() OVER (
 	                    PARTITION BY cfm.FileId
-	                    ORDER BY CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
+	                    ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
 	                ) AS rn
 	            FROM rpd.cosmos_file_metadata cfm
 	            INNER JOIN rpd.SubmissionEvents se
 	                ON se.FileId = cfm.FileId
 	               AND se.Type = 'RegulatorPoMDecision'
-	               AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+	               AND (@CutOffDate IS NULL OR TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
 	            WHERE cfm.FileType = 'Pom'
 	              AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
 	        ) ranked

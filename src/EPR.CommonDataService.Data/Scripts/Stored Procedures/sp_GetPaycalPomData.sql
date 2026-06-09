@@ -29,13 +29,13 @@ BEGIN
                     se.Decision,
                     ROW_NUMBER() OVER (
                         PARTITION BY cfm.FileId
-                        ORDER BY CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
+                        ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) DESC
                     ) AS rn
                 FROM rpd.cosmos_file_metadata cfm
                 INNER JOIN rpd.SubmissionEvents se
                     ON se.FileId = cfm.FileId
                    AND se.Type = 'RegulatorPoMDecision'
-                   AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+                   AND (@CutOffDate IS NULL OR TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
                 WHERE cfm.FileType = 'Pom'
                   AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
             ) ranked
@@ -48,7 +48,7 @@ BEGIN
             -- decision timestamp (covers the view's Set A and Set C cases).
             SELECT
                 ISNULL(se.FileId, resolved.fileid) AS resolved_fileid,
-                CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
+                TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
                 se.Decision
             FROM rpd.SubmissionEvents se
             OUTER APPLY (
@@ -58,11 +58,11 @@ BEGIN
                   AND sub.SubmissionId = se.SubmissionId
                   AND sub.Type = 'Submitted'
                   AND sub.FileId IS NOT NULL
-                  AND CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) <= CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
-                ORDER BY CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) DESC
+                  AND TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) <= TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
+                ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) DESC
             ) resolved
             WHERE se.Type = 'RegulatorRegistrationDecision'
-              AND (@CutOffDate IS NULL OR CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+              AND (@CutOffDate IS NULL OR TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
         ),
         granted_registration_files AS (
             -- CompanyDetails files whose most recent RegulatorRegistrationDecision on or
