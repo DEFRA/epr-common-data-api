@@ -41,25 +41,35 @@ BEGIN
               AND Decision = 'Accepted'
         ),
         reg_decisions_as_of_cutoff AS (
-            -- Resolves null FileId on RegulatorRegistrationDecision events by finding
-            -- the most recent Submitted event for the same submission prior to the
-            -- decision timestamp (covers the view's Set A and Set C cases).
+            -- Direct FileId match (majority of rows) — no subquery needed
             SELECT
-                ISNULL(se.FileId, resolved.fileid) AS resolved_fileid,
+                se.FileId AS resolved_fileid,
                 TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
                 se.Decision
             FROM rpd.SubmissionEvents se
-            OUTER APPLY (
+            WHERE se.Type = 'RegulatorRegistrationDecision'
+              AND se.FileId IS NOT NULL
+              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
+
+            UNION ALL
+
+            -- Null FileId: resolve via most recent prior Submitted event (Set A and Set C cases)
+            SELECT
+                resolved.fileid AS resolved_fileid,
+                TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
+                se.Decision
+            FROM rpd.SubmissionEvents se
+            CROSS APPLY (
                 SELECT TOP 1 sub.FileId AS fileid
                 FROM rpd.SubmissionEvents sub
-                WHERE se.FileId IS NULL
-                  AND sub.SubmissionId = se.SubmissionId
+                WHERE sub.SubmissionId = se.SubmissionId
                   AND sub.Type = 'Submitted'
                   AND sub.FileId IS NOT NULL
                   AND TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) <= TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
                 ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) DESC
             ) resolved
             WHERE se.Type = 'RegulatorRegistrationDecision'
+              AND se.FileId IS NULL
               AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
         ),
         granted_registration_files AS (
