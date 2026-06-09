@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 	DROP PROCEDURE [dbo].[sp_GetPaycalPomData];
 GO
 
-CREATE PROCEDURE [dbo].[sp_GetPaycalPomData] @RelativeYear INT, @CutOffDate DATETIME = NULL
+CREATE PROCEDURE [dbo].[sp_GetPaycalPomData] @RelativeYear INT, @CutOffDate DATETIME
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -17,11 +17,9 @@ BEGIN
 
     BEGIN
         -- Replaces the joins to v_submitted_pom_org_file_status so that decisions
-        -- (e.g. cancellations) made after @CutOffDate are excluded. When @CutOffDate
-        -- is NULL, all decisions are considered and behaviour matches the original.
+        -- (e.g. cancellations) made after @CutOffDate are excluded.
         WITH accepted_pom_files AS (
-            -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate
-            -- is 'Accepted'. When @CutOffDate is NULL all decisions are considered.
+            -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate is 'Accepted'.
             SELECT cfm_fileid
             FROM (
                 SELECT
@@ -35,9 +33,9 @@ BEGIN
                 INNER JOIN rpd.SubmissionEvents se
                     ON se.FileId = cfm.FileId
                    AND se.Type = 'RegulatorPoMDecision'
-                   AND (@CutOffDate IS NULL OR TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+                   AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
                 WHERE cfm.FileType = 'Pom'
-                  AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+                  AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
             ) ranked
             WHERE rn = 1
               AND Decision = 'Accepted'
@@ -62,7 +60,7 @@ BEGIN
                 ORDER BY TRY_CONVERT(DATETIME, SUBSTRING(sub.Created, 1, 23)) DESC
             ) resolved
             WHERE se.Type = 'RegulatorRegistrationDecision'
-              AND (@CutOffDate IS NULL OR TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
         ),
         granted_registration_files AS (
             -- CompanyDetails files whose most recent RegulatorRegistrationDecision on or
@@ -80,7 +78,7 @@ BEGIN
                 INNER JOIN reg_decisions_as_of_cutoff rd
                     ON rd.resolved_fileid = cfm.FileId
                 WHERE cfm.FileType = 'CompanyDetails'
-                  AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+                  AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
             ) ranked
             WHERE rn = 1
               AND Decision IN ('Accepted', 'Granted')

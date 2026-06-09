@@ -2,7 +2,7 @@ IF EXISTS (SELECT 1 FROM sys.procedures WHERE object_id = OBJECT_ID(N'[dbo].[sp_
 	DROP PROCEDURE [dbo].[sp_GetPaycalOrgData];
 GO
 
-CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData] @RelativeYear INT, @CutOffDate DATETIME = NULL
+CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData] @RelativeYear INT, @CutOffDate DATETIME
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -18,8 +18,7 @@ BEGIN
     BEGIN
 
 	    WITH accepted_pom_files AS (
-	        -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate
-	        -- is 'Accepted'. When @CutOffDate is NULL all decisions are considered.
+	        -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate is 'Accepted'.
 	        SELECT cfm_fileid
 	        FROM (
 	            SELECT
@@ -33,9 +32,9 @@ BEGIN
 	            INNER JOIN rpd.SubmissionEvents se
 	                ON se.FileId = cfm.FileId
 	               AND se.Type = 'RegulatorPoMDecision'
-	               AND (@CutOffDate IS NULL OR TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate)
+	               AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
 	            WHERE cfm.FileType = 'Pom'
-	              AND (@CutOffDate IS NULL OR cfm.Created <= @CutOffDate)
+	              AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
 	        ) ranked
 	        WHERE rn = 1
 	          AND Decision = 'Accepted'
