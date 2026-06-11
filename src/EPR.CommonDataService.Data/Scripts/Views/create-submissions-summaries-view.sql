@@ -1,4 +1,4 @@
-﻿IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_SubmissionsSummaries]'))
+IF EXISTS (SELECT 1 FROM sys.views WHERE object_id = OBJECT_ID(N'[apps].[v_SubmissionsSummaries]'))
 DROP VIEW [apps].[v_SubmissionsSummaries];
 GO
 
@@ -97,6 +97,28 @@ AS WITH
             FROM AllSubmittedEventsCTE
             WHERE RowNum = 1
         )
+
+        , ResubmissionApplicationSubmittedDate AS (
+            SELECT
+                se.FileId,
+                se.SubmissionId,
+                se.Created AS ResubmissionSubmittedDate,
+                se.UserId AS ResubmissionSubmittedUserId,
+                ROW_NUMBER() OVER (
+                    PARTITION BY se.FileId
+                    ORDER BY se.load_ts DESC  -- deduplicate cosmos sync duplicates
+                ) AS RowNum
+            FROM apps.SubmissionEvents se
+            INNER JOIN ResubmissionApplicationSubmittedData rad
+                ON rad.FileId = se.FileId
+            WHERE se.[Type] = 'PackagingResubmissionApplicationSubmitted'
+        )
+
+        , LatestResubmissionApplicationSubmittedDate AS (
+            SELECT FileId, SubmissionId, ResubmissionSubmittedDate, ResubmissionSubmittedUserId
+            FROM ResubmissionApplicationSubmittedDate
+            WHERE RowNum = 1
+        )
 		
     -- Get Decision events for submitted (match by fileId)
         ,AllRelatedDecisionEventsCTE AS (
@@ -132,18 +154,21 @@ AS WITH
         WHERE RowNum = 1
         )
 
-        ,JoinedSubmittedAndDecisionsCTE AS (
-        SELECT
-        submitted.SubmissionId,
-        submitted.SubmittedDate,
-        submitted.FileId,
-		submitted.SubmittedUserId,
-        decision.DecisionDate,
-        decision.Decision,
-        decision.Comments,
-        decision.IsResubmissionRequired
-        FROM LatestSubmittedEventsCTE submitted
-        LEFT JOIN LatestRelatedDecisionEventsCTE decision ON decision.FileId = submitted.FileId
+        , JoinedSubmittedAndDecisionsCTE AS (
+            SELECT
+                submitted.SubmissionId,
+                -- If a resubmission application was submitted, use that date; otherwise original submitted date
+                ISNULL(resub.ResubmissionSubmittedDate, submitted.SubmittedDate) AS SubmittedDate,
+                submitted.FileId,
+                ISNULL(resub.ResubmissionSubmittedUserId, submitted.SubmittedUserId) AS SubmittedUserId,
+                decision.DecisionDate,
+                decision.Decision,
+                decision.Comments,
+                decision.IsResubmissionRequired
+            FROM LatestSubmittedEventsCTE submitted
+            LEFT JOIN LatestResubmissionApplicationSubmittedDate resub
+                ON resub.FileId = submitted.FileId AND resub.SubmissionId = submitted.SubmissionId
+            LEFT JOIN LatestRelatedDecisionEventsCTE decision ON decision.FileId = submitted.FileId
         )
 
         ,AllRelatedSubmissionsCTE AS (
