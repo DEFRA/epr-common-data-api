@@ -4,6 +4,7 @@ using EPR.CommonDataService.Core.Models.Response;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 
 namespace EPR.CommonDataService.Core.Services;
 
@@ -12,15 +13,21 @@ public interface IRegistrationFeeCalculationDetailsService
     Task<RegistrationFeeCalculationDetails[]?> GetRegistrationFeeCalculationDetails(Guid fileId);
 }
 
-public class RegistrationFeeCalculationDetailsService(SynapseContext synapseContext)
+public class RegistrationFeeCalculationDetailsService(
+    SynapseContext synapseContext,
+    ILogger<RegistrationFeeCalculationDetailsService> logger)
     : IRegistrationFeeCalculationDetailsService
 {
     public async Task<RegistrationFeeCalculationDetails[]?> GetRegistrationFeeCalculationDetails(Guid fileId)
     {
         try
         {
-            const string Sql = "EXECUTE dbo.sp_GetRegistrationFeeCalculationDetails @fileId";
-            var dbResponse = await synapseContext.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(Sql, new SqlParameter("@fileId", SqlDbType.VarChar, 40) { Value = fileId.ToString("D") });
+            var dbResponse = await synapseContext.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                "dbo.sp_GetRegistrationFeeCalculationDetails",
+                logger,
+                nameof(RegistrationFeeCalculationDetailsService),
+                new SqlParameter("@fileId", SqlDbType.VarChar, 40) { Value = fileId.ToString("D") });
+
             if (dbResponse.Count > 0)
             {
                 var response = dbResponse.Select(resp => new RegistrationFeeCalculationDetails
@@ -39,8 +46,9 @@ public class RegistrationFeeCalculationDetailsService(SynapseContext synapseCont
                 return response;
             }
         }
-        catch
+        catch (Exception ex)
         {
+            logger.LogError(ex, "RegistrationFeeCalculationDetailsService - GetRegistrationFeeCalculationDetails: failed for fileId {FileId}", fileId);
             return null;
         }
 

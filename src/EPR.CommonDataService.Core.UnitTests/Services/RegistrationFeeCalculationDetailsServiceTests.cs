@@ -2,6 +2,7 @@ using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Entities;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Logging;
 using Moq;
 
 namespace EPR.CommonDataService.Core.UnitTests.Services;
@@ -10,13 +11,15 @@ namespace EPR.CommonDataService.Core.UnitTests.Services;
 public class RegistrationFeeCalculationDetailsServiceTests
 {
     private Mock<SynapseContext> _synapseContextMock = null!;
+    private Mock<ILogger<RegistrationFeeCalculationDetailsService>> _loggerMock = null!;
     private RegistrationFeeCalculationDetailsService _service = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _synapseContextMock = new Mock<SynapseContext>();
-        _service = new RegistrationFeeCalculationDetailsService(_synapseContextMock.Object);
+        _loggerMock = new Mock<ILogger<RegistrationFeeCalculationDetailsService>>();
+        _service = new RegistrationFeeCalculationDetailsService(_synapseContextMock.Object, _loggerMock.Object);
     }
 
     [TestMethod]
@@ -38,8 +41,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
             }
         };
         _synapseContextMock
-         .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
-           .ReturnsAsync(expectedData);
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(expectedData);
 
         // Act
         var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
@@ -55,9 +59,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result[0].IsNewJoiner.Should().BeTrue();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
+            .Verify(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
                 Times.Once);
-
     }
 
     [TestMethod]
@@ -81,7 +85,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
         };
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(expectedData);
 
         // Act
@@ -125,7 +130,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
             }
         };
         _synapseContextMock
-            .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(expectedData);
 
         // Act
@@ -140,6 +146,40 @@ public class RegistrationFeeCalculationDetailsServiceTests
     }
 
     [TestMethod]
+    public async Task GetRegistrationFeeCalculationDetails_WhenSpOmitsClrColumns_DefaultsClrFieldsToFalseAndZero()
+    {
+        // Arrange: SynapseContext.PopulateDto skips properties whose column is
+        // missing from the result schema, leaving them at C# defaults. This
+        // test pins the contract that the service surfaces those defaults
+        // straight through to the response.
+        var fileId = Guid.NewGuid();
+        var expectedData = new List<RegistrationFeeCalculationDetailsModel>
+        {
+            new()
+            {
+                OrganisationSize = "L",
+                NumberOfSubsidiaries = 3,
+                NumberOfSubsidiariesBeingOnlineMarketPlace = 1,
+                IsOnlineMarketplace = true,
+                IsNewJoiner = true,
+            }
+        };
+
+        _synapseContextMock
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(expectedData);
+
+        // Act
+        var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result![0].IsClosedLoopRecycling.Should().BeFalse();
+        result[0].NumberOfSubsidiariesBeingClosedLoopRecycling.Should().Be(0);
+    }
+
+    [TestMethod]
     public async Task GetProducerSize_ValidRequestNoData_ReturnsNull()
     {
         // Arrange
@@ -148,7 +188,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
         var emptyData = new List<RegistrationFeeCalculationDetailsModel>();
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ReturnsAsync(emptyData);
 
         // Act
@@ -165,9 +206,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
         var fileId = Guid.NewGuid();
 
         _synapseContextMock
-             .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
             .ThrowsAsync(new Exception("Database error"));
-
 
         // Act
         var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
@@ -196,8 +237,9 @@ public class RegistrationFeeCalculationDetailsServiceTests
             }
         };
         _synapseContextMock
-           .Setup(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()))
-           .ReturnsAsync(expectedData);
+            .Setup(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()))
+            .ReturnsAsync(expectedData);
 
         // Act
         var result = await _service.GetRegistrationFeeCalculationDetails(fileId);
@@ -213,7 +255,8 @@ public class RegistrationFeeCalculationDetailsServiceTests
         result[0].IsNewJoiner.Should().BeFalse();
 
         _synapseContextMock
-            .Verify(ctx => ctx.RunSqlAsync<RegistrationFeeCalculationDetailsModel>(It.IsAny<string>(), It.IsAny<SqlParameter>()),
+            .Verify(ctx => ctx.RunSpCommandAsync<RegistrationFeeCalculationDetailsModel>(
+                It.IsAny<string>(), It.IsAny<ILogger>(), It.IsAny<string>(), It.IsAny<SqlParameter[]>()),
                 Times.Once);
     }
 }
