@@ -16,10 +16,12 @@ BEGIN
     SET @start_dt = GETDATE();
 
     BEGIN
-        -- Replaces the joins to v_submitted_pom_org_file_status so that decisions
-        -- (e.g. cancellations) made after @CutOffDate are excluded.
+        -- Submissions (registration or POM) must be submitted on or before @CutOffDate,
+        -- but approval can happen after the cutoff - so decisions are evaluated as the
+        -- current (most recent) decision, with no cutoff applied to the decision date.
         WITH accepted_pom_files AS (
-            -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate is 'Accepted'.
+            -- POM files submitted on or before @CutOffDate whose current (most recent)
+            -- RegulatorPoMDecision is 'Accepted'.
             SELECT cfm_fileid
             FROM (
                 SELECT
@@ -33,7 +35,6 @@ BEGIN
                 INNER JOIN rpd.SubmissionEvents se
                     ON se.FileId = cfm.FileId
                    AND se.Type = 'RegulatorPoMDecision'
-                   AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
                 WHERE cfm.FileType = 'Pom'
                   AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
             ) ranked
@@ -41,11 +42,12 @@ BEGIN
               AND Decision = 'Accepted'
         ),
         submitted_reg_events AS (
+            -- Not cutoff-limited: used only to resolve which submission a null-FileId
+            -- decision belongs to. The cutoff is applied later, to the resolved file itself.
             SELECT se.SubmissionId, se.FileId, se.Created
             FROM rpd.SubmissionEvents se
             WHERE se.Type = 'Submitted'
               AND se.FileId IS NOT NULL
-              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
         ),
         null_fileid_reg_decisions AS (
             -- RegulatorRegistrationDecision events with a null FileId, resolved to
@@ -66,9 +68,8 @@ BEGIN
                    <= TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
             WHERE se.Type = 'RegulatorRegistrationDecision'
               AND se.FileId IS NULL
-              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
         ),
-        reg_decisions_as_of_cutoff AS (
+        current_reg_decisions AS (
             SELECT
                 se.FileId AS resolved_fileid,
                 TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
@@ -76,7 +77,6 @@ BEGIN
             FROM rpd.SubmissionEvents se
             WHERE se.Type = 'RegulatorRegistrationDecision'
               AND se.FileId IS NOT NULL
-              AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
             UNION ALL
             SELECT
                 m.resolved_fileid,
@@ -86,8 +86,8 @@ BEGIN
             WHERE m.rn = 1
         ),
         granted_registration_files AS (
-            -- CompanyDetails files whose most recent RegulatorRegistrationDecision on or
-            -- before @CutOffDate is 'Accepted' or 'Granted'.
+            -- CompanyDetails files submitted on or before @CutOffDate whose current
+            -- (most recent) RegulatorRegistrationDecision is 'Accepted' or 'Granted'.
             SELECT cfm_fileid
             FROM (
                 SELECT
@@ -98,7 +98,7 @@ BEGIN
                         ORDER BY rd.Decision_ts DESC
                     ) AS rn
                 FROM rpd.cosmos_file_metadata cfm
-                INNER JOIN reg_decisions_as_of_cutoff rd
+                INNER JOIN current_reg_decisions rd
                     ON rd.resolved_fileid = cfm.FileId
                 WHERE cfm.FileType = 'CompanyDetails'
                   AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate

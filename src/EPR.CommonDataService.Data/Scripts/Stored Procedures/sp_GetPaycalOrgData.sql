@@ -18,7 +18,9 @@ BEGIN
     BEGIN
 
         WITH accepted_pom_files AS (
-            -- POM files whose most recent RegulatorPoMDecision on or before @CutOffDate is 'Accepted'.
+            -- POM files submitted on or before @CutOffDate whose current (most recent)
+            -- RegulatorPoMDecision is 'Accepted'. Approval can happen after the cutoff,
+            -- so the decision itself is not cutoff-limited.
             SELECT cfm_fileid
             FROM (
                 SELECT
@@ -32,7 +34,6 @@ BEGIN
                 INNER JOIN rpd.SubmissionEvents se
                     ON se.FileId = cfm.FileId
                    AND se.Type   = 'RegulatorPoMDecision'
-                   AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
                 WHERE cfm.FileType = 'Pom'
                   AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
             ) ranked

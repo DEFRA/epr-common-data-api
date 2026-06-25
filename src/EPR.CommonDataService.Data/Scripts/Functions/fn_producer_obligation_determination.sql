@@ -14,6 +14,8 @@ null_fileid_reg_decisions AS (
     -- RegulatorRegistrationDecision events with a null FileId, resolved to
     -- the most recent prior Submitted event on the same submission.
     -- Mirrors v_submitted_pom_org_file_status null-fileid handling (final_result_set_A/C).
+    -- Not cutoff-limited: the current (latest) decision is used regardless of when it
+    -- was made - only the underlying submission needs to be on or before @CutOffDate.
     SELECT
         se.Decision,
         se.Created,
@@ -29,9 +31,10 @@ null_fileid_reg_decisions AS (
            <= TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23))
     WHERE se.Type = 'RegulatorRegistrationDecision'
       AND se.FileId IS NULL
-      AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
 ),
-reg_decisions_as_of_cutoff AS (
+current_reg_decisions AS (
+    -- All RegulatorRegistrationDecision events, regardless of @CutOffDate - approval can
+    -- happen after the cutoff, so the current (latest) decision is what matters.
     SELECT
         se.FileId AS resolved_fileid,
         TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) AS Decision_ts,
@@ -39,7 +42,6 @@ reg_decisions_as_of_cutoff AS (
     FROM rpd.SubmissionEvents se
     WHERE se.Type = 'RegulatorRegistrationDecision'
       AND se.FileId IS NOT NULL
-      AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) <= @CutOffDate
     UNION ALL
     SELECT
         nf.resolved_fileid,
@@ -49,8 +51,8 @@ reg_decisions_as_of_cutoff AS (
     WHERE nf.rn = 1
 ),
 registration_file_status AS (
-    -- Most-recent RegulatorRegistrationDecision per CompanyDetails file as of @CutOffDate,
-    -- limited to statuses relevant to obligation determination.
+    -- Current (most-recent) RegulatorRegistrationDecision per CompanyDetails file submitted
+    -- on or before @CutOffDate, limited to statuses relevant to obligation determination.
     SELECT cfm_fileid, Regulator_Status
     FROM (
         SELECT
@@ -61,7 +63,7 @@ registration_file_status AS (
                 ORDER BY rd.Decision_ts DESC
             ) AS rn
         FROM rpd.cosmos_file_metadata cfm
-        INNER JOIN reg_decisions_as_of_cutoff rd
+        INNER JOIN current_reg_decisions rd
             ON rd.resolved_fileid = cfm.FileId
         WHERE cfm.FileType = 'CompanyDetails'
           AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
