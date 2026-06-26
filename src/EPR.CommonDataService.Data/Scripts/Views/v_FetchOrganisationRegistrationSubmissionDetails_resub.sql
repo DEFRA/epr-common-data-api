@@ -726,7 +726,7 @@ CLR_CTE AS (
                 ELSE 0 END) AS IsClosedLoopRecycling,
           SUM(CASE 
                 WHEN cd.Subsidiary_Id IS NOT NULL AND cd.closed_loop_registration = 'yes' THEN 1
-                ELSE 0 END) AS NumberOfSubsidiariesAsClosedLoop
+                ELSE 0 END) AS NumberOfSubsidiariesClosedLoopRecycling
       FROM rpd.companydetails cd
       GROUP BY cd.organisation_id, cd.filename
 ),
@@ -749,7 +749,7 @@ JsonifiedCompliancePaycalCTE AS (
             END
         END + ', ' + '"SubmissionPeriodDescription": "' + cs.submissionperiod + '"' +
         ', ' + '"IsClosedLoopRecycling": ' + CASE WHEN CLR_CTE.IsClosedLoopRecycling = 1 THEN 'true' ELSE 'false' END +
-        ', ' + '"NumberOfSubsidiariesAsClosedLoop": ' + CAST(ISNULL(CLR_CTE.NumberOfSubsidiariesAsClosedLoop, 0) AS NVARCHAR(6)) +
+        ', ' + '"NumberOfSubsidiariesClosedLoopRecycling": ' + CAST(ISNULL(CLR_CTE.NumberOfSubsidiariesClosedLoopRecycling, 0) AS NVARCHAR(6)) +
         '}' AS OrganisationDetailsJsonString
     FROM CompliancePaycalCTE cs
     LEFT JOIN CLR_CTE on CLR_CTE.filename = cs.FileName
