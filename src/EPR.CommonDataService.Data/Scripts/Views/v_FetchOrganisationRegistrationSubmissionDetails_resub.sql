@@ -705,7 +705,8 @@ CompliancePaycalCTE AS (
         ppp.NumberOfSubsidiaries,
         ppp.OnlineMarketPlaceSubsidiaries AS NumberOfSubsidiariesBeingOnlineMarketPlace,
         csm.submissionperiod,
-        csm.SubmissionId
+        csm.SubmissionId,
+        csm.FileName
     FROM ComplianceSchemeMembersCTE csm
     INNER JOIN dbo.t_ProducerPayCalParameters_resub ppp ON ppp.OrganisationId = csm.ReferenceNumber
         AND ppp.FileName = csm.FileName
@@ -714,6 +715,20 @@ CompliancePaycalCTE AS (
     LEFT JOIN LatestRegistrationApplicationSubmittedCTE lras ON lras.SubmissionId = csm.SubmissionId
     JOIN rpd.Submissions sub ON sub.SubmissionId = csm.SubmissionId
     WHERE vars.IsComplianceScheme = 1
+),
+
+CLR_CTE AS (
+      SELECT
+          cd.organisation_id,
+          cd.filename,
+          MAX(CASE 
+                WHEN cd.Subsidiary_Id IS NULL AND cd.closed_loop_registration = 'yes' THEN 1
+                ELSE 0 END) AS IsClosedLoopRecycling,
+          SUM(CASE 
+                WHEN cd.Subsidiary_Id IS NOT NULL AND cd.closed_loop_registration = 'yes' THEN 1
+                ELSE 0 END) AS NumberOfSubsidiariesAsClosedLoop
+      FROM rpd.companydetails cd
+      GROUP BY cd.organisation_id, cd.filename
 ),
 
 JsonifiedCompliancePaycalCTE AS (
@@ -732,8 +747,13 @@ JsonifiedCompliancePaycalCTE AS (
                 WHEN IsLateFeeApplicable_Post2025 = 1 THEN 'true'
                 ELSE 'false'
             END
-        END + ', ' + '"SubmissionPeriodDescription": "' + cs.submissionperiod + '"}' AS OrganisationDetailsJsonString
+        END + ', ' + '"SubmissionPeriodDescription": "' + cs.submissionperiod + '"' +
+        ', ' + '"IsClosedLoopRecycling": ' + CASE WHEN CLR_CTE.IsClosedLoopRecycling = 1 THEN 'true' ELSE 'false' END +
+        ', ' + '"NumberOfSubsidiariesAsClosedLoop": ' + CAST(ISNULL(CLR_CTE.NumberOfSubsidiariesAsClosedLoop, 0) AS NVARCHAR(6)) +
+        '}' AS OrganisationDetailsJsonString
     FROM CompliancePaycalCTE cs
+    LEFT JOIN CLR_CTE on CLR_CTE.filename = cs.FileName
+        AND CLR_CTE.organisation_id = cs.ReferenceNumber
     LEFT JOIN derivered_variables vars ON vars.SubmissionId = cs.SubmissionId
 ),
 
