@@ -51,8 +51,10 @@ current_reg_decisions AS (
     WHERE nf.rn = 1
 ),
 registration_file_status AS (
-    -- Current (most-recent) RegulatorRegistrationDecision per CompanyDetails file submitted
-    -- on or before @CutOffDate, limited to statuses relevant to obligation determination.
+    -- Effective RegulatorRegistrationDecision per CompanyDetails file submitted on or before
+    -- @CutOffDate. Post-cutoff Cancelled decisions are excluded before ranking so the most
+    -- recent remaining decision is used (approval after cutoff is always valid; cancellation
+    -- after cutoff is ignored).
     SELECT cfm_fileid, Regulator_Status
     FROM (
         SELECT
@@ -67,6 +69,7 @@ registration_file_status AS (
             ON rd.resolved_fileid = cfm.FileId
         WHERE cfm.FileType = 'CompanyDetails'
           AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
+          AND NOT (rd.Decision = 'Cancelled' AND rd.Decision_ts > @CutOffDate)
     ) ranked
     WHERE rn = 1
       AND Regulator_Status IN ('Granted', 'Accepted', 'Cancelled')

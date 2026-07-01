@@ -34,6 +34,8 @@ BEGIN
                 INNER JOIN rpd.SubmissionEvents se
                     ON se.FileId = cfm.FileId
                    AND se.Type   = 'RegulatorPoMDecision'
+                   AND NOT (se.Decision = 'Cancelled'
+                            AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) > @CutOffDate)
                 WHERE cfm.FileType = 'Pom'
                   AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
             ) ranked

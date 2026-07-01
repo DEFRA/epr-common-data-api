@@ -35,6 +35,8 @@ BEGIN
                 INNER JOIN rpd.SubmissionEvents se
                     ON se.FileId = cfm.FileId
                    AND se.Type = 'RegulatorPoMDecision'
+                   AND NOT (se.Decision = 'Cancelled'
+                            AND TRY_CONVERT(DATETIME, SUBSTRING(se.Created, 1, 23)) > @CutOffDate)
                 WHERE cfm.FileType = 'Pom'
                   AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
             ) ranked
@@ -102,6 +104,7 @@ BEGIN
                     ON rd.resolved_fileid = cfm.FileId
                 WHERE cfm.FileType = 'CompanyDetails'
                   AND TRY_CONVERT(DATETIME, SUBSTRING(cfm.Created, 1, 23)) <= @CutOffDate
+                  AND NOT (rd.Decision = 'Cancelled' AND rd.Decision_ts > @CutOffDate)
             ) ranked
             WHERE rn = 1
               AND Decision IN ('Accepted', 'Granted')
