@@ -21,6 +21,9 @@
 	Updated: 2025-05-14:	PM008:	Ticket - 552117		Adding app submitted ts for the ticket 552117
 	Updated: 2025-06-17:	PM009:	Ticket - 548534		POM resubmission fix - updated comments
 	Updated: 2025-08-08:	PM010:	Ticket - 599145		Picking first submitted records by fileid to find if it is resubmitted or not
+	Updated: 2026-07-01:	CL001:	Ticket - ECV-568		Propagate a Cancelled Registration decision (original or any resubmission) to every
+															submission with the same SubmissionId, regardless of order. Cancellation is final and
+															only applies to Registration submissions.
 ******************************************************************************************************************************/
 --SQL to find resubmitted POM file ids
 submitted_file_list as
@@ -432,34 +435,32 @@ from res
 cd_pom_result as
 (
 	select * From rank_on_res where RowNumber = 1
-)
-/*,
-cancelled_resubmission as
+),
+
+--A Cancelled Registration decision (against the original submission or any resubmission) is final, so it is
+--propagated to every submission sharing that SubmissionId, regardless of submission order.
+cancelled_registration_submissions as
 (
 	select distinct SubmissionId
 	from cd_pom_result
-	where IsResubmission_identifier = 1
-		and SubmissionType = 'Registration'
+	where SubmissionType = 'Registration'
 		and Regulator_Status = 'Cancelled'
 ),
 cd_pom_result_updated as
 (
 	select c.*
 		, case
-			when SubmissionType = 'Registration' and r.SubmissionId is not null and IsResubmission_identifier = 0 and (Regulator_Status = 'Granted' or Regulator_Status = 'Accepted')
+			when c.SubmissionType = 'Registration' and crs.SubmissionId is not null
 				then 'Cancelled'
-			when SubmissionType = 'Registration' and r.SubmissionId is not null and IsResubmission_identifier = 1 and Regulator_Status = 'Cancelled'
-				then 'Pending'
-			else Regulator_Status
+			else c.Regulator_Status
 			end as Regulator_Status_recalculated
 	from cd_pom_result c
-	left join cancelled_resubmission r on c.SubmissionId = r.SubmissionId
+	left join cancelled_registration_submissions crs on c.SubmissionId = crs.SubmissionId
 )
-*/
-select distinct pom_cd.SubmissionId, pom_cd.RegistrationSetId, pom_cd.OrganisationId, pom_cd.FileName, pom_cd.FileType, pom_cd.OriginalFileName, pom_cd.TargetDirectoryName, pom_cd.Decision_Date, /*pom_cd.Regulator_Status_recalculated as Regulator_Status,*/ pom_cd.Regulator_Status /*as Regulator_Status_old*/, pom_cd.RegulatorDecision, pom_cd.Regulator_User_Name, pom_cd.Regulator_Rejection_Comments, pom_cd.RejectionComments, pom_cd.Type, pom_cd.UserId, pom_cd.RowNumber, pom_cd.Created, pom_cd.Application_submitted_ts, pom_cd.RegistrationType, pom_cd.SubmissionPeriod, pom_cd.ApplicationReferenceNo, pom_cd.registrationreferencenumber, pom_cd.Original_Regulator_Status, pom_cd.SubmissionType, pom_cd.IsResubmission_identifier, pom_cd.Is_resubmitted_POM_identifier, pom_cd.cfm_FileId, pom_cd.FileId, pom_cd.fileid_new, pom_cd.submitted_Fileid, pom_cd.SubmissionEventId_of_submitted_record, pom_cd.app_submitted_Fileid, pom_cd.SubmissionEventId_of_application_submitted_record
-from cd_pom_result pom_cd
+select distinct pom_cd.SubmissionId, pom_cd.RegistrationSetId, pom_cd.OrganisationId, pom_cd.FileName, pom_cd.FileType, pom_cd.OriginalFileName, pom_cd.TargetDirectoryName, pom_cd.Decision_Date, pom_cd.Regulator_Status_recalculated as Regulator_Status, pom_cd.RegulatorDecision, pom_cd.Regulator_User_Name, pom_cd.Regulator_Rejection_Comments, pom_cd.RejectionComments, pom_cd.Type, pom_cd.UserId, pom_cd.RowNumber, pom_cd.Created, pom_cd.Application_submitted_ts, pom_cd.RegistrationType, pom_cd.SubmissionPeriod, pom_cd.ApplicationReferenceNo, pom_cd.registrationreferencenumber, pom_cd.Original_Regulator_Status, pom_cd.SubmissionType, pom_cd.IsResubmission_identifier, pom_cd.Is_resubmitted_POM_identifier, pom_cd.cfm_FileId, pom_cd.FileId, pom_cd.fileid_new, pom_cd.submitted_Fileid, pom_cd.SubmissionEventId_of_submitted_record, pom_cd.app_submitted_Fileid, pom_cd.SubmissionEventId_of_application_submitted_record
+from cd_pom_result_updated pom_cd
 union
-select distinct cfm.SubmissionId, cfm.RegistrationSetId, cfm.OrganisationId, cfm.FileName, cfm.FileType, cfm.OriginalFileName, cfm.TargetDirectoryName, cp.Decision_Date, /*cp.Regulator_Status_recalculated as Regulator_Status,*/ cp.Regulator_Status /*as Regulator_Status_old*/,cp.RegulatorDecision, cp.Regulator_User_Name, cp.Regulator_Rejection_Comments, cp.RejectionComments, cp.Type, cp.UserId, cp.RowNumber, cp.Created, cp.Application_submitted_ts, cp.RegistrationType, cp.SubmissionPeriod, cp.ApplicationReferenceNo, cp.registrationreferencenumber, cp.Original_Regulator_Status, cp.SubmissionType, cp.IsResubmission_identifier, cp.Is_resubmitted_POM_identifier, cp.cfm_FileId, cp.FileId, cp.fileid_new, cp.submitted_Fileid, cp.SubmissionEventId_of_submitted_record, cp.app_submitted_Fileid, cp.SubmissionEventId_of_application_submitted_record
+select distinct cfm.SubmissionId, cfm.RegistrationSetId, cfm.OrganisationId, cfm.FileName, cfm.FileType, cfm.OriginalFileName, cfm.TargetDirectoryName, cp.Decision_Date, cp.Regulator_Status_recalculated as Regulator_Status, cp.RegulatorDecision, cp.Regulator_User_Name, cp.Regulator_Rejection_Comments, cp.RejectionComments, cp.Type, cp.UserId, cp.RowNumber, cp.Created, cp.Application_submitted_ts, cp.RegistrationType, cp.SubmissionPeriod, cp.ApplicationReferenceNo, cp.registrationreferencenumber, cp.Original_Regulator_Status, cp.SubmissionType, cp.IsResubmission_identifier, cp.Is_resubmitted_POM_identifier, cp.cfm_FileId, cp.FileId, cp.fileid_new, cp.submitted_Fileid, cp.SubmissionEventId_of_submitted_record, cp.app_submitted_Fileid, cp.SubmissionEventId_of_application_submitted_record
 From rpd.cosmos_file_metadata cfm
-inner join cd_pom_result cp on cfm.RegistrationSetId = cp.RegistrationSetId
+inner join cd_pom_result_updated cp on cfm.RegistrationSetId = cp.RegistrationSetId
 where cfm.FileType in ('Partnerships','Brands');
