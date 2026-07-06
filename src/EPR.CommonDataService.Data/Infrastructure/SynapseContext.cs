@@ -180,6 +180,14 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
             .Property(e => e.NumberOfSubsidiaries)
             .HasConversion(stringToIntConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.NumberOfHoldingCompaniesClosedLoopRecycling)
+            .HasColumnName("NumberOfHoldingCompaniesClosedLoopRecycling")
+            .HasConversion(stringToIntConverter);
+        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
+            .Property(e => e.NumberOfSubsidiariesClosedLoopRecycling)
+            .HasColumnName("NumberOfSubsidiariesClosedLoopRecycling")
+            .HasConversion(stringToIntConverter);
 
         modelBuilder.Entity<RegistrationsSubmissionSummaryRow>()
             .Property(e => e.ComplianceSchemeId)
@@ -188,11 +196,6 @@ public class SynapseContext : DbContext
         modelBuilder.Entity<PomSubmissionSummaryRow>()
             .Property(e => e.SubmissionId)
             .HasConversion(stringToGuidConverter);
-        
-        modelBuilder.Entity<OrganisationRegistrationDetailsDto>()
-            .Property(e => e.IsClosedLoopRecycler)
-            .HasColumnName("ClosedLoopRegistration")
-            .HasConversion(intToBoolConverter);
     }
 
     private void BuildComplexEntities(ModelBuilder modelBuilder)

@@ -1,9 +1,9 @@
 ﻿IF EXISTS (
     SELECT 1
     FROM sys.views
-    WHERE object_id = OBJECT_ID(N'[dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub]')
+    WHERE object_id = OBJECT_ID(N'dbo.V_FetchOrganisationRegistrationSubmissionDetails_resub')
 )
-    DROP VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub];
+    DROP VIEW dbo.V_FetchOrganisationRegistrationSubmissionDetails_resub;
 GO
 
 SET ANSI_NULLS ON;
@@ -12,7 +12,7 @@ GO
 SET QUOTED_IDENTIFIER ON;
 GO
 
-CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WITH
+CREATE VIEW dbo.V_FetchOrganisationRegistrationSubmissionDetails_resub AS WITH
     derivered_variables AS (
     SELECT
         O.Id AS OrganisationIDForSubmission,
@@ -40,8 +40,8 @@ CREATE VIEW [dbo].[V_FetchOrganisationRegistrationSubmissionDetails_resub] AS WI
             ELSE DATEFROMPARTS(CA.SubmissionPeriodYear, 4, 2)
         END AS CSLLateFeeCutoffDate,
         S.RegistrationJourney
-    FROM [rpd].[Submissions] AS S
-    INNER JOIN [rpd].[Organisations] O ON S.OrganisationId = O.ExternalId
+    FROM rpd.Submissions AS S
+    INNER JOIN rpd.Organisations O ON S.OrganisationId = O.ExternalId
     CROSS APPLY (
         SELECT
             CASE
@@ -197,10 +197,6 @@ InitialSubmissionCTE AS (
     FROM (
         SELECT rse.*,
             cd.organisation_size,
-            CASE
-                WHEN cd.closed_loop_registration = 'yes' THEN 1
-                ELSE 0
-            END AS ClosedLoopRegistration,
             Row_number() OVER (
                 PARTITION BY rse.submissionid ORDER BY RowNum ASC
             ) AS RowNumber
@@ -279,6 +275,26 @@ ResubmissionDecisionCTE AS (
     WHERE IsRegulatorResubmissionDecision = 1
 ),
 
+clr_aggregated AS (
+    SELECT 
+        cfm.FileId,
+        SUM(
+            CASE
+                WHEN cd.Subsidiary_Id IS NULL AND cd.closed_loop_registration = 'yes' THEN 1
+                ELSE 0
+            END
+        ) AS NumberOfHoldingCompaniesClosedLoopRecycling,
+        SUM(
+            CASE
+                WHEN cd.Subsidiary_Id IS NOT NULL AND cd.closed_loop_registration = 'yes' THEN 1
+                ELSE 0
+            END
+        ) AS NumberOfSubsidiariesClosedLoopRecycling
+    FROM rpd.cosmos_file_metadata cfm
+    LEFT JOIN rpd.companydetails cd ON cd.filename = cfm.filename
+    GROUP BY cfm.FileId
+),
+
 SubmissionStatusCTE AS (
     SELECT *
     FROM (
@@ -352,7 +368,8 @@ SubmissionStatusCTE AS (
             COALESCE(rd.UserId, id.UserId) AS RegulatorUserId,
             COALESCE(r.UserId, s.UserId) AS LatestProducerUserId,
             reg.RegistrationReferenceNumber,
-            s.ClosedLoopRegistration,
+            NumberOfHoldingCompaniesClosedLoopRecycling,
+            NumberOfSubsidiariesClosedLoopRecycling,
             -- row number to emulate TOP1 for each submission id by rd.DecisionDate aka ResubmissionDecisionDate as per the original query
             Row_number() OVER (PARTITION BY s.submissionid ORDER BY rd.DecisionDate DESC) AS RowNumber
         FROM InitialSubmissionCTE s
@@ -364,6 +381,7 @@ SubmissionStatusCTE AS (
         LEFT JOIN ResubmissionDecisionCTE rd ON rd.SubmissionId = r.SubmissionId
             AND rd.FileId = r.FileId
         LEFT JOIN derivered_variables vars ON vars.SubmissionId = s.SubmissionId -- added join to variables CTE
+        LEFT JOIN clr_aggregated ca ON ca.FileId = COALESCE(r.FileId, s.FileId)
     ) x
     WHERE x.RowNumber = 1
 ),
@@ -392,7 +410,7 @@ ResubmissionDetailsCTE AS (
 UploadedDataForOrganisationCTE AS (
     SELECT DISTINCT org.*,
         ss.SubmissionId
-    FROM [dbo].[v_UploadedRegistrationDataBySubmissionPeriod_resub] org
+    FROM dbo.v_UploadedRegistrationDataBySubmissionPeriod_resub org
     INNER JOIN SubmissionStatusCTE ss ON ss.FileId = org.CompanyFileId
     LEFT JOIN derivered_variables dv ON dv.submissionid = ss.submissionid
         AND dv.OrganisationUUIDForSubmission = org.UploadingOrgExternalId
@@ -442,8 +460,8 @@ ProducerPaycalParametersCTE AS (
         NumberOfSubsidiaries,
         OnlineMarketPlaceSubsidiaries,
         dv.SubmissionId
-    FROM [dbo].[t_ProducerPaycalParameters_resub] AS ppp
-    LEFT JOIN [rpd].[cosmos_file_metadata] c ON c.FileName = ppp.FileName -- added to join to derivered_variables
+    FROM dbo.t_ProducerPaycalParameters_resub AS ppp
+    LEFT JOIN rpd.cosmos_file_metadata c ON c.FileName = ppp.FileName -- added to join to derivered_variables
     LEFT JOIN derivered_variables dv ON dv.SubmissionId = c.SubmissionId -- added join to derived variables to get submissionId
     WHERE ppp.FileId IN (
             SELECT FileId
@@ -538,7 +556,8 @@ SubmissionDetails AS (
             ss.LatestProducerUserId AS SubmittedUserId,
             s.ComplianceSchemeId,
             d.ComplianceSchemeId AS CSId,
-            ss.ClosedLoopRegistration,
+            ss.NumberOfHoldingCompaniesClosedLoopRecycling,
+            ss.NumberOfSubsidiariesClosedLoopRecycling,
             ROW_NUMBER() OVER (
                 PARTITION BY s.OrganisationId,
                 s.SubmissionPeriod,
@@ -546,15 +565,15 @@ SubmissionDetails AS (
                 s.submissionId -- needed to partition by
                 ORDER BY s.load_ts DESC
             ) AS RowNum
-        FROM [rpd].[Submissions] AS s
+        FROM rpd.Submissions AS s
         INNER JOIN SubmittedCTE ON SubmittedCTE.SubmissionId = s.SubmissionId
         LEFT JOIN UploadedViewCTE org ON org.UploadingOrgExternalId = s.OrganisationId
             AND org.SubmissionId = s.SubmissionId
-        INNER JOIN [rpd].[Organisations] o ON o.ExternalId = s.OrganisationId
+        INNER JOIN rpd.Organisations o ON o.ExternalId = s.OrganisationId
         INNER JOIN SubmissionStatusCTE ss ON ss.SubmissionId = s.SubmissionId
         LEFT JOIN ProducerPaycalParametersCTE ppp ON ppp.OrganisationExternalId = s.OrganisationId
             AND ppp.SubmissionId = s.SubmissionId
-        LEFT JOIN [rpd].[ComplianceSchemes] cs ON cs.ExternalId = s.ComplianceSchemeId
+        LEFT JOIN rpd.ComplianceSchemes cs ON cs.ExternalId = s.ComplianceSchemeId
         LEFT JOIN derivered_variables d ON d.SubmissionId = s.SubmissionId --and d.ComplianceSchemeId=s.ComplianceSchemeId
         WHERE s.SubmissionId = d.SubmissionId
     ) AS a
@@ -792,13 +811,14 @@ SELECT DISTINCT r.SubmissionId,
     r.ComplianceSchemeId,
     r.CSId,
     acpp.FinalJson AS CSOJson,
-    r.ClosedLoopRegistration
+    r.NumberOfHoldingCompaniesClosedLoopRecycling,
+    r.NumberOfSubsidiariesClosedLoopRecycling
 FROM SubmissionDetails r
-INNER JOIN [rpd].[Organisations] o ON o.ExternalId = r.OrganisationId
+INNER JOIN rpd.Organisations o ON o.ExternalId = r.OrganisationId
 LEFT JOIN AllCompliancePaycalParametersAsJSONCTE acpp ON acpp.CSOReference = o.ReferenceNumber
     AND acpp.SubmissionId = r.SubmissionId
-INNER JOIN [rpd].[Users] u ON u.UserId = r.SubmittedUserId
-INNER JOIN [rpd].[Persons] p ON p.UserId = u.Id
-INNER JOIN [rpd].[PersonOrganisationConnections] poc ON poc.PersonId = p.Id
-INNER JOIN [rpd].[ServiceRoles] sr ON sr.Id = poc.PersonRoleId;
+INNER JOIN rpd.Users u ON u.UserId = r.SubmittedUserId
+INNER JOIN rpd.Persons p ON p.UserId = u.Id
+INNER JOIN rpd.PersonOrganisationConnections poc ON poc.PersonId = p.Id
+INNER JOIN rpd.ServiceRoles sr ON sr.Id = poc.PersonRoleId;
 GO
