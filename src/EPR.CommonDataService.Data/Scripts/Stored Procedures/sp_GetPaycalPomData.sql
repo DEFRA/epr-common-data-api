@@ -29,7 +29,7 @@ BEGIN
             partition by cd.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
             order by cfm.created desc
         ) as latest_producer_accepted_record_per_SP
-        , Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) as Submission_Period_Year
+        , Right(cfm.SubmissionPeriod,4) as Submission_Period_Year
         FROM [rpd].[CompanyDetails] cd
         INNER JOIN rpd.Organisations o
           on  o.ReferenceNumber = cd.organisation_id
@@ -38,9 +38,9 @@ BEGIN
         INNER JOIN [rpd].[cosmos_file_metadata] cfm
           on  cfm.FileName = cd.FileName
           --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
-          AND Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) > 2024
+          AND Right(cfm.SubmissionPeriod, 4) > 2024
           -- Only considering Granted files--
-        INNER JOIN dbo.v_submitted_pom_org_file_status sofs
+        INNER JOIN dbo.t_submitted_pom_org_file_status sofs
           ON  sofs.cfm_fileid       = cfm.fileid
           AND sofs.filetype         = 'CompanyDetails'
           --ST007 Added Accepted Status to cater for resubmission registration files
@@ -62,7 +62,7 @@ BEGIN
             partition by p.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
             order by cfm.created desc
         ) as latest_producer_accepted_record_per_SP
-        , Right(dbo.udf_DQ_SubmissionPeriod(cfm.SubmissionPeriod),4) as Submission_Period_Year
+        , Right(cfm.SubmissionPeriod, 4) as Submission_Period_Year
         , coalesce(cfm.ComplianceSchemeId, o.ExternalId) as submitter_id
         FROM rpd.Pom p
         INNER JOIN rpd.Organisations o
@@ -72,7 +72,7 @@ BEGIN
           --Restricting to just accepted pom files
         INNER JOIN [rpd].[cosmos_file_metadata] cfm
           on  cfm.FileName = p.FileName
-        INNER JOIN dbo.v_submitted_pom_org_file_status sofs
+        INNER JOIN dbo.t_submitted_pom_org_file_status sofs
           ON  sofs.cfm_fileid = cfm.fileid
           AND sofs.filetype = 'Pom'
           AND sofs.Regulator_Status = 'Accepted'
