@@ -31,10 +31,10 @@ BEGIN
         , NULLIF(p.subsidiary_id, '') AS subsidiary_id
         , p.submission_period
         , ROW_NUMBER() OVER (
-            PARTITION BY p.organisation_id, p.subsidiary_id, COALESCE(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
-            ORDER BY cfm.created DESC
+            PARTITION BY p.organisation_id, p.subsidiary_id, COALESCE(cfm.ComplianceSchemeId, o.ExternalId), sofs.SubmissionPeriod
+            ORDER BY sofs.created DESC
           ) AS latest_producer_accepted_record_per_SP
-        , CAST(RIGHT(cfm.SubmissionPeriod, 4) AS INT) AS submission_period_year
+        , CAST(RIGHT(sofs.SubmissionPeriod, 4) AS INT) AS submission_period_year
         , COALESCE(cfm.ComplianceSchemeId, o.ExternalId) AS submitter_id
         FROM rpd.Pom p
         INNER JOIN rpd.Organisations o
@@ -43,9 +43,12 @@ BEGIN
         INNER JOIN rpd.cosmos_file_metadata cfm
           ON cfm.FileName = p.FileName
         INNER JOIN dbo.t_submitted_pom_org_file_status sofs
-          ON  sofs.cfm_fileid       = cfm.fileid
-          AND sofs.filetype         = 'Pom'
+          ON  sofs.filetype         = 'Pom'
           AND sofs.Regulator_Status = 'Accepted'
+					AND CAST(RIGHT(sofs.SubmissionPeriod, 4) AS INT) = @RelativeYear - 1
+        INNER JOIN rpd.cosmos_file_metadata cfm
+          ON  cfm.FileName = p.FileName
+          AND cfm.fileid   = sofs.cfm_fileid
       ) a
       WHERE a.latest_producer_accepted_record_per_SP = 1
     ),

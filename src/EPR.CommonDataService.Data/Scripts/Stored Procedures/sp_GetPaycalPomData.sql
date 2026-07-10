@@ -21,30 +21,35 @@ BEGIN
     --ST006
     WITH latest_accepted_registration AS (
       SELECT * FROM (
-        SELECT DISTINCT
-          cfm.filename
+        SELECT
+          sofs.filename
         , cd.organisation_id
         --ST004 Updated logic to determine the latest accepted file submission with data for a given organisation
         , row_number() over(
-            partition by cd.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
-            order by cfm.created desc
+            partition by cd.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), sofs.SubmissionPeriod
+            order by sofs.created desc
         ) as latest_producer_accepted_record_per_SP
-        , Right(cfm.SubmissionPeriod,4) as Submission_Period_Year
-        FROM [rpd].[CompanyDetails] cd
+        , Right(sofs.SubmissionPeriod, 4) as Submission_Period_Year
+        FROM rpd.CompanyDetails cd
         INNER JOIN rpd.Organisations o
           on  o.ReferenceNumber = cd.organisation_id
           --Excluding soft deleted organisations
-          AND o.IsDeleted       = 0
-        INNER JOIN [rpd].[cosmos_file_metadata] cfm
-          on  cfm.FileName = cd.FileName
-          --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
-          AND Right(cfm.SubmissionPeriod, 4) > 2024
+          AND o.IsDeleted      = 0
+          --ST006 Restricting here to Large orgs with a name, pushed up from the old Latest_Org_Data_Selection join
+          --so we don't need to re-join CompanyDetails later just to apply this filter
+          AND cd.Organisation_size = 'L'
+          AND cd.organisation_name IS NOT NULL
           -- Only considering Granted files--
-        INNER JOIN dbo.t_submitted_pom_org_file_status sofs
-          ON  sofs.cfm_fileid       = cfm.fileid
-          AND sofs.filetype         = 'CompanyDetails'
-          --ST007 Added Accepted Status to cater for resubmission registration files
-          AND sofs.Regulator_Status IN ('Granted','Accepted')
+          INNER JOIN dbo.t_submitted_pom_org_file_status sofs
+            ON sofs.filetype          = 'CompanyDetails'
+            --ST007 Added Accepted Status to cater for resubmission registration files
+            AND sofs.Regulator_Status IN ('Granted','Accepted')
+            --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
+            AND Right(sofs.SubmissionPeriod, 4) > 2024
+          -- cosmos_file_metadata join needed for complianceScheme (everything else is exported on t_submitted_pom_org_file_status)
+          INNER JOIN rpd.cosmos_file_metadata cfm
+            on  cfm.FileName = cd.FileName
+            AND cfm.fileid   = sofs.cfm_fileid
       ) a
       WHERE latest_producer_accepted_record_per_SP = 1
     ),
@@ -54,15 +59,15 @@ BEGIN
       SELECT * FROM (
         SELECT
           p.organisation_id
-        , cfm.[FileName]
+        , sofs.FileName
         , p.submission_period
-        , cfm.submissionperiod as submission_period_desc
+        , sofs.submissionperiod as submission_period_desc
         --ST005 Updated logic to determine the latest accepted file submission with data for a given organisation
         , row_number() over(
-            partition by p.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), cfm.SubmissionPeriod
-            order by cfm.created desc
+            partition by p.organisation_id, coalesce(cfm.ComplianceSchemeId, o.ExternalId), sofs.SubmissionPeriod
+            order by sofs.created desc
         ) as latest_producer_accepted_record_per_SP
-        , Right(cfm.SubmissionPeriod, 4) as Submission_Period_Year
+        , Right(sofs.SubmissionPeriod, 4) as Submission_Period_Year
         , coalesce(cfm.ComplianceSchemeId, o.ExternalId) as submitter_id
         FROM rpd.Pom p
         INNER JOIN rpd.Organisations o
@@ -70,7 +75,7 @@ BEGIN
           --Excluding soft deleted organisations
           AND o.IsDeleted = 0
           --Restricting to just accepted pom files
-        INNER JOIN [rpd].[cosmos_file_metadata] cfm
+        INNER JOIN rpd.cosmos_file_metadata cfm
           on  cfm.FileName = p.FileName
         INNER JOIN dbo.t_submitted_pom_org_file_status sofs
           ON  sofs.cfm_fileid = cfm.fileid
