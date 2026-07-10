@@ -4,6 +4,7 @@ GO
 
 CREATE PROCEDURE [dbo].[sp_GetPaycalPomData]
   @RelativeYear INT
+, @CutOffDate DATETIME
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -46,6 +47,7 @@ BEGIN
             AND sofs.Regulator_Status IN ('Granted','Accepted')
             --ST003 Restricting the extraction to just Registration files (Excluding older Org type files)
             AND Right(sofs.SubmissionPeriod, 4) > 2024
+            AND TRY_CONVERT(DATETIME, SUBSTRING(sofs.Created, 1, 23)) <= @CutOffDate
           -- cosmos_file_metadata join needed for complianceScheme (everything else is exported on t_submitted_pom_org_file_status)
           INNER JOIN rpd.cosmos_file_metadata cfm
             on  cfm.FileName = cd.FileName
@@ -75,12 +77,13 @@ BEGIN
           --Excluding soft deleted organisations
           AND o.IsDeleted = 0
           --Restricting to just accepted pom files
-        INNER JOIN rpd.cosmos_file_metadata cfm
-          on  cfm.FileName = p.FileName
         INNER JOIN dbo.t_submitted_pom_org_file_status sofs
-          ON  sofs.cfm_fileid = cfm.fileid
-          AND sofs.filetype = 'Pom'
+          ON  sofs.filetype         = 'Pom'
           AND sofs.Regulator_Status = 'Accepted'
+          AND TRY_CONVERT(DATETIME, SUBSTRING(sofs.Created, 1, 23)) <= @CutOffDate
+        INNER JOIN rpd.cosmos_file_metadata cfm
+          ON  cfm.FileName = p.FileName
+          AND cfm.fileid   = sofs.cfm_fileid
       ) a
       WHERE latest_producer_accepted_record_per_SP = 1
     ),

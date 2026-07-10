@@ -4,6 +4,7 @@ GO
 
 CREATE PROCEDURE [dbo].[sp_GetPaycalOrgData]
   @RelativeYear INT
+, @CutOffDate DATETIME
 AS
 BEGIN
   SET NOCOUNT ON;
@@ -46,6 +47,7 @@ BEGIN
           ON  sofs.filetype         = 'Pom'
           AND sofs.Regulator_Status = 'Accepted'
 					AND CAST(RIGHT(sofs.SubmissionPeriod, 4) AS INT) = @RelativeYear - 1
+					AND TRY_CONVERT(DATETIME, SUBSTRING(sofs.Created, 1, 23)) <= @CutOffDate
         INNER JOIN rpd.cosmos_file_metadata cfm
           ON  cfm.FileName = p.FileName
           AND cfm.fileid   = sofs.cfm_fileid
@@ -94,12 +96,14 @@ BEGIN
       , CAST(COALESCE(opf.has_h1, 0) AS BIT) AS has_h1
       , CAST(COALESCE(opf.has_h2, 0) AS BIT) AS has_h2
     FROM dbo.t_producer_obligation_determination ob
+		-- TODO apply @CutOffDate to t_producer_obligation_determination
     LEFT JOIN organisation_period_flags opf
       ON  opf.organisation_id            = ob.organisation_id
       AND ISNULL(opf.subsidiary_id, '')  = ISNULL(ob.subsidiary_id, '')
       AND ISNULL(opf.submitter_id, '')   = ISNULL(ob.submitter_id, '')
       AND opf.submission_period_year + 1 = ob.submission_period_year
     WHERE ob.submission_period_year = @RelativeYear;
+
   END
 
   INSERT INTO [dbo].[batch_log]
