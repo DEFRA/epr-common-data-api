@@ -16,7 +16,7 @@ parameters:
     - 'SonarQube'
     # - 'SonarQubeLatest'
 
-pool: DEFRA-COMMON-ubuntu2004-SSV3
+pool: DEFRA-COMMON-UBUNTU-SSV3
 
 variables:
   - template: vars/DEV4-development.yaml
@@ -39,7 +39,7 @@ variables:
   - name: NUGET_PACKAGES
     value: $(Pipeline.Workspace)/.nuget/packages
   - name: dotnetVersion
-    value: dotnetVersion8
+    value: dotnetVersion10
 
 resources:
   repositories:

@@ -31,6 +31,20 @@ public class ApiControllerBase(
     }
 
     [NonAction]
+    public override ActionResult ValidationProblem(
+        // ReSharper disable once MethodOverloadWithOptionalParameter
+        string? detail = null,
+        string? instance = null,
+        int? statusCode = null,
+        string? title = null,
+        string? type = null,
+        [ActionResultObjectValue] ModelStateDictionary? modelStateDictionary = null,
+        IDictionary<string, object?>? extensions = null)
+    {
+        return base.ValidationProblem(detail, instance, statusCode, title, $"{_baseProblemTypePath}validation", modelStateDictionary, extensions);
+    }
+
+    [NonAction]
     public override ObjectResult Problem(
         string? detail = null,
         string? instance = null,

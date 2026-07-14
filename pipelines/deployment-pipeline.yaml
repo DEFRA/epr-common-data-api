@@ -1,6 +1,6 @@
 trigger: none
 pr: none
-pool: DEFRA-COMMON-ubuntu2004-SSV3
+pool: DEFRA-COMMON-UBUNTU-SSV3
 appendCommitMessageToRunName: false
 name: 'Deploy code to $(serviceName)'
 
@@ -71,8 +71,9 @@ variables:
 resources:
   repositories:
     - repository: CommonTemplates
-      name: RWD-CPR-EPR4P-ADO/epr-webapps-code-deploy-templates
-      type: git
+      name: defra/epr-webapps-code-deploy-templates
+      type: github
+      endpoint: defra
       ref: main
 
     # The repo will be reference the repo by a release tag (if the imageTag parameter contains 'release') otherwise it will pull down the main branch.
