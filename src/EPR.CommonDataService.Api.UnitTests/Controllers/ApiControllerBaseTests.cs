@@ -86,7 +86,7 @@ public class ApiControllerBaseTests
         modelState.AddModelError("key", "error");
 
         // Act
-        var result = _controller.ValidationProblem(modelStateDictionary: modelState, statusCode: 400);
+        var result = _controller.ValidationProblem(modelStateDictionary: modelState, statusCode: 400, extensions: null);
 
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
@@ -102,7 +102,7 @@ public class ApiControllerBaseTests
     {
         // Arrange
         // Act
-        var result = _controller.ValidationProblem(modelStateDictionary: null!, statusCode: 400);
+        var result = _controller.ValidationProblem(modelStateDictionary: null!, statusCode: 400, extensions: null);
 
         // Assert
         var objectResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -118,7 +118,7 @@ public class ApiControllerBaseTests
         modelStateDictionary.AddModelError("key", "error");
 
         // Act
-        var result = _controller.ValidationProblem(modelStateDictionary: modelStateDictionary, statusCode: 400);
+        var result = _controller.ValidationProblem(modelStateDictionary: modelStateDictionary, statusCode: 400, extensions: null);
 
         // Assert
         var objectResult = result.Should().BeOfType<BadRequestObjectResult>().Subject;
