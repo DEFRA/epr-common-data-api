@@ -2,12 +2,12 @@
 
 ## Overview
 
-As part of **EMR-89**, the SQL components previously maintained within the **common-data-api** repository were migrated to the **epr-data-sqldb** repository.
+As part of **[EMR-89](https://eaflood.atlassian.net/browse/EMR-89)**, the SQL components previously maintained within the **common-data-api** repository were migrated to the **[epr-data-sqldb](https://github.com/DEFRA/epr-data-sqldb)** repository.
 
-- **Change Reference:** EMR-89
-- **Migration Date:** July 2026
+- **Change Reference:** [EMR-89](https://eaflood.atlassian.net/browse/EMR-89)
+- **Production Migration Date:** 20th July 2026
 - **Affected Components:** SQL objects previously stored in the `common-data-api` repository
-- **New Repository:** `epr-data-sqldb`
+- **New Repository:** [epr-data-sqldb](https://github.com/DEFRA/epr-data-sqldb)
 
 This migration was undertaken to consolidate SQL database objects into the dedicated SQL database repository and align them with the standard database deployment process.
 
@@ -15,7 +15,7 @@ This migration was undertaken to consolidate SQL database objects into the dedic
 
 ## Making Future Changes
 
-All future changes to these SQL objects **must** be made in the **`epr-data-sqldb`** repository.
+All future changes to these SQL objects **must** be made in the **[epr-data-sqldb](https://github.com/DEFRA/epr-data-sqldb)** repository.
 
 The SQL artefacts in the `common-data-api` repository should no longer be considered the source of truth.
 
