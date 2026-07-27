@@ -15,4 +15,9 @@ public sealed record StreamOrganisationsRequest
     ///     Organisations returned will have a SubmissionYear equal to RelativeYear.
     /// </remarks>
     public required int? RelativeYear { get; init; }
+
+    /// <summary>
+    ///     The organisation cut-off date.
+    /// </summary>
+    public required string? CutOffDate { get; init; }
 }

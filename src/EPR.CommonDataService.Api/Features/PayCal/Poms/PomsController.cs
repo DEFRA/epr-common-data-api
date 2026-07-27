@@ -41,10 +41,12 @@ public sealed class PomsController(
             return ValidationProblem();
         }
 
-        logger.LogInformation("StreamOut: Starting. Request={Request}", request);
+        var relativeYear = request.RelativeYear!.Value;
+        var cutOffDate = DateParserUtil.ParseCutoff(request.CutOffDate);
+        logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear} CutOffDate={CutOffDate}", relativeYear, cutOffDate);
 
         return new NdJsonStreamResult<PomResponse>(
-            requestHandler.Handle(request),
+            requestHandler.Handle(relativeYear, cutOffDate),
             result =>
             {
                 var status = result.WasAbortedByClient ? "Aborted by client" : "Completed successfully";
