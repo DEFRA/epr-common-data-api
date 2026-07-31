@@ -1,0 +1,10 @@
+name: OSV-Scanner (PR)
+on:
+  pull_request:
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+jobs:
+  osv:
+    uses: DEFRA/epr-webapps-code-deploy-templates/.github/workflows/osv-pr.yml@main
