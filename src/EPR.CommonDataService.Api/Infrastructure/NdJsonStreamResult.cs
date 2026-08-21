@@ -46,34 +46,56 @@ public sealed class NdJsonStreamResult<T>
         ArgumentNullException.ThrowIfNull(context);
 
         var response = context.HttpContext.Response;
-        response.ContentType = "application/x-ndjson; charset=utf-8";
-        response.Headers[HeaderNames.CacheControl] = "no-store";
-        response.Headers["X-Accel-Buffering"] = "no";
-
-        await using var writer = new StreamWriter(response.Body, new UTF8Encoding(false), 16 * 1024, true);
-        writer.AutoFlush = false; // we'll flush manually after each record
-
         var ct = context.HttpContext.RequestAborted;
-        var asyncEnumerable = _dataSource.WithCancellation(ct);
+
         long count = 0;
         var clientAborted = false;
         var sw = Stopwatch.StartNew();
 
         try
         {
-            await foreach (var record in asyncEnumerable)
+            await using var enumerator = _dataSource
+                .WithCancellation(ct)
+                .GetAsyncEnumerator();
+
+            // Force the underlying data source to execute before
+            // we start writing the streaming response.
+            if (!await enumerator.MoveNextAsync())
             {
-                var json = JsonSerializer.Serialize(record, NdJsonStreamOptions.JsonOptions);
+                response.ContentType = "application/x-ndjson; charset=utf-8";
+                response.Headers[HeaderNames.CacheControl] = "no-store";
+                response.Headers["X-Accel-Buffering"] = "no";
+                return;
+            }
+
+            response.ContentType = "application/x-ndjson; charset=utf-8";
+            response.Headers[HeaderNames.CacheControl] = "no-store";
+            response.Headers["X-Accel-Buffering"] = "no";
+
+            await using var writer = new StreamWriter(
+                response.Body,
+                new UTF8Encoding(false),
+                16 * 1024,
+                true);
+
+            writer.AutoFlush = false;
+
+            do
+            {
+                var json = JsonSerializer.Serialize(
+                    enumerator.Current,
+                    NdJsonStreamOptions.JsonOptions);
+
                 await writer.WriteAsync(json);
                 await writer.WriteAsync('\n');
-
                 await writer.FlushAsync(ct); // flush writer to response body
                 await response.Body.FlushAsync(ct); // flush response body to the client
 
                 count++;
-            }
+
+            } while (await enumerator.MoveNextAsync());
         }
-        catch (Exception ex) when (ex is OperationCanceledException && ct.IsCancellationRequested)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
             clientAborted = true;
         }
