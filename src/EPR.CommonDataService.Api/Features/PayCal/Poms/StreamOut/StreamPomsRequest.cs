@@ -15,4 +15,9 @@ public sealed record StreamPomsRequest
     ///     POMs returned will have a SubmissionYear one year PRIOR to RelativeYear.
     /// </remarks>
     public required int? RelativeYear { get; init; }
+
+    /// <summary>
+    ///     The Pom cut-off date.
+    /// </summary>
+    public required String? CutOffDate { get; init; }
 }

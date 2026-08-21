@@ -54,7 +54,7 @@ public class PomsControllerTests
     public async Task StreamOut_WhenRequestIsValid_ShouldReturnNdJsonStreamResult()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 2025 };
+        var request = new StreamPomsRequest { RelativeYear = 2025, CutOffDate = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -77,7 +77,7 @@ public class PomsControllerTests
         };
 
         _mockRequestHandler
-            .Setup(h => h.Handle(request))
+            .Setup(h => h.Handle(2025, null))
             .Returns(pomResponses.ToAsyncEnumerable());
 
         // Act
@@ -91,7 +91,7 @@ public class PomsControllerTests
     public async Task StreamOut_WhenRequestIsInvalid_ShouldReturnValidationProblem()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = null };
+        var request = new StreamPomsRequest { RelativeYear = null, CutOffDate = null };
 
         var validationFailures = new List<ValidationFailure>
         {
@@ -115,7 +115,7 @@ public class PomsControllerTests
     public async Task StreamOut_WhenMultipleValidationErrors_ShouldReturnAllErrors()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 2000 };
+        var request = new StreamPomsRequest { RelativeYear = 2000, CutOffDate = null };
 
         var validationFailures = new List<ValidationFailure>
         {
@@ -142,14 +142,14 @@ public class PomsControllerTests
     public async Task StreamOut_WhenValidRequest_ShouldReturnNdJsonStreamResultAndCallHandler()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 2025 };
+        var request = new StreamPomsRequest { RelativeYear = 2025, CutOffDate = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ValidationResult());
 
         _mockRequestHandler
-            .Setup(h => h.Handle(It.IsAny<StreamPomsRequest>()))
+            .Setup(h => h.Handle(It.IsAny<int>(), It.IsAny<DateTimeOffset?>()))
             .Returns(AsyncEnumerable.Empty<PomResponse>());
 
         // Act
@@ -161,7 +161,7 @@ public class PomsControllerTests
             v => v.ValidateAsync(request, It.IsAny<CancellationToken>()),
             Times.Once);
         _mockRequestHandler.Verify(
-            h => h.Handle(It.Is<StreamPomsRequest>(r => r.RelativeYear == 2025)),
+            h => h.Handle(It.Is<int>(x => x == 2025), It.Is<DateTimeOffset?>(x => x == null)),
             Times.Once);
     }
 
@@ -169,7 +169,7 @@ public class PomsControllerTests
     public async Task StreamOut_WhenValidationFails_ShouldNotCallHandler()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = null };
+        var request = new StreamPomsRequest { RelativeYear = null, CutOffDate = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -183,7 +183,7 @@ public class PomsControllerTests
 
         // Assert
         _mockRequestHandler.Verify(
-            h => h.Handle(It.IsAny<StreamPomsRequest>()),
+            h => h.Handle(It.IsAny<int>(), It.IsAny<DateTimeOffset?>()),
             Times.Never);
     }
 }

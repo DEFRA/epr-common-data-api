@@ -11,5 +11,9 @@ public sealed class StreamPomsRequestValidator
             .NotNull()
             .GreaterThanOrEqualTo(2025) // First valid EPR year
             .LessThanOrEqualTo(9999);
+
+        RuleFor(request => request.CutOffDate)
+            .Must(DateParserUtil.IsValidCutoff)
+            .WithMessage("CutOffDate must be in yyyy-MM-dd or ISO 8601 DateTimeOffset format.");
     }
 }

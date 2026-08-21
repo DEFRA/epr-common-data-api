@@ -20,7 +20,7 @@ public class StreamPomsRequestValidatorTests
     public void Validate_WhenSubmissionYearIsNull_ShouldHaveValidationError()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = null };
+        var request = new StreamPomsRequest { RelativeYear = null, CutOffDate = null };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -36,7 +36,7 @@ public class StreamPomsRequestValidatorTests
     public void Validate_WhenSubmissionYearIsValid_ShouldNotHaveValidationError(int year)
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = year };
+        var request = new StreamPomsRequest { RelativeYear = year, CutOffDate = null };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -53,7 +53,7 @@ public class StreamPomsRequestValidatorTests
     public void Validate_WhenSubmissionYearIsLessThan2025_ShouldHaveValidationError(int year)
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = year };
+        var request = new StreamPomsRequest { RelativeYear = year, CutOffDate = null };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -66,7 +66,7 @@ public class StreamPomsRequestValidatorTests
     public void Validate_WhenSubmissionYearIsGreaterThan9999_ShouldHaveValidationError()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 10000 };
+        var request = new StreamPomsRequest { RelativeYear = 10000, CutOffDate = null };
 
         // Act
         var result = _validator.TestValidate(request);
