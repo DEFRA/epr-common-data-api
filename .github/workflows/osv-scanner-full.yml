@@ -1,0 +1,14 @@
+name: OSV-Scanner (full)
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+jobs:
+  osv:
+    uses: DEFRA/epr-webapps-code-deploy-templates/.github/workflows/osv-full.yml@main
