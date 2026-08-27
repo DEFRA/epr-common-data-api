@@ -54,7 +54,7 @@ public class OrganisationsControllerTests
     public async Task StreamOut_WhenRequestIsValid_ShouldReturnNdJsonStreamResult()
     {
         // Arrange
-        var request = new StreamOrganisationsRequest { RelativeYear = 2025 };
+        var request = new StreamOrganisationsRequest { RelativeYear = 2025, CutOffDate = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -79,7 +79,7 @@ public class OrganisationsControllerTests
         };
 
         _mockRequestHandler
-            .Setup(h => h.Handle(request))
+            .Setup(h => h.Handle(2025, null))
             .Returns(orgResponses.ToAsyncEnumerable());
 
         // Act
@@ -93,7 +93,7 @@ public class OrganisationsControllerTests
     public async Task StreamOut_WhenRequestIsInvalid_ShouldReturnValidationProblem()
     {
         // Arrange
-        var request = new StreamOrganisationsRequest { RelativeYear = null };
+        var request = new StreamOrganisationsRequest { RelativeYear = null, CutOffDate = null };
 
         var validationFailures = new List<ValidationFailure>
         {
@@ -117,7 +117,7 @@ public class OrganisationsControllerTests
     public async Task StreamOut_WhenMultipleValidationErrors_ShouldReturnAllErrors()
     {
         // Arrange
-        var request = new StreamOrganisationsRequest { RelativeYear = 2000 };
+        var request = new StreamOrganisationsRequest { RelativeYear = 2000, CutOffDate = null };
 
         var validationFailures = new List<ValidationFailure>
         {
@@ -144,14 +144,14 @@ public class OrganisationsControllerTests
     public async Task StreamOut_WhenValidRequest_ShouldReturnNdJsonStreamResultAndCallHandler()
     {
         // Arrange
-        var request = new StreamOrganisationsRequest { RelativeYear = 2025 };
+        var request = new StreamOrganisationsRequest { RelativeYear = 2025, CutOffDate = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new ValidationResult());
 
         _mockRequestHandler
-            .Setup(h => h.Handle(It.IsAny<StreamOrganisationsRequest>()))
+            .Setup(h => h.Handle(It.IsAny<int>(), It.IsAny<DateTimeOffset?>()))
             .Returns(AsyncEnumerable.Empty<OrganisationResponse>());
 
         // Act
@@ -163,7 +163,7 @@ public class OrganisationsControllerTests
             v => v.ValidateAsync(request, It.IsAny<CancellationToken>()),
             Times.Once);
         _mockRequestHandler.Verify(
-            h => h.Handle(It.Is<StreamOrganisationsRequest>(r => r.RelativeYear == 2025)),
+            h => h.Handle(It.Is<int>(x => x == 2025), It.Is<DateTimeOffset?>(x => x == null)),
             Times.Once);
     }
 
@@ -171,7 +171,7 @@ public class OrganisationsControllerTests
     public async Task StreamOut_WhenValidationFails_ShouldNotCallHandler()
     {
         // Arrange
-        var request = new StreamOrganisationsRequest { RelativeYear = null };
+        var request = new StreamOrganisationsRequest { RelativeYear = null, CutOffDate = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -185,7 +185,7 @@ public class OrganisationsControllerTests
 
         // Assert
         _mockRequestHandler.Verify(
-            h => h.Handle(It.IsAny<StreamOrganisationsRequest>()),
+            h => h.Handle(It.IsAny<int>(), It.IsAny<DateTimeOffset?>()),
             Times.Never);
     }
 }

@@ -6,7 +6,7 @@ namespace EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 
 public interface IStreamOrganisationsRequestHandler
 {
-    IAsyncEnumerable<OrganisationResponse> Handle(StreamOrganisationsRequest request);
+    IAsyncEnumerable<OrganisationResponse> Handle(int relativeYear, DateTimeOffset? cutOffDate);
 }
 
 [ExcludeFromCodeCoverage(Justification =
@@ -14,11 +14,11 @@ public interface IStreamOrganisationsRequestHandler
 public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
     : IStreamOrganisationsRequestHandler
 {
-    public async IAsyncEnumerable<OrganisationResponse> Handle(StreamOrganisationsRequest request)
+    public async IAsyncEnumerable<OrganisationResponse> Handle(int relativeYear, DateTimeOffset? cutOffDate)
     {
         var organisations = dbContext
             .PayCalOrganisations
-            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalOrgData] @RelativeYear={request.RelativeYear}")
+            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalOrgData] @RelativeYear={relativeYear}, @CutOffDate={cutOffDate}")
             .AsNoTracking()
             .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
             .AsAsyncEnumerable();

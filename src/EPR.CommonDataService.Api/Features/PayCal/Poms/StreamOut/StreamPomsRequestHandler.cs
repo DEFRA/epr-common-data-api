@@ -6,7 +6,7 @@ namespace EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 
 public interface IStreamPomsRequestHandler
 {
-    IAsyncEnumerable<PomResponse> Handle(StreamPomsRequest request);
+    IAsyncEnumerable<PomResponse> Handle(int relativeYear, DateTimeOffset? cutOffDate);
 }
 
 [ExcludeFromCodeCoverage(Justification =
@@ -14,11 +14,11 @@ public interface IStreamPomsRequestHandler
 public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
     : IStreamPomsRequestHandler
 {
-    public async IAsyncEnumerable<PomResponse> Handle(StreamPomsRequest request)
+    public async IAsyncEnumerable<PomResponse> Handle(int relativeYear, DateTimeOffset? cutOffDate)
     {
         var poms = dbContext
             .PayCalPoms
-            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalPomData] @RelativeYear={request.RelativeYear}")
+            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalPomData] @RelativeYear={relativeYear}, @CutOffDate={cutOffDate}")
             .AsNoTracking()
             .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
             .AsAsyncEnumerable();
