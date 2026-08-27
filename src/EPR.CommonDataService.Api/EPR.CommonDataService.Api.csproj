@@ -41,4 +41,10 @@
     <ProjectReference Include="..\EPR.CommonDataService.Core\EPR.CommonDataService.Core.csproj" />
     <ProjectReference Include="..\EPR.CommonDataService.Data\EPR.CommonDataService.Data.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+      <SonarQubeSetting Include="sonar.cpd.exclusions">
+        <Value>**/*.cs</Value>
+      </SonarQubeSetting>
+    </ItemGroup>
 </Project>
