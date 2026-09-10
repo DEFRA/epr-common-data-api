@@ -21,6 +21,9 @@ public sealed record GetOrganisationPomsRequest
     /// </remarks>
     public int? RelativeYear { get; init; }
 
-    /// <summary>Optional cut-off date, in yyyy-MM-dd or ISO 8601 form.</summary>
+    /// <summary>
+    ///     Optional cut-off date. Either yyyy-MM-dd, or ISO 8601 UTC with a literal Z suffix.
+    ///     A numeric offset such as +00:00 is not accepted; see DateParserUtil.
+    /// </summary>
     public string? CutOffDate { get; init; }
 }

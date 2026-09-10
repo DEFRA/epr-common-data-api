@@ -40,19 +40,10 @@ public sealed class PomsByOrganisationController(
         [FromQuery] GetOrganisationPomsRequest request,
         CancellationToken cancellationToken)
     {
-        // Reject if request is invalid as the underlying DB calls are expensive
-        var validationResult = await requestValidator.ValidateAsync(request, cancellationToken);
+        var problem = await ValidateAsync(
+            requestValidator, request, logger, "GetByOrganisation", cancellationToken);
 
-        if (!validationResult.IsValid)
-        {
-            logger.LogInformation("GetByOrganisation: Invalid request. Errors={Errors}",
-                string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
-
-            foreach (var error in validationResult.Errors)
-                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-
-            return ValidationProblem();
-        }
+        if (problem is not null) return problem;
 
         var organisationId = request.OrganisationId!.Value;
         var cutOffDate = DateParserUtil.ParseCutoff(request.CutOffDate);
