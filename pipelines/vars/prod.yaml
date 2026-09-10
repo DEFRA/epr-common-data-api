@@ -1,9 +1,18 @@
 variables:
-  azureSubscription: 'AZR-RWD-PRD1'
-  docker.imageName: 'eprcommondataregistry'
-  acr.azureContainerRegistryName: 'prdrwdinfac1401'
-  acr.repositoryName: 'eprcommondataregistry'
-  serviceName: 'prdrwdwebwa1415'
-  kvName: PRDRWDINFKV1401
-  sqlDBserver: prdrwddbssq1401.database.windows.net
-  sqlDB: 'prd1_accounts'
+- group: ServiceConnections
+- name: azureSubscription
+  value: $(ServiceConnectionPRD1)
+- name: docker.imageName
+  value: 'eprcommondataregistry'
+- name: acr.azureContainerRegistryName
+  value: 'prdrwdinfac1401'
+- name: acr.repositoryName
+  value: 'eprcommondataregistry'
+- name: serviceName
+  value: 'prdrwdwebwa1415'
+- name: kvName
+  value: PRDRWDINFKV1401
+- name: sqlDBserver
+  value: prdrwddbssq1401.database.windows.net
+- name: sqlDB
+  value: 'prd1_accounts'
