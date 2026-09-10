@@ -28,6 +28,7 @@ public class SynapseContext : DbContext
     public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
     public DbSet<PayCalOrganisation> PayCalOrganisations { get; set; } = null!;
     public DbSet<PayCalPom> PayCalPoms { get; set; } = null!;
+    public DbSet<PayCalOrganisationPom> PayCalOrganisationPoms { get; set; } = null!;
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -83,6 +84,26 @@ public class SynapseContext : DbContext
             entity.Property(e => e.PackagingMaterial).HasColumnName("packaging_material").HasMaxLength(4000);
             entity.Property(e => e.PackagingMaterialSubtype).HasColumnName("packaging_material_subtype").HasMaxLength(4000);
             entity.Property(e => e.PackagingMaterialWeight).HasColumnName("packaging_material_weight");
+            entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
+        });
+
+        modelBuilder.Entity<PayCalOrganisationPom>(entity =>
+        {
+            // The data source for this entity is a stored procedure - cdp.sp_GetPaycalPomDataByOrganisation
+            entity.HasNoKey();
+            entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.OrganisationName).HasColumnName("organisation_name").HasMaxLength(4000);
+            entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
+            entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
+            entity.Property(e => e.SubmissionPeriod).HasColumnName("submission_period").HasMaxLength(4000);
+            entity.Property(e => e.SubmissionPeriodDescription).HasColumnName("submission_period_desc").HasMaxLength(4000);
+            entity.Property(e => e.PackagingActivity).HasColumnName("packaging_activity").HasMaxLength(4000);
+            entity.Property(e => e.PackagingType).HasColumnName("packaging_type").HasMaxLength(4000);
+            entity.Property(e => e.PackagingClass).HasColumnName("packaging_class").HasMaxLength(4000);
+            entity.Property(e => e.PackagingMaterial).HasColumnName("packaging_material").HasMaxLength(4000);
+            entity.Property(e => e.PackagingMaterialSubtype).HasColumnName("packaging_material_subtype").HasMaxLength(4000);
+            entity.Property(e => e.PackagingMaterialWeight).HasColumnName("packaging_material_weight");
+            entity.Property(e => e.FromCountry).HasColumnName("from_country").HasMaxLength(4000);
             entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
         });
 
