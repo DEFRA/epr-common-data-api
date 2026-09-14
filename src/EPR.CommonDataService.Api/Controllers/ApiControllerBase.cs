@@ -1,4 +1,6 @@
 ﻿using EPR.CommonDataService.Api.Configuration;
+using FluentValidation;
+using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -15,6 +17,34 @@ public class ApiControllerBase(
     public override ActionResult ValidationProblem()
     {
         return base.ValidationProblem(type: $"{_baseProblemTypePath}validation".ToLower());
+    }
+
+    /// <summary>
+    ///     Validates a request and, when it fails, logs the errors, records them on ModelState and
+    ///     returns a ValidationProblem. Returns null when the request is valid.
+    ///     Callers reject before touching the database, since the queries behind these endpoints
+    ///     are expensive.
+    /// </summary>
+    [NonAction]
+    protected async Task<ActionResult?> ValidateAsync<T>(
+        IValidator<T> validator,
+        T request,
+        ILogger logger,
+        string operation,
+        CancellationToken cancellationToken)
+    {
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+        if (validationResult.IsValid) return null;
+
+        logger.LogInformation("{Operation}: Invalid request. Errors={Errors}",
+            operation,
+            string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
+
+        foreach (var error in validationResult.Errors)
+            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+
+        return ValidationProblem();
     }
 
     [NonAction]

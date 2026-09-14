@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
+using EPR.CommonDataService.Api.Features.PayCal.Poms.ByOrganisation;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
@@ -152,5 +153,6 @@ public static class ServiceProviderExtensions
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
         services.AddScoped<IStreamOrganisationsRequestHandler, StreamOrganisationsRequestHandler>();
         services.AddScoped<IStreamPomsRequestHandler, StreamPomsRequestHandler>();
+        services.AddScoped<IGetOrganisationPomsRequestHandler, GetOrganisationPomsRequestHandler>();
     }
 }
