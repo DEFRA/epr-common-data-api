@@ -1,5 +1,5 @@
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Api.Features.PayCal.Poms.ByOrganisation;
+using EPR.CommonDataService.Api.Features.Pom;
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Http;
@@ -8,33 +8,33 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.Poms.ByOrganisation;
+namespace EPR.CommonDataService.Api.UnitTests.Features.Pom;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
-public class PomsByOrganisationControllerTests
+public class PomControllerTests
 {
-    private Mock<IGetOrganisationPomsRequestHandler> _mockRequestHandler = null!;
-    private Mock<IValidator<GetOrganisationPomsRequest>> _mockValidator = null!;
+    private Mock<IGetPomRequestHandler> _mockRequestHandler = null!;
+    private Mock<IValidator<GetPomRequest>> _mockValidator = null!;
     private Mock<IOptions<ApiConfig>> _mockApiConfig = null!;
-    private Mock<ILogger<PomsByOrganisationController>> _mockLogger = null!;
-    private PomsByOrganisationController _controller = null!;
+    private Mock<ILogger<PomController>> _mockLogger = null!;
+    private PomController _controller = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _mockRequestHandler = new Mock<IGetOrganisationPomsRequestHandler>();
-        _mockValidator = new Mock<IValidator<GetOrganisationPomsRequest>>();
-        _mockLogger = new Mock<ILogger<PomsByOrganisationController>>();
+        _mockRequestHandler = new Mock<IGetPomRequestHandler>();
+        _mockValidator = new Mock<IValidator<GetPomRequest>>();
+        _mockLogger = new Mock<ILogger<PomController>>();
         _mockApiConfig = new Mock<IOptions<ApiConfig>>();
         _mockApiConfig.Setup(x => x.Value).Returns(new ApiConfig { BaseProblemTypePath = "https://dummytest/" });
 
         _controller = BuildController();
     }
 
-    private PomsByOrganisationController BuildController()
+    private PomController BuildController()
     {
-        var controller = new PomsByOrganisationController(
+        var controller = new PomController(
             _mockRequestHandler.Object, _mockValidator.Object, _mockApiConfig.Object, _mockLogger.Object);
 
         controller.ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() };
@@ -61,10 +61,10 @@ public class PomsByOrganisationControllerTests
     ];
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenRequestIsValid_ShouldReturnOkWithRows()
+    public async Task Get_WhenRequestIsValid_ShouldReturnOkWithRows()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, RelativeYear = 2025 };
+        var request = new GetPomRequest { OrganisationId = 103844, RelativeYear = 2025 };
         var rows = SampleRows();
 
         _mockValidator
@@ -76,7 +76,7 @@ public class PomsByOrganisationControllerTests
             .ReturnsAsync(rows);
 
         // Act
-        var result = await _controller.GetByOrganisation(request, CancellationToken.None);
+        var result = await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -85,10 +85,10 @@ public class PomsByOrganisationControllerTests
     }
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenRelativeYearIsNull_ShouldPassNullToHandler()
+    public async Task Get_WhenRelativeYearIsNull_ShouldPassNullToHandler()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, RelativeYear = null };
+        var request = new GetPomRequest { OrganisationId = 103844, RelativeYear = null };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -99,7 +99,7 @@ public class PomsByOrganisationControllerTests
             .ReturnsAsync([]);
 
         // Act
-        await _controller.GetByOrganisation(request, CancellationToken.None);
+        await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         _mockRequestHandler.Verify(
@@ -108,10 +108,10 @@ public class PomsByOrganisationControllerTests
     }
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenCutOffDateIsSupplied_ShouldParseAndPassItToHandler()
+    public async Task Get_WhenCutOffDateIsSupplied_ShouldParseAndPassItToHandler()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest
+        var request = new GetPomRequest
         {
             OrganisationId = 103844,
             RelativeYear = 2025,
@@ -127,7 +127,7 @@ public class PomsByOrganisationControllerTests
             .ReturnsAsync([]);
 
         // Act
-        await _controller.GetByOrganisation(request, CancellationToken.None);
+        await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         _mockRequestHandler.Verify(
@@ -136,12 +136,12 @@ public class PomsByOrganisationControllerTests
     }
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenOrganisationHasNoData_ShouldReturnOkWithEmptyArrayRatherThanNotFound()
+    public async Task Get_WhenOrganisationHasNoData_ShouldReturnOkWithEmptyArrayRatherThanNotFound()
     {
         // Arrange
         // An organisation that reported nothing chargeable is a real organisation with no rows,
         // and this endpoint cannot tell that apart from one that does not exist.
-        var request = new GetOrganisationPomsRequest { OrganisationId = 999999, RelativeYear = 2025 };
+        var request = new GetPomRequest { OrganisationId = 999999, RelativeYear = 2025 };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -152,7 +152,7 @@ public class PomsByOrganisationControllerTests
             .ReturnsAsync([]);
 
         // Act
-        var result = await _controller.GetByOrganisation(request, CancellationToken.None);
+        var result = await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<OkObjectResult>();
@@ -162,14 +162,16 @@ public class PomsByOrganisationControllerTests
     }
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenRequestIsInvalid_ShouldReturnValidationProblem()
+    public async Task Get_WhenRequestIsInvalid_ShouldReturnValidationProblem()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = null };
+        // A missing or non-numeric organisation id never reaches here: the {organisationId:int}
+        // route constraint means routing returns 404 first. A non-positive one does reach here.
+        var request = new GetPomRequest { OrganisationId = 0 };
 
         var validationFailures = new List<ValidationFailure>
         {
-            new("OrganisationId", "OrganisationId is required")
+            new("OrganisationId", "OrganisationId must be greater than 0")
         };
 
         _mockValidator
@@ -177,7 +179,7 @@ public class PomsByOrganisationControllerTests
             .ReturnsAsync(new ValidationResult(validationFailures));
 
         // Act
-        var result = await _controller.GetByOrganisation(request, CancellationToken.None);
+        var result = await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<ObjectResult>();
@@ -186,11 +188,11 @@ public class PomsByOrganisationControllerTests
     }
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenRequestIsInvalid_ShouldNotCallTheHandler()
+    public async Task Get_WhenRequestIsInvalid_ShouldNotCallTheHandler()
     {
         // Arrange
         // The procedure is expensive, so an invalid request must be rejected before it runs.
-        var request = new GetOrganisationPomsRequest { OrganisationId = null };
+        var request = new GetPomRequest { OrganisationId = 0 };
 
         _mockValidator
             .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
@@ -200,7 +202,7 @@ public class PomsByOrganisationControllerTests
             ]));
 
         // Act
-        await _controller.GetByOrganisation(request, CancellationToken.None);
+        await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         _mockRequestHandler.Verify(
@@ -209,10 +211,10 @@ public class PomsByOrganisationControllerTests
     }
 
     [TestMethod]
-    public async Task GetByOrganisation_WhenMultipleValidationErrors_ShouldReturnAllErrors()
+    public async Task Get_WhenMultipleValidationErrors_ShouldReturnAllErrors()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 0, RelativeYear = 2000 };
+        var request = new GetPomRequest { OrganisationId = 0, RelativeYear = 2000 };
 
         var validationFailures = new List<ValidationFailure>
         {
@@ -225,7 +227,7 @@ public class PomsByOrganisationControllerTests
             .ReturnsAsync(new ValidationResult(validationFailures));
 
         // Act
-        var result = await _controller.GetByOrganisation(request, CancellationToken.None);
+        var result = await _controller.Get(request.OrganisationId!.Value, request, CancellationToken.None);
 
         // Assert
         var objectResult = (ObjectResult)result;

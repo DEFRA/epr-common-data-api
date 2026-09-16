@@ -1,26 +1,26 @@
-using EPR.CommonDataService.Api.Features.PayCal.Poms.ByOrganisation;
+using EPR.CommonDataService.Api.Features.Pom;
 using FluentValidation.TestHelper;
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.Poms.ByOrganisation;
+namespace EPR.CommonDataService.Api.UnitTests.Features.Pom;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
-public class GetOrganisationPomsRequestValidatorTests
+public class GetPomRequestValidatorTests
 {
-    private GetOrganisationPomsRequestValidator _validator = null!;
+    private GetPomRequestValidator _validator = null!;
 
     [TestInitialize]
     public void Setup()
     {
-        _validator = new GetOrganisationPomsRequestValidator();
+        _validator = new GetPomRequestValidator();
     }
 
     [TestMethod]
     public void Validate_WhenOrganisationIdIsNull_ShouldHaveValidationError()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = null };
+        var request = new GetPomRequest { OrganisationId = null };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -35,7 +35,7 @@ public class GetOrganisationPomsRequestValidatorTests
     public void Validate_WhenOrganisationIdIsNotPositive_ShouldHaveValidationError(int organisationId)
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = organisationId };
+        var request = new GetPomRequest { OrganisationId = organisationId };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -48,7 +48,7 @@ public class GetOrganisationPomsRequestValidatorTests
     public void Validate_WhenOrganisationIdIsPositive_ShouldNotHaveValidationError()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844 };
+        var request = new GetPomRequest { OrganisationId = 103844 };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -63,7 +63,7 @@ public class GetOrganisationPomsRequestValidatorTests
         // Arrange
         // Unlike the stream endpoint, the year is optional here: a single organisation's whole
         // history is a bounded query.
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, RelativeYear = null };
+        var request = new GetPomRequest { OrganisationId = 103844, RelativeYear = null };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -79,7 +79,7 @@ public class GetOrganisationPomsRequestValidatorTests
     public void Validate_WhenRelativeYearIsValid_ShouldNotHaveValidationError(int year)
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, RelativeYear = year };
+        var request = new GetPomRequest { OrganisationId = 103844, RelativeYear = year };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -98,7 +98,7 @@ public class GetOrganisationPomsRequestValidatorTests
         // Arrange
         // The underlying procedure joins to registrations filtered to SubmissionPeriodYear > 2024,
         // so an earlier year cannot return rows.
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, RelativeYear = year };
+        var request = new GetPomRequest { OrganisationId = 103844, RelativeYear = year };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -111,7 +111,7 @@ public class GetOrganisationPomsRequestValidatorTests
     public void Validate_WhenRelativeYearIsGreaterThan9999_ShouldHaveValidationError()
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, RelativeYear = 10000 };
+        var request = new GetPomRequest { OrganisationId = 103844, RelativeYear = 10000 };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -128,7 +128,7 @@ public class GetOrganisationPomsRequestValidatorTests
     public void Validate_WhenCutOffDateIsValid_ShouldNotHaveValidationError(string? cutOffDate)
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, CutOffDate = cutOffDate };
+        var request = new GetPomRequest { OrganisationId = 103844, CutOffDate = cutOffDate };
 
         // Act
         var result = _validator.TestValidate(request);
@@ -146,7 +146,7 @@ public class GetOrganisationPomsRequestValidatorTests
     public void Validate_WhenCutOffDateIsMalformed_ShouldHaveValidationError(string cutOffDate)
     {
         // Arrange
-        var request = new GetOrganisationPomsRequest { OrganisationId = 103844, CutOffDate = cutOffDate };
+        var request = new GetPomRequest { OrganisationId = 103844, CutOffDate = cutOffDate };
 
         // Act
         var result = _validator.TestValidate(request);

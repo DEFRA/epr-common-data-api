@@ -28,7 +28,7 @@ public class SynapseContext : DbContext
     public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
     public DbSet<PayCalOrganisation> PayCalOrganisations { get; set; } = null!;
     public DbSet<PayCalPom> PayCalPoms { get; set; } = null!;
-    public DbSet<PayCalOrganisationPom> PayCalOrganisationPoms { get; set; } = null!;
+    public DbSet<OrganisationPom> OrganisationPoms { get; set; } = null!;
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -87,7 +87,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
         });
 
-        modelBuilder.Entity<PayCalOrganisationPom>(entity =>
+        modelBuilder.Entity<OrganisationPom>(entity =>
         {
             // The data source for this entity is a stored procedure - cdp.sp_GetPaycalPomDataByOrganisation
             entity.HasNoKey();
