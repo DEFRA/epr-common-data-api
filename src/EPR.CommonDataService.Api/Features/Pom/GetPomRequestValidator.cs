@@ -1,11 +1,12 @@
+using EPR.CommonDataService.Api.Features.PayCal;
 using FluentValidation;
 
-namespace EPR.CommonDataService.Api.Features.PayCal.Poms.ByOrganisation;
+namespace EPR.CommonDataService.Api.Features.Pom;
 
-public sealed class GetOrganisationPomsRequestValidator
-    : AbstractValidator<GetOrganisationPomsRequest>
+public sealed class GetPomRequestValidator
+    : AbstractValidator<GetPomRequest>
 {
-    public GetOrganisationPomsRequestValidator()
+    public GetPomRequestValidator()
     {
         RuleFor(request => request.OrganisationId)
             .NotNull()
