@@ -1,7 +1,5 @@
 variables:
-- group: ServiceConnections
-- name: azureSubscription
-  value: $(ServiceConnectionPRD1)
+- group: ServiceConnection-PRD1
 - name: docker.imageName
   value: 'eprcommondataregistry'
 - name: acr.azureContainerRegistryName
