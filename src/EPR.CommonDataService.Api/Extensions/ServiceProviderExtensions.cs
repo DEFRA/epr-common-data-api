@@ -6,6 +6,8 @@ using System.Threading.RateLimiting;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Features.PayCal.v1.Poms.StreamOut;
+using EPR.CommonDataService.Api.Features.PayCal.v2.Organisations.StreamOut;
+using EPR.CommonDataService.Api.Features.PayCal.v2.Poms.StreamOut;
 using EPR.CommonDataService.Api.Features.Pom;
 using EPR.CommonDataService.Api.Infrastructure;
 using EPR.CommonDataService.Core.Services;
@@ -17,6 +19,17 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+
+using IStreamOrganisationsRequestHandler_v1 = EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut.IStreamOrganisationsRequestHandler;
+using IStreamPomsRequestHandler_v1 = EPR.CommonDataService.Api.Features.PayCal.v1.Poms.StreamOut.IStreamPomsRequestHandler;
+using StreamOrganisationsRequestHandler_v1 = EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut.StreamOrganisationsRequestHandler;
+using StreamPomsRequestHandler_v1 = EPR.CommonDataService.Api.Features.PayCal.v1.Poms.StreamOut.StreamPomsRequestHandler;
+
+using IStreamOrganisationsRequestHandler_v2 = EPR.CommonDataService.Api.Features.PayCal.v2.Organisations.StreamOut.IStreamOrganisationsRequestHandler;
+using IStreamPomsRequestHandler_v2 = EPR.CommonDataService.Api.Features.PayCal.v2.Poms.StreamOut.IStreamPomsRequestHandler;
+using StreamOrganisationsRequestHandler_v2 = EPR.CommonDataService.Api.Features.PayCal.v2.Organisations.StreamOut.StreamOrganisationsRequestHandler;
+using StreamPomsRequestHandler_v2 = EPR.CommonDataService.Api.Features.PayCal.v2.Poms.StreamOut.StreamPomsRequestHandler;
+
 
 namespace EPR.CommonDataService.Api.Extensions;
 
@@ -163,8 +176,13 @@ public static class ServiceProviderExtensions
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
         services.AddScoped<ISubmissionsService, SubmissionsService>();
         services.AddScoped<IDatabaseTimeoutService, DatabaseTimeoutService>();
-        services.AddScoped<IStreamOrganisationsRequestHandler, StreamOrganisationsRequestHandler>();
-        services.AddScoped<IStreamPomsRequestHandler, StreamPomsRequestHandler>();
+
+        services.AddScoped<IStreamOrganisationsRequestHandler_v1, StreamOrganisationsRequestHandler_v1>();
+        services.AddScoped<IStreamPomsRequestHandler_v1, StreamPomsRequestHandler_v1>();
+
+        services.AddScoped<IStreamOrganisationsRequestHandler_v2, StreamOrganisationsRequestHandler_v2>();
+        services.AddScoped<IStreamPomsRequestHandler_v2, StreamPomsRequestHandler_v2>();
+
         services.AddScoped<IGetPomRequestHandler, GetPomRequestHandler>();
     }
 }
