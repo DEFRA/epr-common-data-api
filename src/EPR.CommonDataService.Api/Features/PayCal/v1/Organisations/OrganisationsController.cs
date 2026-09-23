@@ -28,7 +28,7 @@ public sealed class OrganisationsController(
         logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear} CutOffDate={CutOffDate}", relativeYear, cutOffDate);
 
         return new NdJsonStreamResult<OrganisationResponse>(
-            requestHandler.Handle(relativeYear, cutOffDate),
+            requestHandler.Handle(relativeYear, cutOffDate, cancellationToken),
             result =>
             {
                 var status = result.WasAbortedByClient ? "Aborted by client" : "Completed successfully";
