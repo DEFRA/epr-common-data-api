@@ -1,11 +1,12 @@
-﻿using FluentValidation;
+﻿using EPR.CommonDataService.Api.Utils;
+using FluentValidation;
 
-namespace EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
+namespace EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut;
 
-public sealed class StreamPomsRequestValidator
-    : AbstractValidator<StreamPomsRequest>
+public sealed class StreamOrganisationsRequestValidator
+    : AbstractValidator<StreamOrganisationsRequest>
 {
-    public StreamPomsRequestValidator()
+    public StreamOrganisationsRequestValidator()
     {
         RuleFor(request => request.RelativeYear)
             .NotNull()
@@ -15,5 +16,6 @@ public sealed class StreamPomsRequestValidator
         RuleFor(request => request.CutOffDate)
             .Must(DateParserUtil.IsValidCutoff)
             .WithMessage("CutOffDate must be in yyyy-MM-dd or ISO 8601 DateTimeOffset format.");
+
     }
 }

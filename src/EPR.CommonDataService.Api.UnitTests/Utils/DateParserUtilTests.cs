@@ -1,8 +1,7 @@
-using EPR.CommonDataService.Api.Features.PayCal;
-
 using System.Diagnostics.CodeAnalysis;
+using EPR.CommonDataService.Api.Utils;
 
-namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal;
+namespace EPR.CommonDataService.Api.UnitTests.Utils;
 
 [ExcludeFromCodeCoverage]
 [TestClass]

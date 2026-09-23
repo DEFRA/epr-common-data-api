@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
+namespace EPR.CommonDataService.Api.Features.PayCal.v1.Poms.StreamOut;
 
 public interface IStreamPomsRequestHandler
 {

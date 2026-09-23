@@ -1,11 +1,12 @@
 using System.Net.Mime;
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
+using EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Infrastructure;
+using EPR.CommonDataService.Api.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
-namespace EPR.CommonDataService.Api.Features.PayCal.Organisations;
+namespace EPR.CommonDataService.Api.Features.PayCal.v1.Organisations;
 
 [ApiController]
 [Route("api/paycal/organisations")]

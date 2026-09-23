@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace EPR.CommonDataService.Api.Features.PayCal;
+namespace EPR.CommonDataService.Api.Utils;
 
 public static class DateParserUtil
 {
