@@ -1,13 +1,9 @@
-using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Features.PayCal.Poms;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 using EPR.CommonDataService.Api.Infrastructure;
-using FluentValidation;
-using FluentValidation.Results;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.Poms;
@@ -17,8 +13,6 @@ namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.Poms;
 public class PomsControllerTests
 {
     private Mock<IStreamPomsRequestHandler> _mockRequestHandler = null!;
-    private Mock<IValidator<StreamPomsRequest>> _mockValidator = null!;
-    private Mock<IOptions<ApiConfig>> _mockApiConfig = null!;
     private Mock<ILogger<PomsController>> _mockLogger = null!;
     private PomsController _controller = null!;
 
@@ -26,21 +20,10 @@ public class PomsControllerTests
     public void Setup()
     {
         _mockRequestHandler = new Mock<IStreamPomsRequestHandler>();
-        _mockValidator = new Mock<IValidator<StreamPomsRequest>>();
         _mockLogger = new Mock<ILogger<PomsController>>();
-        _mockApiConfig = new Mock<IOptions<ApiConfig>>();
-
-        _mockApiConfig
-            .Setup(x => x.Value)
-            .Returns(new ApiConfig
-            {
-                BaseProblemTypePath = "https://dummytest/"
-            });
 
         _controller = new PomsController(
             _mockRequestHandler.Object,
-            _mockValidator.Object,
-            _mockApiConfig.Object,
             _mockLogger.Object)
         {
             ControllerContext = new ControllerContext
@@ -51,14 +34,10 @@ public class PomsControllerTests
     }
 
     [TestMethod]
-    public async Task StreamOut_WhenRequestIsValid_ShouldReturnNdJsonStreamResult()
+    public void StreamOut_ShouldReturnNdJsonStreamResult()
     {
         // Arrange
         var request = new StreamPomsRequest { RelativeYear = 2025, CutOffDate = null };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
 
         var pomResponses = new List<PomResponse>
         {
@@ -81,109 +60,9 @@ public class PomsControllerTests
             .Returns(pomResponses.ToAsyncEnumerable());
 
         // Act
-        var result = await _controller.StreamOut(request, CancellationToken.None);
+        var result = _controller.StreamOut(request, CancellationToken.None);
 
         // Assert
         result.Should().BeOfType<NdJsonStreamResult<PomResponse>>();
-    }
-
-    [TestMethod]
-    public async Task StreamOut_WhenRequestIsInvalid_ShouldReturnValidationProblem()
-    {
-        // Arrange
-        var request = new StreamPomsRequest { RelativeYear = null, CutOffDate = null };
-
-        var validationFailures = new List<ValidationFailure>
-        {
-            new("SubmissionYear", "SubmissionYear is required")
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult(validationFailures));
-
-        // Act
-        var result = await _controller.StreamOut(request, CancellationToken.None);
-
-        // Assert
-        result.Should().BeOfType<ObjectResult>();
-        var objectResult = (ObjectResult)result;
-        objectResult.Value.Should().BeOfType<ValidationProblemDetails>();
-    }
-
-    [TestMethod]
-    public async Task StreamOut_WhenMultipleValidationErrors_ShouldReturnAllErrors()
-    {
-        // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 2000, CutOffDate = null };
-
-        var validationFailures = new List<ValidationFailure>
-        {
-            new("SubmissionYear", "SubmissionYear must be greater than or equal to 2024"),
-            new("SubmissionYear", "Invalid year format")
-        };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult(validationFailures));
-
-        // Act
-        var result = await _controller.StreamOut(request, CancellationToken.None);
-
-        // Assert
-        result.Should().BeOfType<ObjectResult>();
-        var objectResult = (ObjectResult)result;
-        var problemDetails = objectResult.Value as ValidationProblemDetails;
-        problemDetails.Should().NotBeNull();
-        problemDetails!.Errors.Should().ContainKey("SubmissionYear");
-    }
-
-    [TestMethod]
-    public async Task StreamOut_WhenValidRequest_ShouldReturnNdJsonStreamResultAndCallHandler()
-    {
-        // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 2025, CutOffDate = null };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult());
-
-        _mockRequestHandler
-            .Setup(h => h.Handle(It.IsAny<int>(), It.IsAny<DateTimeOffset?>()))
-            .Returns(AsyncEnumerable.Empty<PomResponse>());
-
-        // Act
-        var result = await _controller.StreamOut(request, CancellationToken.None);
-
-        // Assert
-        result.Should().BeOfType<NdJsonStreamResult<PomResponse>>();
-        _mockValidator.Verify(
-            v => v.ValidateAsync(request, It.IsAny<CancellationToken>()),
-            Times.Once);
-        _mockRequestHandler.Verify(
-            h => h.Handle(It.Is<int>(x => x == 2025), It.Is<DateTimeOffset?>(x => x == null)),
-            Times.Once);
-    }
-
-    [TestMethod]
-    public async Task StreamOut_WhenValidationFails_ShouldNotCallHandler()
-    {
-        // Arrange
-        var request = new StreamPomsRequest { RelativeYear = null, CutOffDate = null };
-
-        _mockValidator
-            .Setup(v => v.ValidateAsync(request, It.IsAny<CancellationToken>()))
-            .ReturnsAsync(new ValidationResult(new List<ValidationFailure>
-            {
-                new("SubmissionYear", "Required")
-            }));
-
-        // Act
-        await _controller.StreamOut(request, CancellationToken.None);
-
-        // Assert
-        _mockRequestHandler.Verify(
-            h => h.Handle(It.IsAny<int>(), It.IsAny<DateTimeOffset?>()),
-            Times.Never);
     }
 }
