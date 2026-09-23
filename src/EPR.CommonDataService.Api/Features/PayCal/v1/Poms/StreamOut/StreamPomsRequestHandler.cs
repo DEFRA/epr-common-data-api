@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,7 +7,7 @@ namespace EPR.CommonDataService.Api.Features.PayCal.v1.Poms.StreamOut;
 
 public interface IStreamPomsRequestHandler
 {
-    IAsyncEnumerable<PomResponse> Handle(int relativeYear, DateTimeOffset? cutOffDate);
+    IAsyncEnumerable<PomResponse> Handle( int relativeYear, DateTimeOffset? cutOffDate, CancellationToken cancellationToken);
 }
 
 [ExcludeFromCodeCoverage(Justification =
@@ -14,16 +15,21 @@ public interface IStreamPomsRequestHandler
 public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
     : IStreamPomsRequestHandler
 {
-    public async IAsyncEnumerable<PomResponse> Handle(int relativeYear, DateTimeOffset? cutOffDate)
+    public async IAsyncEnumerable<PomResponse> Handle(
+        int relativeYear,
+        DateTimeOffset? cutOffDate,
+        [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         var poms = dbContext
             .PayCalPoms
             .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalPomData] @RelativeYear={relativeYear}, @CutOffDate={cutOffDate}")
             .AsNoTracking()
             .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
-            .AsAsyncEnumerable();
+            .AsAsyncEnumerable()
+            .WithCancellation(cancellationToken);
 
         await foreach (var pom in poms)
+        {
             yield return new PomResponse
             {
                 SubmissionPeriod = pom.SubmissionPeriod!,
@@ -39,5 +45,6 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
                 RamRagRating = pom.RamRagRating,
                 SubmitterId = pom.SubmitterId
             };
+        }
     }
 }
