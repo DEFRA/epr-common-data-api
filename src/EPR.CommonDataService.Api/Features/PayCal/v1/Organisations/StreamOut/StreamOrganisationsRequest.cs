@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
+namespace EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut;
 
 [ExcludeFromCodeCoverage]
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]

@@ -1,8 +1,8 @@
-using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
-using FluentValidation.TestHelper;
 using System.Diagnostics.CodeAnalysis;
+using EPR.CommonDataService.Api.Features.PayCal.v1.Poms.StreamOut;
+using FluentValidation.TestHelper;
 
-namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.Poms.StreamOut;
+namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.v1.Poms.StreamOut;
 
 [ExcludeFromCodeCoverage]
 [TestClass]

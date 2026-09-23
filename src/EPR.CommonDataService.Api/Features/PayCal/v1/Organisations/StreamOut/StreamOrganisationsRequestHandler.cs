@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
+namespace EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut;
 
 public interface IStreamOrganisationsRequestHandler
 {

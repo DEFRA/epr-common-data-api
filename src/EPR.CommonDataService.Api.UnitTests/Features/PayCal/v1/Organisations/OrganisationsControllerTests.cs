@@ -1,12 +1,12 @@
-using EPR.CommonDataService.Api.Features.PayCal.Organisations;
-using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
+using System.Diagnostics.CodeAnalysis;
+using EPR.CommonDataService.Api.Features.PayCal.v1.Organisations;
+using EPR.CommonDataService.Api.Features.PayCal.v1.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Infrastructure;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.Organisations;
+namespace EPR.CommonDataService.Api.UnitTests.Features.PayCal.v1.Organisations;
 
 [ExcludeFromCodeCoverage]
 [TestClass]
