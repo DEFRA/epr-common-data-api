@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AspNetCore.Mvc;
 
 namespace EPR.CommonDataService.Api.Features.Pom;
 
@@ -10,6 +11,7 @@ public sealed record GetPomRequest
     ///     The organisation's EPR reference number, as it appears in the packaging data CSV.
     ///     Bound from the route rather than the query string, so it is required by construction.
     /// </summary>
+    [FromRoute(Name = "organisationId")]
     public int? OrganisationId { get; init; }
 
     /// <summary>

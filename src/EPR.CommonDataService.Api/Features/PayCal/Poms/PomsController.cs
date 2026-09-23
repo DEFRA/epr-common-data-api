@@ -1,12 +1,9 @@
 using System.Net.Mime;
 using EPR.CommonDataService.Api.Configuration;
-using EPR.CommonDataService.Api.Controllers;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
 using EPR.CommonDataService.Api.Infrastructure;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.Options;
 
 namespace EPR.CommonDataService.Api.Features.PayCal.Poms;
 
@@ -14,33 +11,17 @@ namespace EPR.CommonDataService.Api.Features.PayCal.Poms;
 [Route("api/paycal/poms")]
 public sealed class PomsController(
     IStreamPomsRequestHandler requestHandler,
-    IValidator<StreamPomsRequest> requestValidator,
-    IOptions<ApiConfig> apiConfig,
     ILogger<PomsController> logger)
-    : ApiControllerBase(apiConfig)
+    : ControllerBase
 {
     [HttpGet("stream")]
     [EnableRateLimiting(ApiRateLimitOptions.PayCalPomsStreamPolicy)]
     [ProducesResponseType(typeof(void), StatusCodes.Status200OK, "application/x-ndjson")] // typeof(void) as NDJSON stream can't be represented in OpenAPI spec
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest, MediaTypeNames.Application.ProblemJson)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> StreamOut([FromQuery] StreamPomsRequest request,
+    public IActionResult StreamOut([FromQuery] StreamPomsRequest request,
         CancellationToken cancellationToken)
     {
-        // Reject if request is invalid as the underlying DB calls are expensive
-        var validationResult = await requestValidator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            logger.LogInformation("StreamOut: Invalid request. Errors={Errors}",
-                string.Join("; ", validationResult.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}")));
-
-            foreach (var error in validationResult.Errors)
-                ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
-
-            return ValidationProblem();
-        }
-
         var relativeYear = request.RelativeYear!.Value;
         var cutOffDate = DateParserUtil.ParseCutoff(request.CutOffDate);
         logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear} CutOffDate={CutOffDate}", relativeYear, cutOffDate);

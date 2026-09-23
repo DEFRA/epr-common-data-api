@@ -1,14 +1,17 @@
 using System.Diagnostics.CodeAnalysis;
 using System.IO.Compression;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using EPR.CommonDataService.Api.Configuration;
 using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Features.Pom;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
+using EPR.CommonDataService.Api.Infrastructure;
 using EPR.CommonDataService.Core.Services;
 using EPR.CommonDataService.Data.Infrastructure;
 using FluentValidation;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Data.SqlClient;
@@ -25,6 +28,7 @@ public static class ServiceProviderExtensions
     {
         AddResponseCompression(services);
         AddRateLimiter(services, configuration);
+        AddRequestValidation(services);
         AddControllers(services, configuration);
         ConfigureOptions(services, configuration);
         RegisterServices(services);
@@ -42,7 +46,7 @@ public static class ServiceProviderExtensions
 
             if (!string.IsNullOrEmpty(accessTokenFile))
             {
-                // This flow is only used when running as a local environment, 
+                // This flow is only used when running as a local environment,
                 // AZURE_SQL_ACCESS_TOKEN_FILE is never specified in any real Azure env.
                 var connectionStringBuilder = new SqlConnectionStringBuilder(connectionString);
                 connectionStringBuilder.Remove("Authentication");
@@ -143,9 +147,17 @@ public static class ServiceProviderExtensions
         services.Configure<ApiConfig>(configuration.GetSection(nameof(ApiConfig)));
     }
 
+    private static void AddRequestValidation(IServiceCollection services)
+    {
+        services
+            .AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+
+        services.Configure<MvcOptions>(options =>
+            options.Filters.Add<FluentValidationActionFilter>());
+    }
+
     private static void RegisterServices(IServiceCollection services)
     {
-        services.AddValidatorsFromAssemblyContaining(typeof(Program));
         services.AddScoped<IRegistrationFeeCalculationDetailsService, RegistrationFeeCalculationDetailsService>();
         services.AddScoped<IProducerDetailsService, ProducerDetailsService>();
         services.AddScoped<ISubmissionEventService, SubmissionEventService>();
