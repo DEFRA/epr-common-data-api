@@ -38,6 +38,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Features\Migration\RegistrationHistory\RegistrationHistory.sql" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\EPR.CommonDataService.Core\EPR.CommonDataService.Core.csproj" />
     <ProjectReference Include="..\EPR.CommonDataService.Data\EPR.CommonDataService.Data.csproj" />
   </ItemGroup>

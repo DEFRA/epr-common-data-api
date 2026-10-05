@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using EPR.CommonDataService.Api.Configuration;
+using EPR.CommonDataService.Api.Features.Migration.RegistrationHistory;
 using EPR.CommonDataService.Api.Features.PayCal.Organisations.StreamOut;
 using EPR.CommonDataService.Api.Features.Pom;
 using EPR.CommonDataService.Api.Features.PayCal.Poms.StreamOut;
@@ -154,5 +155,6 @@ public static class ServiceProviderExtensions
         services.AddScoped<IStreamOrganisationsRequestHandler, StreamOrganisationsRequestHandler>();
         services.AddScoped<IStreamPomsRequestHandler, StreamPomsRequestHandler>();
         services.AddScoped<IGetPomRequestHandler, GetPomRequestHandler>();
+        services.AddScoped<IStreamRegistrationHistoryRequestHandler, StreamRegistrationHistoryRequestHandler>();
     }
 }
