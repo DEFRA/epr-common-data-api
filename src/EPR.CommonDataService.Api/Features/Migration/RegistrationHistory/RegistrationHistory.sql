@@ -2,13 +2,17 @@
 -- Returns one row per event of each selected CompanyDetails file, in replay order.
 -- Files selected per submission (roles): Latest, LatestNonRejected, FirstNonRejected, LatestNonRejectedAppSubmitted.
 -- Events are paired to files the way the payment service attaches them: to the latest file declared at or before the event.
+-- Only submissions whose selected files are all in @BlobContainerName are returned (the payment service reads blobs from it).
 
-IF OBJECT_ID('tempdb..#RegSubs')   IS NOT NULL DROP TABLE #RegSubs;
-IF OBJECT_ID('tempdb..#RegEvents') IS NOT NULL DROP TABLE #RegEvents;
-IF OBJECT_ID('tempdb..#Files')     IS NOT NULL DROP TABLE #Files;
-IF OBJECT_ID('tempdb..#PairedAll') IS NOT NULL DROP TABLE #PairedAll;
-IF OBJECT_ID('tempdb..#Paired')    IS NOT NULL DROP TABLE #Paired;
-IF OBJECT_ID('tempdb..#Selected')  IS NOT NULL DROP TABLE #Selected;
+DECLARE @BlobContainerName NVARCHAR(200) = N'registration-upload-container-recyclers';
+
+IF OBJECT_ID('tempdb..#RegSubs')        IS NOT NULL DROP TABLE #RegSubs;
+IF OBJECT_ID('tempdb..#RegEvents')      IS NOT NULL DROP TABLE #RegEvents;
+IF OBJECT_ID('tempdb..#FileContainers') IS NOT NULL DROP TABLE #FileContainers;
+IF OBJECT_ID('tempdb..#Files')          IS NOT NULL DROP TABLE #Files;
+IF OBJECT_ID('tempdb..#PairedAll')      IS NOT NULL DROP TABLE #PairedAll;
+IF OBJECT_ID('tempdb..#Paired')         IS NOT NULL DROP TABLE #Paired;
+IF OBJECT_ID('tempdb..#Selected')       IS NOT NULL DROP TABLE #Selected;
 
 -- 1. Registration submissions, latest load per SubmissionId, 2025+ only (no payment-service submission period before 2025)
 CREATE TABLE #RegSubs WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
@@ -46,20 +50,34 @@ FROM (
 WHERE rn = 1
   AND CreatedTs >= '2000-01-01';
 
+-- 2b. Blob container recorded on each file's SubmissionEvents.
+--     A file is in the container only if every recorded value equals @BlobContainerName.
+CREATE TABLE #FileContainers WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
+SELECT se.SubmissionId, se.FileId,
+       CASE WHEN MIN(se.BlobContainerName) = @BlobContainerName
+             AND MAX(se.BlobContainerName) = @BlobContainerName THEN 1 ELSE 0 END AS InContainer
+FROM rpd.SubmissionEvents se
+INNER JOIN #RegSubs s ON s.SubmissionId = se.SubmissionId
+WHERE se.FileId IS NOT NULL
+  AND NULLIF(se.BlobContainerName, '') IS NOT NULL
+GROUP BY se.SubmissionId, se.FileId;
+
 -- 3. One row per declared CompanyDetails file (= one live RegistrationSubmissionData row)
 CREATE TABLE #Files WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
 SELECT SubmissionId, FileId, BlobName, OrganisationId, ComplianceSchemeId,
-       SubmissionPeriod, RegistrationJourney, FileSubmittedTs, AppReferenceNumber
+       SubmissionPeriod, RegistrationJourney, FileSubmittedTs, AppReferenceNumber, InContainer
 FROM (
     SELECT cfm.SubmissionId, cfm.FileId, cfm.BlobName,
            s.OrganisationId, s.ComplianceSchemeId, s.SubmissionPeriod, s.RegistrationJourney,
            e.CreatedTs AS FileSubmittedTs, e.AppReferenceNumber,
+           ISNULL(fc.InContainer, 0) AS InContainer,
            ROW_NUMBER() OVER (PARTITION BY cfm.FileId ORDER BY e.CreatedTs, cfm.load_ts DESC) AS rn
     FROM rpd.cosmos_file_metadata cfm
     INNER JOIN #RegSubs s   ON s.SubmissionId = cfm.SubmissionId
     INNER JOIN #RegEvents e ON e.SubmissionId = cfm.SubmissionId
                            AND e.FileId = cfm.FileId
                            AND e.[Type] = 'Submitted'
+    LEFT JOIN #FileContainers fc ON fc.SubmissionId = cfm.SubmissionId AND fc.FileId = cfm.FileId
     WHERE cfm.FileType = 'CompanyDetails'
 ) f
 WHERE rn = 1;
@@ -108,7 +126,7 @@ FROM (
            ROW_NUMBER() OVER (PARTITION BY x.SubmissionId, x.IsRejected, x.IsAppSubmitted ORDER BY x.FileSubmittedTs DESC) AS NonRejAppDesc
     FROM (
         SELECT f.SubmissionId, f.FileId, f.BlobName, f.OrganisationId, f.ComplianceSchemeId,
-               f.SubmissionPeriod, f.RegistrationJourney, f.FileSubmittedTs, f.AppReferenceNumber,
+               f.SubmissionPeriod, f.RegistrationJourney, f.FileSubmittedTs, f.AppReferenceNumber, f.InContainer,
                ISNULL(fl.IsRejected, 0)     AS IsRejected,
                ISNULL(fl.IsAppSubmitted, 0) AS IsAppSubmitted
         FROM #Files f
@@ -125,7 +143,8 @@ WHERE LatestSeq = 1
    OR (IsRejected = 0 AND (NonRejDesc = 1 OR NonRejAsc = 1))
    OR (IsRejected = 0 AND IsAppSubmitted = 1 AND NonRejAppDesc = 1);
 
--- 6. Output: one row per event of each selected file, in replay order
+-- 6. Output: one row per event of each selected file, in replay order.
+--    Submissions are kept or dropped whole: any selected file outside @BlobContainerName drops the submission.
 SELECT w.SubmissionId, w.FileId, w.BlobName, w.OrganisationId, w.ComplianceSchemeId,
        w.SubmissionPeriod, w.RegistrationJourney, w.RegulatorNation, w.Roles,
        ev.EventType, ev.EventTypeOrder, ev.ReplayTs, ev.EventDate, ev.ApplicationReferenceNumber, ev.Decision
@@ -137,6 +156,9 @@ FROM (
     FROM #Selected sel
     LEFT JOIN dbo.v_rpd_Organisations_Active o      ON o.ExternalId  = sel.OrganisationId     AND o.IsDeleted = 0
     LEFT JOIN dbo.v_rpd_ComplianceSchemes_Active cs ON cs.ExternalId = sel.ComplianceSchemeId AND cs.IsDeleted = 0
+    WHERE NOT EXISTS (SELECT 1 FROM #Selected bad
+                      WHERE bad.SubmissionId = sel.SubmissionId
+                        AND bad.InContainer = 0)
 ) w
 INNER JOIN (
     SELECT SubmissionId, FileId, CAST('Submitted' AS NVARCHAR(50)) AS EventType, 1 AS EventTypeOrder,
