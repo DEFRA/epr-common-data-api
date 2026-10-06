@@ -16,9 +16,9 @@ IF OBJECT_ID('tempdb..#Selected')       IS NOT NULL DROP TABLE #Selected;
 
 -- 1. Registration submissions, latest load per SubmissionId, 2025+ only (no payment-service submission period before 2025)
 CREATE TABLE #RegSubs WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
-SELECT SubmissionId, OrganisationId, ComplianceSchemeId, SubmissionPeriod, RegistrationJourney
+SELECT SubmissionId, OrganisationId, ComplianceSchemeId, SubmissionPeriod, RegistrationJourney, AppReferenceNumber
 FROM (
-    SELECT SubmissionId, OrganisationId, ComplianceSchemeId, SubmissionPeriod, RegistrationJourney,
+    SELECT SubmissionId, OrganisationId, ComplianceSchemeId, SubmissionPeriod, RegistrationJourney, AppReferenceNumber,
            ROW_NUMBER() OVER (PARTITION BY SubmissionId ORDER BY load_ts DESC) AS rn
     FROM rpd.Submissions
     WHERE SubmissionType = 'Registration'
@@ -62,14 +62,16 @@ WHERE se.FileId IS NOT NULL
   AND NULLIF(se.BlobContainerName, '') IS NOT NULL
 GROUP BY se.SubmissionId, se.FileId;
 
--- 3. One row per declared CompanyDetails file (= one live RegistrationSubmissionData row)
+-- 3. One row per declared CompanyDetails file (= one live RegistrationSubmissionData row).
+--    The ARN supplied on declaration is stored on the submission, not on the Submitted event.
 CREATE TABLE #Files WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
 SELECT SubmissionId, FileId, BlobName, OrganisationId, ComplianceSchemeId,
        SubmissionPeriod, RegistrationJourney, FileSubmittedTs, AppReferenceNumber, InContainer
 FROM (
     SELECT cfm.SubmissionId, cfm.FileId, cfm.BlobName,
            s.OrganisationId, s.ComplianceSchemeId, s.SubmissionPeriod, s.RegistrationJourney,
-           e.CreatedTs AS FileSubmittedTs, e.AppReferenceNumber,
+           e.CreatedTs AS FileSubmittedTs,
+           COALESCE(NULLIF(e.AppReferenceNumber, ''), NULLIF(s.AppReferenceNumber, '')) AS AppReferenceNumber,
            ISNULL(fc.InContainer, 0) AS InContainer,
            ROW_NUMBER() OVER (PARTITION BY cfm.FileId ORDER BY e.CreatedTs, cfm.load_ts DESC) AS rn
     FROM rpd.cosmos_file_metadata cfm

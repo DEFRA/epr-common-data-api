@@ -77,6 +77,7 @@ public class RegistrationHistoryControllerTests
         sql.Should().Contain("CREATE TABLE #Selected");
         sql.Should().Contain("DECLARE @BlobContainerName NVARCHAR(200) = N'registration-upload-container-recyclers';");
         sql.Should().Contain("AND bad.InContainer = 0");
+        sql.Should().Contain("COALESCE(NULLIF(e.AppReferenceNumber, ''), NULLIF(s.AppReferenceNumber, '')) AS AppReferenceNumber");
         sql.Should().Contain("ORDER BY w.SubmissionId, ev.ReplayTs, ev.EventTypeOrder;");
         sql.Should().NotContain("{", "FromSqlRaw treats braces as parameter placeholders");
     }
