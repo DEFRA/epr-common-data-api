@@ -1,16 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace EPR.CommonDataService.Api.Features.Pom;
+namespace EPR.CommonDataService.Api.Features.PayCal.Poms.ByOrganisation;
 
 [ExcludeFromCodeCoverage]
 [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Global")]
-public sealed record GetPomRequest
+public sealed record GetOrganisationPomsRequest
 {
     /// <summary>
     ///     The organisation's EPR reference number, as it appears in the packaging data CSV.
-    ///     Bound from the route rather than the query string, so it is required by construction.
+    ///     Required. This endpoint exists to serve one organisation at a time.
     /// </summary>
-    public int? OrganisationId { get; init; }
+    public required int? OrganisationId { get; init; }
 
     /// <summary>
     ///     Optional PayCal relative year. Omit for every year the organisation appears in.

@@ -2,9 +2,9 @@ using System.Diagnostics.CodeAnalysis;
 using EPR.CommonDataService.Data.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
-namespace EPR.CommonDataService.Api.Features.Pom;
+namespace EPR.CommonDataService.Api.Features.PayCal.Poms.ByOrganisation;
 
-public interface IGetPomRequestHandler
+public interface IGetOrganisationPomsRequestHandler
 {
     Task<IReadOnlyCollection<OrganisationPomResponse>> Handle(
         int organisationId, int? relativeYear, DateTimeOffset? cutOffDate, CancellationToken cancellationToken);
@@ -12,8 +12,8 @@ public interface IGetPomRequestHandler
 
 [ExcludeFromCodeCoverage(Justification =
     "The stored procedure call is not compatible with SQLite or InMemory databases.")]
-public sealed class GetPomRequestHandler(SynapseContext dbContext)
-    : IGetPomRequestHandler
+public sealed class GetOrganisationPomsRequestHandler(SynapseContext dbContext)
+    : IGetOrganisationPomsRequestHandler
 {
     public async Task<IReadOnlyCollection<OrganisationPomResponse>> Handle(
         int organisationId, int? relativeYear, DateTimeOffset? cutOffDate, CancellationToken cancellationToken)
@@ -22,7 +22,7 @@ public sealed class GetPomRequestHandler(SynapseContext dbContext)
         // on the PDW engine, which does not allow default parameter values, so the procedure cannot
         // declare any and every call has to supply all of them.
         var rows = await dbContext
-            .OrganisationPoms
+            .PayCalOrganisationPoms
             .FromSqlInterpolated(
                 $"EXEC [cdp].[sp_GetPaycalPomDataByOrganisation] @RelativeYear={relativeYear}, @OrganisationId={organisationId}, @CutOffDate={cutOffDate}")
             .AsNoTracking()
