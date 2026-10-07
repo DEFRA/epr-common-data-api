@@ -147,15 +147,21 @@ WHERE LatestSeq = 1
 
 -- 6. Output: one row per event of each selected file, in replay order.
 --    Submissions are kept or dropped whole: any selected file outside @BlobContainerName drops the submission.
+--    SubmissionFileCount is the number of declared files before role selection, so the payment service can
+--    tell whether every file of the submission is being migrated.
 SELECT w.SubmissionId, w.FileId, w.BlobName, w.OrganisationId, w.ComplianceSchemeId,
-       w.SubmissionPeriod, w.RegistrationJourney, w.RegulatorNation, w.Roles,
+       w.SubmissionPeriod, w.RegistrationJourney, w.RegulatorNation, w.Roles, w.SubmissionFileCount,
        ev.EventType, ev.EventTypeOrder, ev.ReplayTs, ev.EventDate, ev.ApplicationReferenceNumber, ev.Decision
 FROM (
     SELECT sel.*,
            CASE COALESCE(cs.NationId, o.NationId)
                 WHEN 1 THEN 'GB-ENG' WHEN 2 THEN 'GB-NIR' WHEN 3 THEN 'GB-SCT' WHEN 4 THEN 'GB-WLS'
-           END AS RegulatorNation
+           END AS RegulatorNation,
+           fcount.SubmissionFileCount
     FROM #Selected sel
+    INNER JOIN (SELECT SubmissionId, COUNT(*) AS SubmissionFileCount
+                FROM #Files
+                GROUP BY SubmissionId) fcount ON fcount.SubmissionId = sel.SubmissionId
     LEFT JOIN dbo.v_rpd_Organisations_Active o      ON o.ExternalId  = sel.OrganisationId     AND o.IsDeleted = 0
     LEFT JOIN dbo.v_rpd_ComplianceSchemes_Active cs ON cs.ExternalId = sel.ComplianceSchemeId AND cs.IsDeleted = 0
     WHERE NOT EXISTS (SELECT 1 FROM #Selected bad
