@@ -75,12 +75,37 @@ public class RegistrationHistoryControllerTests
 
         // Assert
         sql.Should().Contain("CREATE TABLE #Selected");
-        sql.Should().Contain("DECLARE @BlobContainerName NVARCHAR(200) = N'registration-upload-container-recyclers';");
+        sql.Should().Contain("DECLARE @BlobContainerName NVARCHAR(200) = N'__BLOB_CONTAINER_NAME__';");
         sql.Should().Contain("AND bad.InContainer = 0");
         sql.Should().Contain("COALESCE(NULLIF(e.AppReferenceNumber, ''), NULLIF(s.AppReferenceNumber, '')) AS AppReferenceNumber");
         sql.Should().Contain("w.SubmissionFileCount");
         sql.Should().Contain("COUNT(*) AS SubmissionFileCount");
         sql.Should().Contain("ORDER BY w.SubmissionId, ev.ReplayTs, ev.EventTypeOrder;");
         sql.Should().NotContain("{", "FromSqlRaw treats braces as parameter placeholders");
+    }
+
+    [TestMethod]
+    public void RegistrationHistorySql_WithContainerName_ShouldSubstitutePlaceholder()
+    {
+        // Act
+        var sql = RegistrationHistorySql.Load("registration-upload-container");
+
+        // Assert
+        sql.Should().Contain("DECLARE @BlobContainerName NVARCHAR(200) = N'registration-upload-container';");
+        sql.Should().NotContain(RegistrationHistorySql.BlobContainerNamePlaceholder);
+    }
+
+    [TestMethod]
+    [DataRow("")]
+    [DataRow("  ")]
+    [DataRow("Upper-Case")]
+    [DataRow("x'; DROP TABLE t; --")]
+    public void RegistrationHistorySql_WithInvalidContainerName_ShouldThrow(string containerName)
+    {
+        // Act
+        var act = () => RegistrationHistorySql.Load(containerName);
+
+        // Assert
+        act.Should().Throw<InvalidOperationException>();
     }
 }

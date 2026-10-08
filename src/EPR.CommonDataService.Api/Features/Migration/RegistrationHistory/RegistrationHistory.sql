@@ -3,8 +3,10 @@
 -- Files selected per submission (roles): Latest, LatestNonRejected, FirstNonRejected, LatestNonRejectedAppSubmitted.
 -- Events are paired to files the way the payment service attaches them: to the latest file declared at or before the event.
 -- Only submissions whose selected files are all in @BlobContainerName are returned (the payment service reads blobs from it).
+-- The placeholder below is replaced with ApiConfig:RegistrationMigrationBlobContainerName at runtime.
+-- To run the script by hand in SSMS, replace it with the container name.
 
-DECLARE @BlobContainerName NVARCHAR(200) = N'registration-upload-container-recyclers';
+DECLARE @BlobContainerName NVARCHAR(200) = N'__BLOB_CONTAINER_NAME__';
 
 IF OBJECT_ID('tempdb..#RegSubs')        IS NOT NULL DROP TABLE #RegSubs;
 IF OBJECT_ID('tempdb..#RegEvents')      IS NOT NULL DROP TABLE #RegEvents;

@@ -14,4 +14,6 @@ public class ApiConfig
 
     public bool EnableApprovedSubmissionsMyc { get; set; } = true;
 
+    public string RegistrationMigrationBlobContainerName { get; set; } = string.Empty;
+
 }
