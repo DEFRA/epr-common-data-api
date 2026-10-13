@@ -151,6 +151,8 @@ WHERE LatestSeq = 1
 --    Submissions are kept or dropped whole: any selected file outside @BlobContainerName drops the submission.
 --    SubmissionFileCount is the number of declared files before role selection, so the payment service can
 --    tell whether every file of the submission is being migrated.
+--    RegulatorNation comes from the organisation / compliance scheme's last known row, deleted rows included:
+--    they existed when the submission was made. Active rows are preferred, then the latest load.
 SELECT w.SubmissionId, w.FileId, w.BlobName, w.OrganisationId, w.ComplianceSchemeId,
        w.SubmissionPeriod, w.RegistrationJourney, w.RegulatorNation, w.Roles, w.SubmissionFileCount,
        ev.EventType, ev.EventTypeOrder, ev.ReplayTs, ev.EventDate, ev.ApplicationReferenceNumber, ev.Decision
@@ -164,8 +166,18 @@ FROM (
     INNER JOIN (SELECT SubmissionId, COUNT(*) AS SubmissionFileCount
                 FROM #Files
                 GROUP BY SubmissionId) fcount ON fcount.SubmissionId = sel.SubmissionId
-    LEFT JOIN dbo.v_rpd_Organisations_Active o      ON o.ExternalId  = sel.OrganisationId     AND o.IsDeleted = 0
-    LEFT JOIN dbo.v_rpd_ComplianceSchemes_Active cs ON cs.ExternalId = sel.ComplianceSchemeId AND cs.IsDeleted = 0
+    LEFT JOIN (
+        SELECT ExternalId, NationId,
+               ROW_NUMBER() OVER (PARTITION BY ExternalId
+                                  ORDER BY CASE WHEN IsDeleted = 1 THEN 1 ELSE 0 END, load_ts DESC) AS rn
+        FROM rpd.Organisations
+    ) o ON o.ExternalId = sel.OrganisationId AND o.rn = 1
+    LEFT JOIN (
+        SELECT ExternalId, NationId,
+               ROW_NUMBER() OVER (PARTITION BY ExternalId
+                                  ORDER BY CASE WHEN IsDeleted = 1 THEN 1 ELSE 0 END, load_ts DESC) AS rn
+        FROM rpd.ComplianceSchemes
+    ) cs ON cs.ExternalId = sel.ComplianceSchemeId AND cs.rn = 1
     WHERE NOT EXISTS (SELECT 1 FROM #Selected bad
                       WHERE bad.SubmissionId = sel.SubmissionId
                         AND bad.InContainer = 0)

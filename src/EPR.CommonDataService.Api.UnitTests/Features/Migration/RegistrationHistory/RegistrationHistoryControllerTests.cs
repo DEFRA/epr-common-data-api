@@ -81,6 +81,12 @@ public class RegistrationHistoryControllerTests
         sql.Should().Contain("w.SubmissionFileCount");
         sql.Should().Contain("COUNT(*) AS SubmissionFileCount");
         sql.Should().Contain("ORDER BY w.SubmissionId, ev.ReplayTs, ev.EventTypeOrder;");
+        sql.Should().Contain("FROM rpd.Organisations");
+        sql.Should().Contain(") o ON o.ExternalId = sel.OrganisationId AND o.rn = 1");
+        sql.Should().Contain("FROM rpd.ComplianceSchemes");
+        sql.Should().Contain(") cs ON cs.ExternalId = sel.ComplianceSchemeId AND cs.rn = 1");
+        sql.Should().Contain("ORDER BY CASE WHEN IsDeleted = 1 THEN 1 ELSE 0 END, load_ts DESC");
+        sql.Should().NotContain("_Active", "deleted organisations and compliance schemes still resolve the regulator nation");
         sql.Should().NotContain("{", "FromSqlRaw treats braces as parameter placeholders");
     }
 
