@@ -71,7 +71,7 @@ public class RegistrationFeeCalculationDetailsControllerTests
         {
             new RegistrationFeeCalculationDetails
             {
-                OrganisationSize = "Large",
+                OrganisationSize = "L",
                 NumberOfSubsidiaries = 10,
                 NumberOfSubsidiariesBeingOnlineMarketPlace = 20,
                 NumberOfSubsidiariesBeingClosedLoopRecycling = 5,
