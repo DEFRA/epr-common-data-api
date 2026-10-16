@@ -35,6 +35,7 @@ public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
                 OrganisationId = org.OrganisationId,
                 SubsidiaryId = org.SubsidiaryId,
                 OrganisationName = org.OrganisationName!,
+                OrganisationSize = org.OrganisationSize,
                 TradingName = org.TradingName,
                 JoinerDate = org.JoinerDate,
                 StatusCode = org.StatusCode,
