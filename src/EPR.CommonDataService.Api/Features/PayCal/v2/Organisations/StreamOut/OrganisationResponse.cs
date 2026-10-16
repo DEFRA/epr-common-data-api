@@ -10,7 +10,8 @@ public sealed record OrganisationResponse
     public required int OrganisationId { get; init; }
     public required string? SubsidiaryId { get; init; }
     public required string? SubmitterId { get; init; }
-    public required string? OrganisationName { get; init; }
+    public required string OrganisationName { get; init; }
+    public required string? OrganisationSize { get; init; }
     public required string? TradingName { get; init; }
     public required string? StatusCode { get; init; }
     public required string? LeaverDate { get; init; }

@@ -46,6 +46,7 @@ public class OrganisationsControllerTests
                 OrganisationId = 1,
                 SubsidiaryId = null,
                 OrganisationName = "Test Org",
+                OrganisationSize = "L",
                 TradingName = "Test Trading",
                 StatusCode = "Active",
                 JoinerDate = "2024-01-01",
@@ -83,6 +84,7 @@ public class OrganisationsControllerTests
             {
                 OrganisationId = 1,
                 OrganisationName = "Test Org",
+                OrganisationSize = "L",
                 Filename = null,
                 SubsidiaryId = null,
                 SubmitterId = null,
@@ -93,7 +95,7 @@ public class OrganisationsControllerTests
                 SubmissionPeriodYear = 2026,
                 RegulatorStatus = "Accepted",
                 CreatedAt = null,
-                IsResubmission = false
+                IsResubmission = false,
             };
         }
 
@@ -131,6 +133,7 @@ public class OrganisationsControllerTests
             {
                 OrganisationId = 1,
                 OrganisationName = "Test Org",
+                OrganisationSize = "L",
                 Filename = null,
                 SubsidiaryId = null,
                 SubmitterId = null,

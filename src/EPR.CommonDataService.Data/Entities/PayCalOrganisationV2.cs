@@ -14,6 +14,7 @@ public record PayCalOrganisationV2
     public string? SubsidiaryId { get; init; }
     public string? SubmitterId { get; init; }
     public string? OrganisationName { get; init; }
+    public string? OrganisationSize { get; init; }
     public string? TradingName { get; init; }
     public string? StatusCode { get; init; }
     public string? LeaverDate { get; init; }
