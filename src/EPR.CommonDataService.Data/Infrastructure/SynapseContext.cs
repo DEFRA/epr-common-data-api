@@ -122,6 +122,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.PackagingMaterialSubtype).HasColumnName("packaging_material_subtype").HasMaxLength(4000);
             entity.Property(e => e.PackagingMaterialWeight).HasColumnName("packaging_material_weight");
             entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
+            entity.Property(e => e.RegulatorStatus).HasColumnName("regulator_status").HasMaxLength(4000);
             entity.Property(e => e.IsResubmission).HasColumnName("is_resubmission");
             entity.Property(e => e.CreatedAt).HasColumnName("created_date_time").HasMaxLength(4000);
         });

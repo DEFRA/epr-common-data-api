@@ -58,7 +58,8 @@ public class PomsControllerTests
                 RamRagRating = null,
                 CreatedAt = null,
                 IsResubmission = false,
-                OrganisationSize = "L"
+                OrganisationSize = "L",
+                RegulatorStatus = "Accepted"
             }
         };
 
@@ -99,7 +100,8 @@ public class PomsControllerTests
                 RamRagRating = null,
                 CreatedAt = null,
                 IsResubmission = false,
-                OrganisationSize = "L"
+                OrganisationSize = "L",
+                RegulatorStatus = "Accepted"
             };
         }
 
@@ -150,7 +152,8 @@ public class PomsControllerTests
                 RamRagRating = null,
                 CreatedAt = null,
                 IsResubmission = false,
-                OrganisationSize = "L"
+                OrganisationSize = "L",
+                RegulatorStatus = "Accepted"
             };
             await cts.CancelAsync();
             await Task.Delay(10, cts.Token); // throws OperationCanceledException

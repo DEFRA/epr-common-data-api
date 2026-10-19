@@ -45,6 +45,7 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
                 PackagingActivity = pom.PackagingActivity,
                 RamRagRating = pom.RamRagRating,
                 SubmitterId = pom.SubmitterId,
+                RegulatorStatus = pom.RegulatorStatus,
                 IsResubmission = pom.IsResubmission,
                 CreatedAt = pom.CreatedAt is { } value ? new DateTimeOffset(value, TimeSpan.Zero) : null
             };
