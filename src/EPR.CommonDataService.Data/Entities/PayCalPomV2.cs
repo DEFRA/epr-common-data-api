@@ -22,6 +22,7 @@ public record PayCalPomV2
     public string? PackagingMaterialSubtype { get; init; }
     public double? PackagingMaterialWeight { get; init; }
     public string? RamRagRating { get; init; }
+    public string RegulatorStatus { get; init; } = string.Empty;
     public bool IsResubmission { get; init; }
     public DateTime? CreatedAt { get; init; }
 }

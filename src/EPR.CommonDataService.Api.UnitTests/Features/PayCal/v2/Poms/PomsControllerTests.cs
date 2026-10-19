@@ -57,6 +57,7 @@ public class PomsControllerTests
                 PackagingMaterialSubtype = null,
                 RamRagRating = null,
                 CreatedAt = null,
+                RegulatorStatus = "Accepted",
                 IsResubmission = false
             }
         };
@@ -97,6 +98,7 @@ public class PomsControllerTests
                 SubmitterId = null,
                 RamRagRating = null,
                 CreatedAt = null,
+                RegulatorStatus = "Accepted",
                 IsResubmission = false
             };
         }
@@ -147,6 +149,7 @@ public class PomsControllerTests
                 SubmitterId = null,
                 RamRagRating = null,
                 CreatedAt = null,
+                RegulatorStatus = "Accepted",
                 IsResubmission = false
             };
             await cts.CancelAsync();

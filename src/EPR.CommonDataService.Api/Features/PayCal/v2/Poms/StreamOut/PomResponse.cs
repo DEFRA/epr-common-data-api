@@ -19,6 +19,7 @@ public sealed record PomResponse
     public required string? PackagingActivity { get; init; }
     public required string? SubmitterId { get; init; }
     public required string? RamRagRating { get; init; }
+    public required string RegulatorStatus { get; init; }
     public required DateTimeOffset? CreatedAt { get; init; }
     public required bool IsResubmission { get; init; }
 }
