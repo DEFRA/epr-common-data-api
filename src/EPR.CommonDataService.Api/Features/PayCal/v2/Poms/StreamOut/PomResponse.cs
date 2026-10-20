@@ -11,6 +11,7 @@ public sealed record PomResponse
     public required string? SubmissionPeriodDescription { get; init; }
     public required int OrganisationId { get; init; }
     public required string? SubsidiaryId { get; init; }
+    public required string? OrganisationSize { get; init; }
     public required string? PackagingType { get; init; }
     public required string? PackagingMaterial { get; init; }
     public required string? PackagingMaterialSubtype { get; init; }
