@@ -16,6 +16,8 @@ public record RegistrationHistoryRow
     public string? RegulatorNation { get; init; }
     public string? Roles { get; init; }
     public int? SubmissionFileCount { get; init; }
+    public int? UnselectedAppSubmittedFileCount { get; init; }
+    public DateTime? EarliestUnselectedAppSubmittedDate { get; init; }
     public string? EventType { get; init; }
     public int EventTypeOrder { get; init; }
     public DateTime? ReplayTs { get; init; }

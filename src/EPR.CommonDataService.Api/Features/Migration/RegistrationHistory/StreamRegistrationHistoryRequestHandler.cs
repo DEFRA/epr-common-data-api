@@ -42,6 +42,8 @@ public sealed class StreamRegistrationHistoryRequestHandler(SynapseContext dbCon
                 RegulatorNation = row.RegulatorNation,
                 Roles = row.Roles,
                 SubmissionFileCount = row.SubmissionFileCount,
+                UnselectedAppSubmittedFileCount = row.UnselectedAppSubmittedFileCount,
+                EarliestUnselectedAppSubmittedDate = row.EarliestUnselectedAppSubmittedDate,
                 EventType = row.EventType,
                 EventTypeOrder = row.EventTypeOrder,
                 ReplayTs = row.ReplayTs,

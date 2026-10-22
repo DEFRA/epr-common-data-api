@@ -1,6 +1,8 @@
 -- Historic registration lifecycle for the epr-payment-service registration migration (temporary).
 -- Returns one row per event of each selected CompanyDetails file, in replay order.
--- Files selected per submission (roles): Latest, LatestNonRejected, FirstNonRejected, LatestNonRejectedAppSubmitted.
+-- Files selected per submission (roles): Latest, LatestNonRejected, FirstNonRejected, LatestNonRejectedAppSubmitted,
+-- and OnTimeAppSubmitted (every file whose application was submitted on or before the period deadline: the cycles
+-- the payment service's NewlyAddedSubsidiaryFinder builds its subsidiary late fee baseline from).
 -- Events are paired to files the way the payment service attaches them: to the latest file declared at or before the event.
 -- Only submissions whose selected files are all in @BlobContainerName are returned (the payment service reads blobs from it).
 -- The placeholder below is replaced with ApiConfig:RegistrationMigrationBlobContainerName at runtime.
@@ -15,6 +17,7 @@ IF OBJECT_ID('tempdb..#Files')          IS NOT NULL DROP TABLE #Files;
 IF OBJECT_ID('tempdb..#PairedAll')      IS NOT NULL DROP TABLE #PairedAll;
 IF OBJECT_ID('tempdb..#Paired')         IS NOT NULL DROP TABLE #Paired;
 IF OBJECT_ID('tempdb..#Selected')       IS NOT NULL DROP TABLE #Selected;
+IF OBJECT_ID('tempdb..#Unselected')     IS NOT NULL DROP TABLE #Unselected;
 
 -- 1. Registration submissions, latest load per SubmissionId, 2025+ only (no payment-service submission period before 2025)
 CREATE TABLE #RegSubs WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
@@ -66,12 +69,22 @@ GROUP BY se.SubmissionId, se.FileId;
 
 -- 3. One row per declared CompanyDetails file (= one live RegistrationSubmissionData row).
 --    The ARN supplied on declaration is stored on the submission, not on the Submitted event.
+--    DeadlineDate mirrors the payment service's Lookup.SubmissionPeriod.DeadlineDate as resolved by its
+--    SubmissionPeriodResolver (2025: single window; 2026+: small producers 2 Apr of the year, large 2 Oct of the
+--    year before). Keep the two in step; the payment service re-checks against its own deadline and fails safe.
 CREATE TABLE #Files WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
 SELECT SubmissionId, FileId, BlobName, OrganisationId, ComplianceSchemeId,
-       SubmissionPeriod, RegistrationJourney, FileSubmittedTs, AppReferenceNumber, InContainer
+       SubmissionPeriod, RegistrationJourney, FileSubmittedTs, AppReferenceNumber, InContainer,
+       CASE
+           WHEN PeriodYear IS NULL THEN NULL
+           WHEN PeriodYear <= 2025 THEN CAST('2025-04-02' AS DATE)
+           WHEN ISNULL(RegistrationJourney, '') LIKE '%Small%' THEN DATEFROMPARTS(PeriodYear, 4, 2)
+           ELSE DATEFROMPARTS(PeriodYear - 1, 10, 2)
+       END AS DeadlineDate
 FROM (
     SELECT cfm.SubmissionId, cfm.FileId, cfm.BlobName,
            s.OrganisationId, s.ComplianceSchemeId, s.SubmissionPeriod, s.RegistrationJourney,
+           TRY_CONVERT(INT, RIGHT(RTRIM(s.SubmissionPeriod), 4)) AS PeriodYear,
            e.CreatedTs AS FileSubmittedTs,
            COALESCE(NULLIF(e.AppReferenceNumber, ''), NULLIF(s.AppReferenceNumber, '')) AS AppReferenceNumber,
            ISNULL(fc.InContainer, 0) AS InContainer,
@@ -120,7 +133,8 @@ SELECT r.*,
            CASE WHEN LatestSeq = 1 THEN 'Latest;' ELSE '' END,
            CASE WHEN IsRejected = 0 AND NonRejDesc = 1 THEN 'LatestNonRejected;' ELSE '' END,
            CASE WHEN IsRejected = 0 AND NonRejAsc  = 1 THEN 'FirstNonRejected;' ELSE '' END,
-           CASE WHEN IsRejected = 0 AND IsAppSubmitted = 1 AND NonRejAppDesc = 1 THEN 'LatestNonRejectedAppSubmitted;' ELSE '' END
+           CASE WHEN IsRejected = 0 AND IsAppSubmitted = 1 AND NonRejAppDesc = 1 THEN 'LatestNonRejectedAppSubmitted;' ELSE '' END,
+           CASE WHEN IsOnTimeApp = 1 THEN 'OnTimeAppSubmitted;' ELSE '' END
        ) AS Roles
 FROM (
     SELECT x.*,
@@ -132,40 +146,66 @@ FROM (
         SELECT f.SubmissionId, f.FileId, f.BlobName, f.OrganisationId, f.ComplianceSchemeId,
                f.SubmissionPeriod, f.RegistrationJourney, f.FileSubmittedTs, f.AppReferenceNumber, f.InContainer,
                ISNULL(fl.IsRejected, 0)     AS IsRejected,
-               ISNULL(fl.IsAppSubmitted, 0) AS IsAppSubmitted
+               ISNULL(fl.IsAppSubmitted, 0) AS IsAppSubmitted,
+               ISNULL(fl.IsOnTimeApp, 0)    AS IsOnTimeApp
         FROM #Files f
         LEFT JOIN (
-            SELECT SubmissionId, FileId,
-                   MAX(CASE WHEN [Type] = 'RegulatorRegistrationDecision' AND Decision = 'Rejected' THEN 1 ELSE 0 END) AS IsRejected,
-                   MAX(CASE WHEN [Type] = 'RegistrationApplicationSubmitted' THEN 1 ELSE 0 END)                       AS IsAppSubmitted
-            FROM #Paired
-            GROUP BY SubmissionId, FileId
+            -- IsOnTimeApp ignores rejection on purpose: a rejected on-time cycle is replayed with its decision, so the
+            -- payment service leaves it out of the baseline exactly as it does live.
+            SELECT p.SubmissionId, p.FileId,
+                   MAX(CASE WHEN p.[Type] = 'RegulatorRegistrationDecision' AND p.Decision = 'Rejected' THEN 1 ELSE 0 END) AS IsRejected,
+                   MAX(CASE WHEN p.[Type] = 'RegistrationApplicationSubmitted' THEN 1 ELSE 0 END)                         AS IsAppSubmitted,
+                   MAX(CASE WHEN p.[Type] = 'RegistrationApplicationSubmitted'
+                             AND CAST(p.EventDate AS DATE) <= pf.DeadlineDate THEN 1 ELSE 0 END)                          AS IsOnTimeApp
+            FROM #Paired p
+            INNER JOIN #Files pf ON pf.SubmissionId = p.SubmissionId AND pf.FileId = p.FileId
+            GROUP BY p.SubmissionId, p.FileId
         ) fl ON fl.SubmissionId = f.SubmissionId AND fl.FileId = f.FileId
     ) x
 ) r
 WHERE LatestSeq = 1
    OR (IsRejected = 0 AND (NonRejDesc = 1 OR NonRejAsc = 1))
-   OR (IsRejected = 0 AND IsAppSubmitted = 1 AND NonRejAppDesc = 1);
+   OR (IsRejected = 0 AND IsAppSubmitted = 1 AND NonRejAppDesc = 1)
+   OR IsOnTimeApp = 1;
+
+-- 5b. Files left out that had an application submitted, per submission. The payment service only needs every
+--     on-time application cycle, so it checks EarliestUnselectedAppSubmittedDate against its own deadline.
+CREATE TABLE #Unselected WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
+SELECT p.SubmissionId,
+       COUNT(DISTINCT p.FileId) AS UnselectedAppSubmittedFileCount,
+       MIN(p.EventDate)         AS EarliestUnselectedAppSubmittedDate
+FROM #Paired p
+WHERE p.[Type] = 'RegistrationApplicationSubmitted'
+  AND NOT EXISTS (SELECT 1 FROM #Selected sel
+                  WHERE sel.SubmissionId = p.SubmissionId
+                    AND sel.FileId = p.FileId)
+GROUP BY p.SubmissionId;
 
 -- 6. Output: one row per event of each selected file, in replay order.
 --    Submissions are kept or dropped whole: any selected file outside @BlobContainerName drops the submission.
 --    SubmissionFileCount is the number of declared files before role selection, so the payment service can
 --    tell whether every file of the submission is being migrated.
+--    UnselectedAppSubmittedFileCount (never NULL) and EarliestUnselectedAppSubmittedDate describe the files left
+--    out that had an application submitted (step 5b).
 --    RegulatorNation comes from the organisation / compliance scheme's last known row, deleted rows included:
 --    they existed when the submission was made. Active rows are preferred, then the latest load.
 SELECT w.SubmissionId, w.FileId, w.BlobName, w.OrganisationId, w.ComplianceSchemeId,
        w.SubmissionPeriod, w.RegistrationJourney, w.RegulatorNation, w.Roles, w.SubmissionFileCount,
+       w.UnselectedAppSubmittedFileCount, w.EarliestUnselectedAppSubmittedDate,
        ev.EventType, ev.EventTypeOrder, ev.ReplayTs, ev.EventDate, ev.ApplicationReferenceNumber, ev.Decision
 FROM (
     SELECT sel.*,
            CASE COALESCE(cs.NationId, o.NationId)
                 WHEN 1 THEN 'GB-ENG' WHEN 2 THEN 'GB-NIR' WHEN 3 THEN 'GB-SCT' WHEN 4 THEN 'GB-WLS'
            END AS RegulatorNation,
-           fcount.SubmissionFileCount
+           fcount.SubmissionFileCount,
+           ISNULL(un.UnselectedAppSubmittedFileCount, 0) AS UnselectedAppSubmittedFileCount,
+           un.EarliestUnselectedAppSubmittedDate
     FROM #Selected sel
     INNER JOIN (SELECT SubmissionId, COUNT(*) AS SubmissionFileCount
                 FROM #Files
                 GROUP BY SubmissionId) fcount ON fcount.SubmissionId = sel.SubmissionId
+    LEFT JOIN #Unselected un ON un.SubmissionId = sel.SubmissionId
     LEFT JOIN (
         SELECT ExternalId, NationId,
                ROW_NUMBER() OVER (PARTITION BY ExternalId

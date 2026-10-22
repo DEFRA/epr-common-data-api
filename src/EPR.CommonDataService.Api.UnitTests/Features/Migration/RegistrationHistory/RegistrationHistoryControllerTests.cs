@@ -80,6 +80,10 @@ public class RegistrationHistoryControllerTests
         sql.Should().Contain("COALESCE(NULLIF(e.AppReferenceNumber, ''), NULLIF(s.AppReferenceNumber, '')) AS AppReferenceNumber");
         sql.Should().Contain("w.SubmissionFileCount");
         sql.Should().Contain("COUNT(*) AS SubmissionFileCount");
+        sql.Should().Contain("CASE WHEN IsOnTimeApp = 1 THEN 'OnTimeAppSubmitted;' ELSE '' END");
+        sql.Should().Contain("OR IsOnTimeApp = 1;");
+        sql.Should().Contain("w.UnselectedAppSubmittedFileCount, w.EarliestUnselectedAppSubmittedDate");
+        sql.Should().Contain("ISNULL(un.UnselectedAppSubmittedFileCount, 0) AS UnselectedAppSubmittedFileCount");
         sql.Should().Contain("ORDER BY w.SubmissionId, ev.ReplayTs, ev.EventTypeOrder;");
         sql.Should().Contain("FROM rpd.Organisations");
         sql.Should().Contain(") o ON o.ExternalId = sel.OrganisationId AND o.rn = 1");
