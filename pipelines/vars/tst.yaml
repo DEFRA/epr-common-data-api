@@ -1,9 +1,18 @@
 variables:
-  azureSubscription: 'AZD-RWD-TST1'
-  docker.imageName: 'eprcommondataregistry'
-  acr.azureContainerRegistryName: 'tstrwdinfac1401'
-  acr.repositoryName: 'eprcommondataregistry'
-  serviceName: 'tstrwdwebwa1415'
-  kvName: TSTRWDINFKV1401
-  sqlDBserver: tstrwddbssq1401.database.windows.net
-  sqlDB: 'tst1_accounts'
+- group: ServiceConnections
+- name: azureSubscription
+  value: $(ServiceConnectionTST1)
+- name: docker.imageName
+  value: 'eprcommondataregistry'
+- name: acr.azureContainerRegistryName
+  value: 'tstrwdinfac1401'
+- name: acr.repositoryName
+  value: 'eprcommondataregistry'
+- name: serviceName
+  value: 'tstrwdwebwa1415'
+- name: kvName
+  value: TSTRWDINFKV1401
+- name: sqlDBserver
+  value: tstrwddbssq1401.database.windows.net
+- name: sqlDB
+  value: 'tst1_accounts'
