@@ -23,6 +23,7 @@ public class SynapseContext : DbContext
     public DbSet<RegistrationsSubmissionSummaryRow> RegistrationSummaries { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntity> ApprovedSubmissions { get; set; } = null!;
     public DbSet<ApprovedSubmissionEntityOld> ApprovedSubmissionsOld { get; set; } = null!;
+    public DbSet<ApprovedSubmissionWithObligationsEntity> ApprovedSubmissionsWithObligations { get; set; } = null!;
     public DbSet<OrganisationRegistrationSummaryDataRow> OrganisationRegistrationSummaries { get; set; } = null!;
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
     public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
@@ -259,6 +260,8 @@ public class SynapseContext : DbContext
 
         modelBuilder.Entity<ApprovedSubmissionEntity>(AddOrganisationIdKeyIfApplicable);
 
+        modelBuilder.Entity<ApprovedSubmissionWithObligationsEntity>(AddOrganisationIdKeyIfApplicableWithObligations);
+
         modelBuilder.Entity<OrganisationRegistrationSummaryDataRow>(AddSubmissionIdKeyIfApplicable);
 
         modelBuilder.Entity<OrganisationRegistrationDetailsDto>(AddSubmissionIdKeyToDtoIfApplicable);
@@ -443,6 +446,18 @@ public class SynapseContext : DbContext
     }
 
     private void AddOrganisationIdKeyIfApplicable(EntityTypeBuilder<ApprovedSubmissionEntity> entity)
+    {
+        if (Database.ProviderName == InMemoryProvider)
+        {
+            entity.HasKey(e => e.OrganisationId);
+        }
+        else
+        {
+            entity.HasNoKey();
+        }
+    }
+
+    private void AddOrganisationIdKeyIfApplicableWithObligations(EntityTypeBuilder<ApprovedSubmissionWithObligationsEntity> entity)
     {
         if (Database.ProviderName == InMemoryProvider)
         {

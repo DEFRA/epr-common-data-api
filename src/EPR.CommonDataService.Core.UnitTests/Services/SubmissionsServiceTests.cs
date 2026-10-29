@@ -516,6 +516,93 @@ public class SubmissionsServiceTests
     }
 
     [TestMethod]
+    public async Task GetApprovedSubmissionsMycWithObligations_WhenApprovedSubmissionsExist_ReturnsThem()
+    {
+        // Arrange
+        var expectedResult = _fixture
+            .Build<ApprovedSubmissionWithObligationsEntity>()
+            .CreateMany(10).ToList();
+
+        var periodYear = 2025;
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+
+        var sqlParameters = Array.Empty<object>();
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionWithObligationsEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .ReturnsAsync(expectedResult);
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        var result = await _sut.GetApprovedSubmissionsMycWithObligations(periodYear, includePackagingTypes, includePackagingMaterials);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(10);
+        sqlParameters.Should().BeEquivalentTo(new object[]
+        {
+            new SqlParameter("@PeriodYear", SqlDbType.VarChar) { Value = periodYear.ToString() },
+            new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
+            new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials },
+        });
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsMycWithObligations_WhenApprovedSubmissionsDoNotExist_ReturnsEmpty()
+    {
+        // Arrange
+        var periodYear = 2025;
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionWithObligationsEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .ReturnsAsync(Array.Empty<ApprovedSubmissionWithObligationsEntity>());
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        var result = await _sut.GetApprovedSubmissionsMycWithObligations(periodYear, includePackagingTypes, includePackagingMaterials);
+
+        // Assert
+        result.Should().NotBeNull();
+        result.Count.Should().Be(0);
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsMycWithObligations_WhenExceptionOccurs_ShouldThrowDataException()
+    {
+        // Arrange
+        var periodYear = 2025;
+        var includePackagingTypes = "HH,NH,PB,HDC,NHC";
+        var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
+
+        _mockSynapseContext
+            .Setup(x => x.RunSqlAsync<ApprovedSubmissionWithObligationsEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
+            .ThrowsAsync(new Exception("Simulated exception"));
+
+        _databaseTimeoutService
+            .Setup(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()))
+            .Verifiable();
+
+        // Act
+        Func<Task> act = async () => await _sut.GetApprovedSubmissionsMycWithObligations(periodYear, includePackagingTypes, includePackagingMaterials);
+
+        // Assert
+        await act.Should().ThrowAsync<DataException>();
+        _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
+    }
+
+    [TestMethod]
     public async Task GetOrganisationRegistrationSubmissionSummaries_CallsStoredProcedure()
     {
         const int PageSize = 10;

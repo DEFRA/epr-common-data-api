@@ -202,6 +202,78 @@ public class SubmissionsControllerTests
         objectResult.Value.Should().Be(expectedErrorMessage);
     }
 
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithObligations_WhenApprovedSubmissionsExist_ReturnsOk()
+    {
+        // Arrange
+        var expectedResponse = _fixture.Create<IList<ApprovedSubmissionWithObligationsEntity>>();
+
+        _mockSubmissionsService
+            .Setup(x => x.GetApprovedSubmissionsMycWithObligations(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(expectedResponse);
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissionsWithObligations(2025);
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<OkObjectResult>();
+        ((OkObjectResult)result).Value.Should().Be(expectedResponse);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithObligations_WhenNoApprovedSubmissions_ReturnsNoContent()
+    {
+        // Arrange
+        _mockSubmissionsService
+            .Setup(x => x.GetApprovedSubmissionsMycWithObligations(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new List<ApprovedSubmissionWithObligationsEntity>());
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissionsWithObligations(2025);
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<NoContentResult>();
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithObligations_WhenTimeoutExceptionThrown_ReturnsGatewayTimeout()
+    {
+        // Arrange
+        var expectedErrorMessage = "The operation has timed out.";
+
+        _mockSubmissionsService
+            .Setup(x => x.GetApprovedSubmissionsMycWithObligations(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new TimeoutException(expectedErrorMessage));
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissionsWithObligations(2025);
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<ObjectResult>();
+        var objectResult = (ObjectResult)result;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status504GatewayTimeout);
+        objectResult.Value.Should().Be(expectedErrorMessage);
+    }
+
+    [TestMethod]
+    public async Task GetApprovedSubmissionsWithObligations_WhenExceptionThrown_ReturnsInternalServerError()
+    {
+        // Arrange
+        var expectedErrorMessage = "An unexpected error occurred.";
+
+        _mockSubmissionsService
+            .Setup(x => x.GetApprovedSubmissionsMycWithObligations(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new Exception(expectedErrorMessage));
+
+        // Act
+        var result = await _submissionsController.GetApprovedSubmissionsWithObligations(2025);
+
+        // Assert
+        result.Should().NotBeNull().And.BeOfType<ObjectResult>();
+        var objectResult = (ObjectResult)result;
+        objectResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        objectResult.Value.Should().Be(expectedErrorMessage);
+    }
 
     [TestMethod]
     public async Task GetOrganisationRegistrationSubmissions_WhenNationId_IsInvalid_Returns_ReturnsValidationProblem()

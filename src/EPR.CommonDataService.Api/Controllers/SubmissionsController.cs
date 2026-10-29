@@ -107,6 +107,46 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
     }
 
+    /// <summary>
+    /// Gets a list of approved submissions with their MYC obligation details for a given period year.
+    /// </summary>
+    /// <param name="periodYear">The submission period year to return obligation data for.</param>
+    /// <returns>a [cref="System.Collections.Generic.IList&lt;T&gt;"] of [cref="EPR.CommonDataService.Data.Entities.ApprovedSubmissionWithObligationsEntity"]</returns>
+    [HttpGet("v1/pom/approved-submissions/{periodYear}")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IList<ApprovedSubmissionWithObligationsEntity>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetApprovedSubmissionsWithObligations(int periodYear)
+    {
+        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom/approved-submissions/{PeriodYear}'", _logPrefix, periodYear);
+
+        try
+        {
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsMycWithObligations(periodYear, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials);
+
+            if (!approvedSubmissions.Any())
+            {
+                logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithObligations: The period year {PeriodYear} did not return any submissions", _logPrefix, periodYear);
+                return NoContent();
+            }
+
+            return Ok(approvedSubmissions);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithObligations: Get Approved Submissions With Obligations request TimedOut - Exception {Ex}", _logPrefix, ex.Message);
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithObligations: Get Approved Submissions With Obligations request Failed - Exception {Error}", _logPrefix, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
     [HttpGet("organisation-registrations/{NationId}")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PaginatedResponse<OrganisationRegistrationSummaryDto>), StatusCodes.Status200OK)]
