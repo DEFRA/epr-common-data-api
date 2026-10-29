@@ -14,6 +14,8 @@ public interface ISubmissionsService
 
     Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomDataMyc(int periodYear, string includePackagingTypes, string includePackagingMaterials);
 
+    Task<IList<ApprovedSubmissionWithObligationsEntity>> GetApprovedSubmissionsMycWithObligations(int periodYear, string includePackagingTypes, string includePackagingMaterials);
+
     Task<PaginatedResponse<OrganisationRegistrationSummaryDto>?> GetOrganisationRegistrationSubmissionSummaries(int NationId, OrganisationRegistrationFilterRequest filter);
 
     Task<OrganisationRegistrationDetailsDto?> GetOrganisationRegistrationSubmissionDetails(OrganisationRegistrationDetailRequest request);
