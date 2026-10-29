@@ -76,6 +76,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
             entity.Property(e => e.OrganisationName).HasColumnName("organisation_name").HasMaxLength(4000);
+            entity.Property(e => e.OrganisationSize).HasColumnName("organisation_size").HasMaxLength(4000);
             entity.Property(e => e.TradingName).HasColumnName("trading_name").HasMaxLength(4000);
             entity.Property(e => e.JoinerDate).HasColumnName("joiner_date").HasMaxLength(4000);
             entity.Property(e => e.StatusCode).HasColumnName("status_code").HasMaxLength(4000);
@@ -109,6 +110,7 @@ public class SynapseContext : DbContext
             entity.HasNoKey();
             entity.Property(e => e.Filename).HasColumnName("file_name");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.OrganisationSize).HasColumnName("organisation_size").HasMaxLength(4000);
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
             entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
             entity.Property(e => e.SubmissionPeriod).HasColumnName("submission_period").HasMaxLength(4000);

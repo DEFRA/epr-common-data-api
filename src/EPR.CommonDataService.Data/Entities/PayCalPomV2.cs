@@ -10,8 +10,9 @@ namespace EPR.CommonDataService.Data.Entities;
 public record PayCalPomV2
 {
     public string? Filename { get; init; }
-    public int? OrganisationId { get; init; }
+    public int OrganisationId { get; init; }
     public string? SubsidiaryId { get; init; }
+    public string? OrganisationSize { get; init; }
     public string? SubmitterId { get; init; }
     public string? SubmissionPeriod { get; init; }
     public string? SubmissionPeriodDescription { get; init; }
