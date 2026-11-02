@@ -57,7 +57,9 @@ public class PomsControllerTests
                 PackagingMaterialSubtype = null,
                 RamRagRating = null,
                 CreatedAt = null,
-                IsResubmission = false
+                IsResubmission = false,
+                OrganisationSize = "L",
+                RegulatorStatus = "Accepted"
             }
         };
 
@@ -97,7 +99,9 @@ public class PomsControllerTests
                 SubmitterId = null,
                 RamRagRating = null,
                 CreatedAt = null,
-                IsResubmission = false
+                IsResubmission = false,
+                OrganisationSize = "L",
+                RegulatorStatus = "Accepted"
             };
         }
 
@@ -147,7 +151,9 @@ public class PomsControllerTests
                 SubmitterId = null,
                 RamRagRating = null,
                 CreatedAt = null,
-                IsResubmission = false
+                IsResubmission = false,
+                OrganisationSize = "L",
+                RegulatorStatus = "Accepted"
             };
             await cts.CancelAsync();
             await Task.Delay(10, cts.Token); // throws OperationCanceledException

@@ -76,6 +76,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
             entity.Property(e => e.OrganisationName).HasColumnName("organisation_name").HasMaxLength(4000);
+            entity.Property(e => e.OrganisationSize).HasColumnName("organisation_size").HasMaxLength(4000);
             entity.Property(e => e.TradingName).HasColumnName("trading_name").HasMaxLength(4000);
             entity.Property(e => e.JoinerDate).HasColumnName("joiner_date").HasMaxLength(4000);
             entity.Property(e => e.StatusCode).HasColumnName("status_code").HasMaxLength(4000);
@@ -109,6 +110,7 @@ public class SynapseContext : DbContext
             entity.HasNoKey();
             entity.Property(e => e.Filename).HasColumnName("file_name");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.OrganisationSize).HasColumnName("organisation_size").HasMaxLength(4000);
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
             entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
             entity.Property(e => e.SubmissionPeriod).HasColumnName("submission_period").HasMaxLength(4000);
@@ -120,6 +122,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.PackagingMaterialSubtype).HasColumnName("packaging_material_subtype").HasMaxLength(4000);
             entity.Property(e => e.PackagingMaterialWeight).HasColumnName("packaging_material_weight");
             entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
+            entity.Property(e => e.RegulatorStatus).HasColumnName("regulator_status").HasMaxLength(4000);
             entity.Property(e => e.IsResubmission).HasColumnName("is_resubmission");
             entity.Property(e => e.CreatedAt).HasColumnName("created_date_time").HasMaxLength(4000);
         });
