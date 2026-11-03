@@ -91,6 +91,12 @@ public class RegistrationHistoryControllerTests
         sql.Should().Contain(") cs ON cs.ExternalId = sel.ComplianceSchemeId AND cs.rn = 1");
         sql.Should().Contain("ORDER BY CASE WHEN IsDeleted = 1 THEN 1 ELSE 0 END, load_ts DESC");
         sql.Should().NotContain("_Active", "deleted organisations and compliance schemes still resolve the regulator nation");
+        sql.Should().Contain("CREATE TABLE #DerivedArn");
+        sql.Should().Contain("CASE WHEN CAST(x.FirstFileTs AS DATE) <= DATEFROMPARTS(x.PeriodYear, 12, 31) THEN 'P1' ELSE 'P2' END");
+        sql.Should().Contain("SELECT ExternalId, ReferenceNumber,");
+        sql.Should().Contain("SELECT ExternalId, Id,");
+        sql.Should().Contain("CASE WHEN ev.EventType = 'Submitted' AND da.DerivedArn IS NOT NULL THEN da.DerivedArn");
+        sql.Should().Contain("LEFT JOIN #DerivedArn da ON da.SubmissionId = w.SubmissionId");
         sql.Should().NotContain("{", "FromSqlRaw treats braces as parameter placeholders");
     }
 

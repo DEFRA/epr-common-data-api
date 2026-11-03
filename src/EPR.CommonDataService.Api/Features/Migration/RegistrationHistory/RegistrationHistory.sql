@@ -5,6 +5,8 @@
 -- the payment service's NewlyAddedSubsidiaryFinder builds its subsidiary late fee baseline from).
 -- Events are paired to files the way the payment service attaches them: to the latest file declared at or before the event.
 -- Only submissions whose selected files are all in @BlobContainerName are returned (the payment service reads blobs from it).
+-- A submission with no application reference number anywhere gets one built the way the packaging frontend's
+-- ReferenceNumberBuilder builds it (step 5c), so it can be migrated.
 -- The placeholder below is replaced with ApiConfig:RegistrationMigrationBlobContainerName at runtime.
 -- To run the script by hand in SSMS, replace it with the container name.
 
@@ -18,6 +20,7 @@ IF OBJECT_ID('tempdb..#PairedAll')      IS NOT NULL DROP TABLE #PairedAll;
 IF OBJECT_ID('tempdb..#Paired')         IS NOT NULL DROP TABLE #Paired;
 IF OBJECT_ID('tempdb..#Selected')       IS NOT NULL DROP TABLE #Selected;
 IF OBJECT_ID('tempdb..#Unselected')     IS NOT NULL DROP TABLE #Unselected;
+IF OBJECT_ID('tempdb..#DerivedArn')     IS NOT NULL DROP TABLE #DerivedArn;
 
 -- 1. Registration submissions, latest load per SubmissionId, 2025+ only (no payment-service submission period before 2025)
 CREATE TABLE #RegSubs WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
@@ -181,6 +184,64 @@ WHERE p.[Type] = 'RegistrationApplicationSubmitted'
                     AND sel.FileId = p.FileId)
 GROUP BY p.SubmissionId;
 
+-- 5c. Substitute ARN for submissions whose selected files and events carry none, built as the packaging frontend's
+--     ReferenceNumberBuilder does: 'PEPR' + organisation reference + (compliance schemes only) the scheme's Id
+--     padded to at least 3 digits + 2-digit registration year + 'P1' if first generated on or before 31 December of
+--     that year, else 'P2' + 'L' / 'S' by registration journey (nothing when the journey is blank).
+--     The frontend generates it when the file upload journey starts, so the earliest declared file stands in for that date.
+--     The organisation is the submitting organisation (the operator for a compliance scheme); deleted rows count, as for
+--     RegulatorNation. Left NULL when a part is unknown, so the payment service still reports ArnMissing.
+CREATE TABLE #DerivedArn WITH (DISTRIBUTION = HASH(SubmissionId), HEAP) AS
+SELECT x.SubmissionId,
+       CASE
+           WHEN x.OrganisationReference IS NULL OR x.PeriodYear IS NULL THEN NULL
+           WHEN x.ComplianceSchemeId IS NOT NULL AND x.SchemeRowNumber IS NULL THEN NULL
+           ELSE CONCAT(
+               'PEPR',
+               x.OrganisationReference,
+               CASE
+                   WHEN x.ComplianceSchemeId IS NULL THEN ''
+                   WHEN LEN(x.SchemeRowNumber) >= 3 THEN x.SchemeRowNumber
+                   ELSE RIGHT(CONCAT('000', x.SchemeRowNumber), 3)
+               END,
+               CAST(x.PeriodYear - 2000 AS NVARCHAR(4)),
+               CASE WHEN CAST(x.FirstFileTs AS DATE) <= DATEFROMPARTS(x.PeriodYear, 12, 31) THEN 'P1' ELSE 'P2' END,
+               CASE
+                   WHEN NULLIF(LTRIM(RTRIM(x.RegistrationJourney)), '') IS NULL THEN ''
+                   WHEN LOWER(x.RegistrationJourney) LIKE '%large%' THEN 'L'
+                   ELSE 'S'
+               END)
+       END AS DerivedArn
+FROM (
+    SELECT f.SubmissionId, f.FirstFileTs, s.ComplianceSchemeId, s.RegistrationJourney,
+           TRY_CONVERT(INT, RIGHT(RTRIM(s.SubmissionPeriod), 4)) AS PeriodYear,
+           NULLIF(LTRIM(RTRIM(o.ReferenceNumber)), '')           AS OrganisationReference,
+           CAST(cs.Id AS NVARCHAR(20))                           AS SchemeRowNumber
+    FROM (SELECT SubmissionId, MIN(FileSubmittedTs) AS FirstFileTs
+          FROM #Files
+          GROUP BY SubmissionId) f
+    INNER JOIN #RegSubs s ON s.SubmissionId = f.SubmissionId
+    LEFT JOIN (
+        SELECT ExternalId, ReferenceNumber,
+               ROW_NUMBER() OVER (PARTITION BY ExternalId
+                                  ORDER BY CASE WHEN IsDeleted = 1 THEN 1 ELSE 0 END, load_ts DESC) AS rn
+        FROM rpd.Organisations
+    ) o ON o.ExternalId = s.OrganisationId AND o.rn = 1
+    LEFT JOIN (
+        SELECT ExternalId, Id,
+               ROW_NUMBER() OVER (PARTITION BY ExternalId
+                                  ORDER BY CASE WHEN IsDeleted = 1 THEN 1 ELSE 0 END, load_ts DESC) AS rn
+        FROM rpd.ComplianceSchemes
+    ) cs ON cs.ExternalId = s.ComplianceSchemeId AND cs.rn = 1
+    WHERE NOT EXISTS (SELECT 1 FROM #Selected sel
+                      WHERE sel.SubmissionId = f.SubmissionId
+                        AND NULLIF(LTRIM(RTRIM(sel.AppReferenceNumber)), '') IS NOT NULL)
+      AND NOT EXISTS (SELECT 1 FROM #Paired p
+                      INNER JOIN #Selected sel ON sel.SubmissionId = p.SubmissionId AND sel.FileId = p.FileId
+                      WHERE p.SubmissionId = f.SubmissionId
+                        AND NULLIF(LTRIM(RTRIM(p.ApplicationReferenceNumber)), '') IS NOT NULL)
+) x;
+
 -- 6. Output: one row per event of each selected file, in replay order.
 --    Submissions are kept or dropped whole: any selected file outside @BlobContainerName drops the submission.
 --    SubmissionFileCount is the number of declared files before role selection, so the payment service can
@@ -189,10 +250,15 @@ GROUP BY p.SubmissionId;
 --    out that had an application submitted (step 5b).
 --    RegulatorNation comes from the organisation / compliance scheme's last known row, deleted rows included:
 --    they existed when the submission was made. Active rows are preferred, then the latest load.
+--    Submitted rows of a submission with no ARN carry the substitute from step 5c.
 SELECT w.SubmissionId, w.FileId, w.BlobName, w.OrganisationId, w.ComplianceSchemeId,
        w.SubmissionPeriod, w.RegistrationJourney, w.RegulatorNation, w.Roles, w.SubmissionFileCount,
        w.UnselectedAppSubmittedFileCount, w.EarliestUnselectedAppSubmittedDate,
-       ev.EventType, ev.EventTypeOrder, ev.ReplayTs, ev.EventDate, ev.ApplicationReferenceNumber, ev.Decision
+       ev.EventType, ev.EventTypeOrder, ev.ReplayTs, ev.EventDate,
+       CASE WHEN ev.EventType = 'Submitted' AND da.DerivedArn IS NOT NULL THEN da.DerivedArn
+            ELSE ev.ApplicationReferenceNumber
+       END AS ApplicationReferenceNumber,
+       ev.Decision
 FROM (
     SELECT sel.*,
            CASE COALESCE(cs.NationId, o.NationId)
@@ -233,4 +299,5 @@ INNER JOIN (
            p.ReplayTs, p.EventDate, p.ApplicationReferenceNumber, p.Decision
     FROM #Paired p
 ) ev ON ev.SubmissionId = w.SubmissionId AND ev.FileId = w.FileId
+LEFT JOIN #DerivedArn da ON da.SubmissionId = w.SubmissionId
 ORDER BY w.SubmissionId, ev.ReplayTs, ev.EventTypeOrder;
