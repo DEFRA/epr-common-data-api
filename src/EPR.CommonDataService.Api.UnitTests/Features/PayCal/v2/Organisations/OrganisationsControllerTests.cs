@@ -56,6 +56,7 @@ public class OrganisationsControllerTests
                 SubmissionPeriodYear = 2026,
                 RegulatorStatus = "Accepted",
                 CreatedAt = null,
+                DecisionDate = null,
                 IsResubmission = false
             }
         };
@@ -95,6 +96,7 @@ public class OrganisationsControllerTests
                 SubmissionPeriodYear = 2026,
                 RegulatorStatus = "Accepted",
                 CreatedAt = null,
+                DecisionDate = null,
                 IsResubmission = false,
             };
         }
@@ -144,6 +146,7 @@ public class OrganisationsControllerTests
                 SubmissionPeriodYear = 2026,
                 RegulatorStatus = "Accepted",
                 CreatedAt = null,
+                DecisionDate = null,
                 IsResubmission = false
             };
             await cts.CancelAsync();
@@ -178,7 +181,11 @@ public class OrganisationsControllerTests
     public void StreamOut_ShouldCallRequestHandlerWithRequestAndCancellationToken()
     {
         // Arrange
-        var request = new StreamOrganisationsRequest { RelativeYear = 2025 };
+        var request = new StreamOrganisationsRequest
+        {
+            RelativeYear = 2025,
+            UpdatedSince = new DateTimeOffset(2025, 6, 1, 0, 0, 0, TimeSpan.Zero)
+        };
         using var cts = new CancellationTokenSource();
 
         _mockRequestHandler

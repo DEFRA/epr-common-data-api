@@ -88,6 +88,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.RegulatorStatus).HasColumnName("regulator_status").HasMaxLength(4000);
             entity.Property(e => e.IsResubmission).HasColumnName("is_resubmission");
             entity.Property(e => e.CreatedAt).HasColumnName("created_date_time").HasMaxLength(4000);
+            entity.Property(e => e.DecisionDate).HasColumnName("decision_date");
         });
 
         modelBuilder.Entity<PayCalPom>(entity =>
@@ -127,6 +128,7 @@ public class SynapseContext : DbContext
             entity.Property(e => e.RegulatorStatus).HasColumnName("regulator_status").HasMaxLength(4000);
             entity.Property(e => e.IsResubmission).HasColumnName("is_resubmission");
             entity.Property(e => e.CreatedAt).HasColumnName("created_date_time").HasMaxLength(4000);
+            entity.Property(e => e.DecisionDate).HasColumnName("decision_date");
         });
 
         modelBuilder.Entity<PayCalLatestAcceptedGrantedOrg>(entity =>
