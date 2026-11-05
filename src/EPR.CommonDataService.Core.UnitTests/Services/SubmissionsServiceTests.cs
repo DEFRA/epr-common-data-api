@@ -527,11 +527,12 @@ public class SubmissionsServiceTests
         var includePackagingTypes = "HH,NH,PB,HDC,NHC";
         var includePackagingMaterials = "AL,FC,GL,PC,PL,ST,WD";
 
+        var sql = string.Empty;
         var sqlParameters = Array.Empty<object>();
 
         _mockSynapseContext
             .Setup(x => x.RunSqlAsync<ApprovedSubmissionWithObligationsEntity>(It.IsAny<string>(), It.IsAny<object[]>()))
-            .Callback<string, object[]>((_, o) => sqlParameters = o)
+            .Callback<string, object[]>((s, o) => { sql = s; sqlParameters = o; })
             .ReturnsAsync(expectedResult);
 
         _databaseTimeoutService
@@ -542,14 +543,14 @@ public class SubmissionsServiceTests
         var result = await _sut.GetApprovedSubmissionsMycWithObligations(periodYear, includePackagingTypes, includePackagingMaterials);
 
         // Assert
-        result.Should().NotBeNull();
-        result.Count.Should().Be(10);
+        result.Should().BeEquivalentTo(expectedResult);
         sqlParameters.Should().BeEquivalentTo(new object[]
         {
             new SqlParameter("@PeriodYear", SqlDbType.VarChar) { Value = periodYear.ToString() },
             new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes },
             new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials },
         });
+        sql.Should().Be("EXECUTE dbo.sp_GetApprovedSubmissionsMycWithObligations @PeriodYear, @IncludePackagingTypes, @IncludePackagingMaterials");
         _databaseTimeoutService.Verify(x => x.SetCommandTimeout(It.IsAny<DbContext>(), It.IsAny<int>()), Times.Once);
     }
 
