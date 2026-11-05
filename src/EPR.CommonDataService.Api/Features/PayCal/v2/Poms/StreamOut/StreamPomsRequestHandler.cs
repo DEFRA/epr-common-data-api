@@ -34,8 +34,9 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
                 Filename = pom.Filename,
                 SubmissionPeriod = pom.SubmissionPeriod!,
                 SubmissionPeriodDescription = pom.SubmissionPeriodDescription,
-                OrganisationId = pom.OrganisationId!.Value,
+                OrganisationId = pom.OrganisationId,
                 SubsidiaryId = pom.SubsidiaryId,
+                OrganisationSize = pom.OrganisationSize,
                 PackagingType = pom.PackagingType,
                 PackagingMaterial = pom.PackagingMaterial,
                 PackagingMaterialSubtype = pom.PackagingMaterialSubtype,
@@ -44,6 +45,7 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
                 PackagingActivity = pom.PackagingActivity,
                 RamRagRating = pom.RamRagRating,
                 SubmitterId = pom.SubmitterId,
+                RegulatorStatus = pom.RegulatorStatus,
                 IsResubmission = pom.IsResubmission,
                 CreatedAt = pom.CreatedAt is { } value ? new DateTimeOffset(value, TimeSpan.Zero) : null
             };

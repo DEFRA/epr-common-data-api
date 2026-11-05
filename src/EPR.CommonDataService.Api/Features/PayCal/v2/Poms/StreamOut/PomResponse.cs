@@ -11,6 +11,7 @@ public sealed record PomResponse
     public required string? SubmissionPeriodDescription { get; init; }
     public required int OrganisationId { get; init; }
     public required string? SubsidiaryId { get; init; }
+    public required string? OrganisationSize { get; init; }
     public required string? PackagingType { get; init; }
     public required string? PackagingMaterial { get; init; }
     public required string? PackagingMaterialSubtype { get; init; }
@@ -19,6 +20,7 @@ public sealed record PomResponse
     public required string? PackagingActivity { get; init; }
     public required string? SubmitterId { get; init; }
     public required string? RamRagRating { get; init; }
+    public required string RegulatorStatus { get; init; }
     public required DateTimeOffset? CreatedAt { get; init; }
     public required bool IsResubmission { get; init; }
 }

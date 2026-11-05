@@ -10,8 +10,9 @@ namespace EPR.CommonDataService.Data.Entities;
 public record PayCalPomV2
 {
     public string? Filename { get; init; }
-    public int? OrganisationId { get; init; }
+    public int OrganisationId { get; init; }
     public string? SubsidiaryId { get; init; }
+    public string? OrganisationSize { get; init; }
     public string? SubmitterId { get; init; }
     public string? SubmissionPeriod { get; init; }
     public string? SubmissionPeriodDescription { get; init; }
@@ -22,6 +23,7 @@ public record PayCalPomV2
     public string? PackagingMaterialSubtype { get; init; }
     public double? PackagingMaterialWeight { get; init; }
     public string? RamRagRating { get; init; }
+    public string RegulatorStatus { get; init; } = string.Empty;
     public bool IsResubmission { get; init; }
     public DateTime? CreatedAt { get; init; }
 }

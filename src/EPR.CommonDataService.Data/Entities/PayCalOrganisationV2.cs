@@ -13,7 +13,8 @@ public record PayCalOrganisationV2
     public int OrganisationId { get; init; }
     public string? SubsidiaryId { get; init; }
     public string? SubmitterId { get; init; }
-    public string? OrganisationName { get; init; }
+    public string OrganisationName { get; init; } = string.Empty;
+    public string OrganisationSize { get; init; } = string.Empty;
     public string? TradingName { get; init; }
     public string? StatusCode { get; init; }
     public string? LeaverDate { get; init; }
