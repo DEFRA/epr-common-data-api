@@ -15,4 +15,10 @@ public sealed record StreamPomsRequest
     ///     POMs returned will have a SubmissionYear one year PRIOR to RelativeYear.
     /// </remarks>
     public required int? RelativeYear { get; init; }
+
+    /// <summary>
+    ///     Only return submissions created or with a regulator decision on or after this date.
+    ///     Optional.
+    /// </summary>
+    public DateTimeOffset? UpdatedSince { get; init; }
 }

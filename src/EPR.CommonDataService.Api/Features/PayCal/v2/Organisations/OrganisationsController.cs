@@ -14,6 +14,10 @@ public sealed class OrganisationsController(
     ILogger<OrganisationsController> logger)
     : ControllerBase
 {
+    /// <summary>
+    ///     Streams organisations for the requested relative year as NDJSON.
+    ///     Submissions of all regulator statuses are returned.
+    /// </summary>
     [HttpGet]
     [EnableRateLimiting(ApiRateLimitOptions.PayCalOrganisationsStreamPolicy)]
     [ProducesResponseType(typeof(void), StatusCodes.Status200OK, "application/x-ndjson")] // typeof(void) as NDJSON stream can't be represented in OpenAPI spec
@@ -22,8 +26,8 @@ public sealed class OrganisationsController(
     public IActionResult StreamOut([FromQuery] StreamOrganisationsRequest request,
         CancellationToken cancellationToken)
     {
-        var relativeYear = request.RelativeYear!.Value;
-        logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear}", relativeYear);
+        logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear} UpdatedSince={UpdatedSince}",
+            request.RelativeYear!.Value, request.UpdatedSince);
 
         return new NdJsonStreamResult<OrganisationResponse>(
             requestHandler.Handle(request, cancellationToken),
