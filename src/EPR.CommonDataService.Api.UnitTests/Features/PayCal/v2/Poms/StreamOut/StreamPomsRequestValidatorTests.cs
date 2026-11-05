@@ -74,4 +74,17 @@ public class StreamPomsRequestValidatorTests
         // Assert
         result.ShouldHaveValidationErrorFor(x => x.RelativeYear);
     }
+
+    [TestMethod]
+    public void Validate_WhenUpdatedSinceIsNull_ShouldNotHaveValidationError()
+    {
+        // Arrange
+        var request = new StreamPomsRequest { RelativeYear = 2026, UpdatedSince = null };
+
+        // Act
+        var result = _validator.TestValidate(request);
+
+        // Assert
+        result.ShouldNotHaveAnyValidationErrors();
+    }
 }
