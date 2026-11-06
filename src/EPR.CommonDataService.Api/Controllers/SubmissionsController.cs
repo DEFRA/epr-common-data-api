@@ -121,7 +121,13 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetApprovedSubmissionsWithObligations(int periodYear)
     {
-        logger.LogInformation("{LogPrefix}: SubmissionsController: Api Route 'v1/pom/approved-submissions/{PeriodYear}'", _logPrefix, periodYear);
+        using var logScope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["LogPrefix"] = _logPrefix,
+            ["PeriodYear"] = periodYear
+        });
+
+        logger.LogInformation("Getting approved submissions with obligations");
 
         try
         {
@@ -129,7 +135,7 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
 
             if (!approvedSubmissions.Any())
             {
-                logger.LogError("{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithObligations: The period year {PeriodYear} did not return any submissions", _logPrefix, periodYear);
+                logger.LogError("No approved submissions found for the period year");
                 return NoContent();
             }
 
@@ -137,12 +143,12 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
         catch (TimeoutException ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithObligations: Get Approved Submissions With Obligations request TimedOut - Exception {Ex}", _logPrefix, ex.Message);
+            logger.LogError(ex, "Getting approved submissions with obligations timed out");
             return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsController - GetApprovedSubmissionsWithObligations: Get Approved Submissions With Obligations request Failed - Exception {Error}", _logPrefix, ex.Message);
+            logger.LogError(ex, "Getting approved submissions with obligations failed");
             return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
         }
     }

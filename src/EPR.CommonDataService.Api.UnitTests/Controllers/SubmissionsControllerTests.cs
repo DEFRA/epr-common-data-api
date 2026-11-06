@@ -276,6 +276,22 @@ public class SubmissionsControllerTests
     }
 
     [TestMethod]
+    public async Task GetApprovedSubmissionsWithObligations_LogsWithinAScopeForThePeriodYear()
+    {
+        // Arrange
+        _mockSubmissionsService
+            .Setup(x => x.GetApprovedSubmissionsMycWithObligations(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(_fixture.Create<IList<ApprovedSubmissionWithObligationsEntity>>());
+
+        // Act
+        await _submissionsController.GetApprovedSubmissionsWithObligations(2025);
+
+        // Assert
+        _logger.Verify(x => x.BeginScope(It.Is<Dictionary<string, object?>>(scope =>
+            Equals(scope["PeriodYear"], 2025) && scope.ContainsKey("LogPrefix"))), Times.Once);
+    }
+
+    [TestMethod]
     public async Task GetOrganisationRegistrationSubmissions_WhenNationId_IsInvalid_Returns_ReturnsValidationProblem()
     {
         var request = _fixture
