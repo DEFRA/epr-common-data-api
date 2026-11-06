@@ -113,6 +113,33 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         }
     }
 
+    public async Task<IList<ApprovedSubmissionWithObligationsEntity>> GetApprovedSubmissionsMycWithObligations(int periodYear, string includePackagingTypes, string includePackagingMaterials)
+    {
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: Get approved submissions for period year {PeriodYear}, " +
+            "including packaging types {IncludePackagingTypes} and including packaging materials {IncludePackagingMaterials}",
+            _logPrefix, periodYear, includePackagingTypes, includePackagingMaterials);
+
+        var sql = "EXECUTE dbo.sp_GetApprovedSubmissionsMycWithObligations @PeriodYear, @IncludePackagingTypes, @IncludePackagingMaterials";
+        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: executing query {Sql}", _logPrefix, sql);
+
+        try
+        {
+            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
+            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionWithObligationsEntity>(sql,
+                new SqlParameter("@PeriodYear", SqlDbType.VarChar) { Value = periodYear.ToString() },
+                new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
+                new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value });
+
+            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: Response received from stored procedure", _logPrefix);
+            return paginatedResponse;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            throw new DataException("An error occurred while accessing the database.", ex);
+        }
+    }
+
     public async Task<PaginatedResponse<OrganisationRegistrationSummaryDto>?> GetOrganisationRegistrationSubmissionSummaries(int NationId, OrganisationRegistrationFilterRequest filter)
     {
         logger.LogInformation("{Logprefix}: SubmissionsService - GetOrganisationRegistrationSubmissionSummaries: Get OrganisationRegistrationSubmissions for given request", _logPrefix);
