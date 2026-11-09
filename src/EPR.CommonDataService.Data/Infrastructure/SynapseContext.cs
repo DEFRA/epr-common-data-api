@@ -31,7 +31,6 @@ public class SynapseContext : DbContext
     public DbSet<PayCalPom> PayCalPoms { get; set; } = null!;
     public DbSet<PayCalPomV2> PayCalPomsV2 { get; set; } = null!;
     public DbSet<PayCalLatestAcceptedGrantedOrg> PayCalLatestAcceptedGrantedOrgs { get; set; } = null!;
-    public DbSet<OrganisationPom> OrganisationPoms { get; set; } = null!;
     public DbSet<RegistrationHistoryRow> RegistrationHistoryRows { get; set; } = null!;
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
