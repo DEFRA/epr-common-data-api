@@ -86,56 +86,35 @@ public class SubmissionsService(SynapseContext accountsDbContext, IDatabaseTimeo
         }
     }
 
-    public async Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomDataMyc(int periodYear, string includePackagingTypes, string includePackagingMaterials)
-    {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: Get approved submissions for period year {PeriodYear}, " +
-            "including packaging types {IncludePackagingTypes} and including packaging materials {IncludePackagingMaterials}",
-            _logPrefix, periodYear, includePackagingTypes, includePackagingMaterials);
+    public Task<IList<ApprovedSubmissionEntity>> GetApprovedSubmissionsWithAggregatedPomDataMyc(int periodYear, string includePackagingTypes, string includePackagingMaterials) =>
+        GetApprovedSubmissionsForPeriodYear<ApprovedSubmissionEntity>("dbo.sp_GetApprovedSubmissionsMyc", nameof(GetApprovedSubmissionsWithAggregatedPomDataMyc), periodYear, includePackagingTypes, includePackagingMaterials);
 
-        var sql = "EXECUTE dbo.sp_GetApprovedSubmissionsMyc @PeriodYear, @IncludePackagingTypes, @IncludePackagingMaterials";
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: executing query {Sql}", _logPrefix, sql);
+    public Task<IList<ApprovedSubmissionWithObligationsEntity>> GetApprovedSubmissionsMycWithObligations(int periodYear, string includePackagingTypes, string includePackagingMaterials) =>
+        GetApprovedSubmissionsForPeriodYear<ApprovedSubmissionWithObligationsEntity>("dbo.sp_GetApprovedSubmissionsMycWithObligations", nameof(GetApprovedSubmissionsMycWithObligations), periodYear, includePackagingTypes, includePackagingMaterials);
+
+    private async Task<IList<TEntity>> GetApprovedSubmissionsForPeriodYear<TEntity>(string procedure, string method, int periodYear, string includePackagingTypes, string includePackagingMaterials) where TEntity : class
+    {
+        logger.LogInformation("{LogPrefix}: SubmissionsService - {Method}: Get approved submissions for period year {PeriodYear}, " +
+            "including packaging types {IncludePackagingTypes} and including packaging materials {IncludePackagingMaterials}",
+            _logPrefix, method, periodYear, includePackagingTypes, includePackagingMaterials);
+
+        var sql = $"EXECUTE {procedure} @PeriodYear, @IncludePackagingTypes, @IncludePackagingMaterials";
+        logger.LogInformation("{LogPrefix}: SubmissionsService - {Method}: executing query {Sql}", _logPrefix, method, sql);
 
         try
         {
             databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
-            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionEntity>(sql,
+            var paginatedResponse = await accountsDbContext.RunSqlAsync<TEntity>(sql,
                 new SqlParameter("@PeriodYear", SqlDbType.VarChar) { Value = periodYear.ToString() },
                 new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
                 new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value });
 
-            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: Response received from stored procedure", _logPrefix);
+            logger.LogInformation("{LogPrefix}: SubmissionsService - {Method}: Response received from stored procedure", _logPrefix, method);
             return paginatedResponse;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsWithAggregatedPomDataMyc: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
-            throw new DataException("An error occurred while accessing the database.", ex);
-        }
-    }
-
-    public async Task<IList<ApprovedSubmissionWithObligationsEntity>> GetApprovedSubmissionsMycWithObligations(int periodYear, string includePackagingTypes, string includePackagingMaterials)
-    {
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: Get approved submissions for period year {PeriodYear}, " +
-            "including packaging types {IncludePackagingTypes} and including packaging materials {IncludePackagingMaterials}",
-            _logPrefix, periodYear, includePackagingTypes, includePackagingMaterials);
-
-        var sql = "EXECUTE dbo.sp_GetApprovedSubmissionsMycWithObligations @PeriodYear, @IncludePackagingTypes, @IncludePackagingMaterials";
-        logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: executing query {Sql}", _logPrefix, sql);
-
-        try
-        {
-            databaseTimeoutService.SetCommandTimeout(accountsDbContext, 320);
-            var paginatedResponse = await accountsDbContext.RunSqlAsync<ApprovedSubmissionWithObligationsEntity>(sql,
-                new SqlParameter("@PeriodYear", SqlDbType.VarChar) { Value = periodYear.ToString() },
-                new SqlParameter("@IncludePackagingTypes", SqlDbType.VarChar) { Value = includePackagingTypes ?? (object)DBNull.Value },
-                new SqlParameter("@IncludePackagingMaterials", SqlDbType.VarChar) { Value = includePackagingMaterials ?? (object)DBNull.Value });
-
-            logger.LogInformation("{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: Response received from stored procedure", _logPrefix);
-            return paginatedResponse;
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "{LogPrefix}: SubmissionsService - GetApprovedSubmissionsMycWithObligations: An error occurred while accessing the database. - {Ex}", _logPrefix, ex.Message);
+            logger.LogError(ex, "{LogPrefix}: SubmissionsService - {Method}: An error occurred while accessing the database. - {Ex}", _logPrefix, method, ex.Message);
             throw new DataException("An error occurred while accessing the database.", ex);
         }
     }
