@@ -50,5 +50,12 @@
       <SonarQubeSetting Include="sonar.cpd.exclusions">
         <Value>**/*.cs</Value>
       </SonarQubeSetting>
+      <!-- Temporary registration history migration endpoint (SUB-365); removed once the migration has run. -->
+      <SonarQubeSetting Include="sonar.exclusions">
+        <Value>**/Features/Migration/**</Value>
+      </SonarQubeSetting>
+      <SonarQubeSetting Include="sonar.coverage.exclusions">
+        <Value>**/Features/Migration/**</Value>
+      </SonarQubeSetting>
     </ItemGroup>
 </Project>
