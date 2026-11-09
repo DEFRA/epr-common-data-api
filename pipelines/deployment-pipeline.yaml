@@ -13,12 +13,10 @@ parameters:
      - DEV1
      - DEV2
      - DEV3
-     - DEV6
      - DEV7
      - DEV8
      - DEV9
      - DEV14
-     - DEV16
   - name: envToDeploy
     displayName: 'Target Environment to deploy:    (select "development" for dev 1-14)'
     default: development
@@ -92,7 +90,7 @@ extends:
       imageTag: $(DEVRWDWEBWAx415)
     ${{ else }}:
       imageTag: ${{ parameters.imageTag }}
-    azureSubscription: $(azureSubscription)
+    azureSubscription: ${{ variables.azureSubscription }}
     acrName: $(acr.azureContainerRegistryName)
     registryName: $(acr.repositoryName)
     serviceName: $(serviceName)

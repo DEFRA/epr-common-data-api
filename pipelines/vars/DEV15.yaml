@@ -1,9 +1,18 @@
 variables:
-  azureSubscription: 'AZD-RWD-DEV15'
-  docker.imageName: 'eprcommondataregistry'
-  acr.azureContainerRegistryName: 'devrwdinfacf401'
-  acr.repositoryName: 'eprcommondataregistry'
-  serviceName: 'devrwdwebwaf415'
-  kvName: DEVRWDINFKVF401
-  sqlDBserver: 'devrwddbssqf401.database.windows.net'
-  sqlDB: 'dev15_accounts'
+- group: ServiceConnections
+- name: azureSubscription
+  value: $(ServiceConnectionDEV15)
+- name: docker.imageName
+  value: 'eprcommondataregistry'
+- name: acr.azureContainerRegistryName
+  value: 'devrwdinfacf401'
+- name: acr.repositoryName
+  value: 'eprcommondataregistry'
+- name: serviceName
+  value: 'devrwdwebwaf415'
+- name: kvName
+  value: DEVRWDINFKVF401
+- name: sqlDBserver
+  value: 'devrwddbssqf401.database.windows.net'
+- name: sqlDB
+  value: 'dev15_accounts'

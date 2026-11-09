@@ -1,9 +1,18 @@
 variables:
-  azureSubscription: 'AZR-RWD-PRE2'
-  docker.imageName: 'eprcommondataregistry'
-  acr.azureContainerRegistryName: 'prerwdinfac2401'
-  acr.repositoryName: 'eprcommondataregistry'
-  serviceName: 'PRERWDWEBWA2415'
-  kvName: PRERWDINFKV2401
-  sqlDBserver: prerwddbssq2401.database.windows.net
-  sqlDB: 'pre2_accounts'
+- group: ServiceConnections
+- name: azureSubscription
+  value: $(ServiceConnectionPRE2)
+- name: docker.imageName
+  value: 'eprcommondataregistry'
+- name: acr.azureContainerRegistryName
+  value: 'prerwdinfac2401'
+- name: acr.repositoryName
+  value: 'eprcommondataregistry'
+- name: serviceName
+  value: 'PRERWDWEBWA2415'
+- name: kvName
+  value: PRERWDINFKV2401
+- name: sqlDBserver
+  value: prerwddbssq2401.database.windows.net
+- name: sqlDB
+  value: 'pre2_accounts'

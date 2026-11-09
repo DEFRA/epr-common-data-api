@@ -27,7 +27,10 @@ public class SynapseContext : DbContext
     public DbSet<OrganisationRegistrationDetailsDto> OrganisationRegistrationSubmissionDetails { get; set; } = null!;
     public DbSet<RegistrationFeeCalculationDetailsModel> RegistrationFeeCalculationDetailsModel { get; set; } = null!;
     public DbSet<PayCalOrganisation> PayCalOrganisations { get; set; } = null!;
+    public DbSet<PayCalOrganisationV2> PayCalOrganisationsV2 { get; set; } = null!;
     public DbSet<PayCalPom> PayCalPoms { get; set; } = null!;
+    public DbSet<PayCalPomV2> PayCalPomsV2 { get; set; } = null!;
+    public DbSet<PayCalLatestAcceptedGrantedOrg> PayCalLatestAcceptedGrantedOrgs { get; set; } = null!;
     public DbSet<OrganisationPom> OrganisationPoms { get; set; } = null!;
     public DbSet<RegistrationHistoryRow> RegistrationHistoryRows { get; set; } = null!;
 
@@ -52,7 +55,6 @@ public class SynapseContext : DbContext
 
         modelBuilder.Entity<PayCalOrganisation>(entity =>
         {
-            // The data source for this entity is a stored procedure - sp_GetPaycalOrgData
             entity.HasNoKey();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
@@ -70,9 +72,27 @@ public class SynapseContext : DbContext
             entity.Property(e => e.HasH2).HasColumnName("has_h2");
         });
 
+        modelBuilder.Entity<PayCalOrganisationV2>(entity =>
+        {
+            entity.HasNoKey();
+            entity.Property(e => e.Filename).HasColumnName("file_name");
+            entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
+            entity.Property(e => e.OrganisationName).HasColumnName("organisation_name").HasMaxLength(4000);
+            entity.Property(e => e.OrganisationSize).HasColumnName("organisation_size").HasMaxLength(4000);
+            entity.Property(e => e.TradingName).HasColumnName("trading_name").HasMaxLength(4000);
+            entity.Property(e => e.JoinerDate).HasColumnName("joiner_date").HasMaxLength(4000);
+            entity.Property(e => e.StatusCode).HasColumnName("status_code").HasMaxLength(4000);
+            entity.Property(e => e.LeaverDate).HasColumnName("leaver_date").HasMaxLength(4000);
+            entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
+            entity.Property(e => e.SubmissionPeriodYear).HasColumnName("submission_period_year");
+            entity.Property(e => e.RegulatorStatus).HasColumnName("regulator_status").HasMaxLength(4000);
+            entity.Property(e => e.IsResubmission).HasColumnName("is_resubmission");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_date_time").HasMaxLength(4000);
+        });
+
         modelBuilder.Entity<PayCalPom>(entity =>
         {
-            // The data source for this entity is a stored procedure - sp_GetPaycalPomData
             entity.HasNoKey();
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
@@ -88,12 +108,12 @@ public class SynapseContext : DbContext
             entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
         });
 
-        modelBuilder.Entity<OrganisationPom>(entity =>
+        modelBuilder.Entity<PayCalPomV2>(entity =>
         {
-            // The data source for this entity is a stored procedure - cdp.sp_GetPaycalPomDataByOrganisation
             entity.HasNoKey();
+            entity.Property(e => e.Filename).HasColumnName("file_name");
             entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
-            entity.Property(e => e.OrganisationName).HasColumnName("organisation_name").HasMaxLength(4000);
+            entity.Property(e => e.OrganisationSize).HasColumnName("organisation_size").HasMaxLength(4000);
             entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id").HasMaxLength(4000);
             entity.Property(e => e.SubmitterId).HasColumnName("submitter_id").HasMaxLength(4000);
             entity.Property(e => e.SubmissionPeriod).HasColumnName("submission_period").HasMaxLength(4000);
@@ -104,8 +124,38 @@ public class SynapseContext : DbContext
             entity.Property(e => e.PackagingMaterial).HasColumnName("packaging_material").HasMaxLength(4000);
             entity.Property(e => e.PackagingMaterialSubtype).HasColumnName("packaging_material_subtype").HasMaxLength(4000);
             entity.Property(e => e.PackagingMaterialWeight).HasColumnName("packaging_material_weight");
-            entity.Property(e => e.FromCountry).HasColumnName("from_country").HasMaxLength(4000);
             entity.Property(e => e.RamRagRating).HasColumnName("ram_rag_rating").HasMaxLength(4000);
+            entity.Property(e => e.RegulatorStatus).HasColumnName("regulator_status").HasMaxLength(4000);
+            entity.Property(e => e.IsResubmission).HasColumnName("is_resubmission");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_date_time").HasMaxLength(4000);
+        });
+
+        modelBuilder.Entity<PayCalLatestAcceptedGrantedOrg>(entity =>
+        {
+            entity.HasNoKey();
+            entity.Property(e => e.OrganisationId).HasColumnName("organisation_id");
+            entity.Property(e => e.SubsidiaryId).HasColumnName("subsidiary_id");
+            entity.Property(e => e.OrganisationName).HasColumnName("organisation_name");
+            entity.Property(e => e.TradingName).HasColumnName("trading_name");
+            entity.Property(e => e.RelativeYear).HasColumnName("relative_year");
+            entity.Property(e => e.CompaniesHouseNumber).HasColumnName("companies_house_number");
+            entity.Property(e => e.HomeNationCode).HasColumnName("home_nation_code");
+            entity.Property(e => e.ServiceOfNoticeAddrLine1).HasColumnName("service_of_notice_addr_line1");
+            entity.Property(e => e.ServiceOfNoticeAddrLine2).HasColumnName("service_of_notice_addr_line2");
+            entity.Property(e => e.ServiceOfNoticeAddrCity).HasColumnName("service_of_notice_addr_city");
+            entity.Property(e => e.ServiceOfNoticeAddrCounty).HasColumnName("service_of_notice_addr_county");
+            entity.Property(e => e.ServiceOfNoticeAddrCountry).HasColumnName("service_of_notice_addr_country");
+            entity.Property(e => e.ServiceOfNoticeAddrPostcode).HasColumnName("service_of_notice_addr_postcode");
+            entity.Property(e => e.ServiceOfNoticeAddrPhoneNumber).HasColumnName("service_of_notice_addr_phone_number");
+            entity.Property(e => e.SoleTraderFirstName).HasColumnName("sole_trader_first_name");
+            entity.Property(e => e.SoleTraderLastName).HasColumnName("sole_trader_last_name");
+            entity.Property(e => e.SoleTraderPhoneNumber).HasColumnName("sole_trader_phone_number");
+            entity.Property(e => e.SoleTraderEmail).HasColumnName("sole_trader_email");
+            entity.Property(e => e.PrimaryContactPersonFirstName).HasColumnName("primary_contact_person_first_name");
+            entity.Property(e => e.PrimaryContactPersonLastName).HasColumnName("primary_contact_person_last_name");
+            entity.Property(e => e.PrimaryContactPersonPhoneNumber).HasColumnName("primary_contact_person_phone_number");
+            entity.Property(e => e.PrimaryContactPersonEmail).HasColumnName("primary_contact_person_email");
+            entity.Property(e => e.DecisionDate).HasColumnName("Decision_Date");
         });
 
         modelBuilder.Entity<RegistrationHistoryRow>(entity =>

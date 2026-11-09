@@ -3,6 +3,9 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace EPR.CommonDataService.Data.Entities;
 
+/// <summary>
+///     The data source for this entity is the stored procedure <c>sp_GetPaycalOrgData</c>
+/// </summary>
 [ExcludeFromCodeCoverage]
 public record PayCalOrganisation
 {
