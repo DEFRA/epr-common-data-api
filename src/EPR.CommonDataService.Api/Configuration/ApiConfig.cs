@@ -1,4 +1,6 @@
-﻿namespace EPR.CommonDataService.Api.Configuration;
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace EPR.CommonDataService.Api.Configuration;
 
 public class ApiConfig
 {
@@ -13,5 +15,8 @@ public class ApiConfig
     public int PomDataSubmissionPeriodStartDay { get; set; } = 1;
 
     public bool EnableApprovedSubmissionsMyc { get; set; } = true;
+
+    [ExcludeFromCodeCoverage(Justification = "Temporary registration history migration endpoint (SUB-365).")]
+    public string RegistrationMigrationBlobContainerName { get; set; } = string.Empty;
 
 }

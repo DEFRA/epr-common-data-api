@@ -31,6 +31,7 @@ public class SynapseContext : DbContext
     public DbSet<PayCalPom> PayCalPoms { get; set; } = null!;
     public DbSet<PayCalPomV2> PayCalPomsV2 { get; set; } = null!;
     public DbSet<PayCalLatestAcceptedGrantedOrg> PayCalLatestAcceptedGrantedOrgs { get; set; } = null!;
+    public DbSet<RegistrationHistoryRow> RegistrationHistoryRows { get; set; } = null!;
 
     private const string InMemoryProvider = "Microsoft.EntityFrameworkCore.InMemory";
 
@@ -154,6 +155,12 @@ public class SynapseContext : DbContext
             entity.Property(e => e.PrimaryContactPersonPhoneNumber).HasColumnName("primary_contact_person_phone_number");
             entity.Property(e => e.PrimaryContactPersonEmail).HasColumnName("primary_contact_person_email");
             entity.Property(e => e.DecisionDate).HasColumnName("Decision_Date");
+        });
+
+        modelBuilder.Entity<RegistrationHistoryRow>(entity =>
+        {
+            // The data source for this entity is the raw SQL batch in Features/Migration/RegistrationHistory/RegistrationHistory.sql
+            entity.HasNoKey();
         });
 
         modelBuilder.Entity<PomSubmissionSummaryRow>()
