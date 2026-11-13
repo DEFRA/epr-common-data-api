@@ -14,6 +14,10 @@ public sealed class PomsController(
     ILogger<PomsController> logger)
     : ControllerBase
 {
+    /// <summary>
+    ///     Streams POMs for the requested relative year as NDJSON.
+    ///     Submissions of all regulator statuses are returned.
+    /// </summary>
     [HttpGet]
     [EnableRateLimiting(ApiRateLimitOptions.PayCalPomsStreamPolicy)]
     [ProducesResponseType(typeof(void), StatusCodes.Status200OK, "application/x-ndjson")] // typeof(void) as NDJSON stream can't be represented in OpenAPI spec
@@ -22,8 +26,8 @@ public sealed class PomsController(
     public IActionResult StreamOut([FromQuery] StreamPomsRequest request,
         CancellationToken cancellationToken)
     {
-        var relativeYear = request.RelativeYear!.Value;
-        logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear}", relativeYear);
+        logger.LogInformation("StreamOut: Starting. RelativeYear={RelativeYear} UpdatedSince={UpdatedSince}",
+            request.RelativeYear!.Value, request.UpdatedSince);
 
         return new NdJsonStreamResult<PomResponse>(
             requestHandler.Handle(request, cancellationToken),
