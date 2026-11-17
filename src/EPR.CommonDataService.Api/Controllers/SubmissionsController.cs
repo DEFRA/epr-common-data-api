@@ -107,6 +107,52 @@ public class SubmissionsController(ISubmissionsService submissionsService, IOpti
         }
     }
 
+    /// <summary>
+    /// Gets a list of approved submissions with their MYC obligation details for a given period year.
+    /// </summary>
+    /// <param name="periodYear">The submission period year to return obligation data for.</param>
+    /// <returns>a [cref="System.Collections.Generic.IList&lt;T&gt;"] of [cref="EPR.CommonDataService.Data.Entities.ApprovedSubmissionWithObligationsEntity"]</returns>
+    [HttpGet("v1/pom/approved-submissions/{periodYear}")]
+    [Produces("application/json")]
+    [ProducesResponseType(typeof(IList<ApprovedSubmissionWithObligationsEntity>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status504GatewayTimeout)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetApprovedSubmissionsWithObligations(int periodYear)
+    {
+        using var logScope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["LogPrefix"] = _logPrefix,
+            ["PeriodYear"] = periodYear
+        });
+
+        logger.LogInformation("Getting approved submissions with obligations");
+
+        try
+        {
+            var approvedSubmissions = await submissionsService.GetApprovedSubmissionsMycWithObligations(periodYear, apiConfig.IncludePackagingTypes, apiConfig.IncludePackagingMaterials);
+
+            if (!approvedSubmissions.Any())
+            {
+                logger.LogError("No approved submissions found for the period year");
+                return NoContent();
+            }
+
+            return Ok(approvedSubmissions);
+        }
+        catch (TimeoutException ex)
+        {
+            logger.LogError(ex, "Getting approved submissions with obligations timed out");
+            return StatusCode(StatusCodes.Status504GatewayTimeout, ex.Message);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Getting approved submissions with obligations failed");
+            return StatusCode(StatusCodes.Status500InternalServerError, ex.Message);
+        }
+    }
+
     [HttpGet("organisation-registrations/{NationId}")]
     [Produces("application/json")]
     [ProducesResponseType(typeof(PaginatedResponse<OrganisationRegistrationSummaryDto>), StatusCodes.Status200OK)]
