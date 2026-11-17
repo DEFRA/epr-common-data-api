@@ -15,4 +15,10 @@ public sealed record StreamOrganisationsRequest
     ///     Organisations returned will have a SubmissionYear equal to RelativeYear.
     /// </remarks>
     public required int? RelativeYear { get; init; }
+
+    /// <summary>
+    ///     Only return submissions created or with a regulator decision on or after this date.
+    ///     Optional.
+    /// </summary>
+    public DateTimeOffset? UpdatedSince { get; init; }
 }

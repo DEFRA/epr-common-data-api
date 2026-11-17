@@ -21,7 +21,7 @@ public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
     {
         var organisations = dbContext
             .PayCalOrganisationsV2
-            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalOrgData_v2] @RelativeYear={request.RelativeYear}")
+            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalOrgData_v2] @RelativeYear={request.RelativeYear}, @UpdatedSince={request.UpdatedSince?.UtcDateTime}")
             .AsNoTracking()
             .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
             .AsAsyncEnumerable()
@@ -44,7 +44,8 @@ public sealed class StreamOrganisationsRequestHandler(SynapseContext dbContext)
                 SubmissionPeriodYear = org.SubmissionPeriodYear,
                 RegulatorStatus = org.RegulatorStatus,
                 IsResubmission = org.IsResubmission,
-                CreatedAt = org.CreatedAt is { } value ? new DateTimeOffset(value, TimeSpan.Zero) : null
+                CreatedAt = org.CreatedAt is { } createdAt ? new DateTimeOffset(createdAt, TimeSpan.Zero) : null,
+                DecisionDate = org.DecisionDate is { } decisionDate ? new DateTimeOffset(decisionDate, TimeSpan.Zero) : null
             };
         }
     }

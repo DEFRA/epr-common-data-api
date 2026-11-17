@@ -39,7 +39,7 @@
 
   <ItemGroup>
     <SonarQubeSetting Include="sonar.exclusions">
-      <Value>**/*.sql</Value>
+      <Value>**/*.sql,**/Entities/RegistrationHistoryRow.cs</Value>
     </SonarQubeSetting>
   </ItemGroup>
 

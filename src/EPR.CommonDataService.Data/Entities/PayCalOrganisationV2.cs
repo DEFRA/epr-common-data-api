@@ -23,4 +23,5 @@ public record PayCalOrganisationV2
     public string RegulatorStatus { get; init; } = string.Empty;
     public bool IsResubmission { get; init; }
     public DateTime? CreatedAt { get; init; }
+    public DateTime? DecisionDate { get; init; }
 }

@@ -21,7 +21,7 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
     {
         var poms = dbContext
             .PayCalPomsV2
-            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalPomData_v2] @RelativeYear={request.RelativeYear}")
+            .FromSqlInterpolated($"EXEC [dbo].[sp_GetPaycalPomData_v2] @RelativeYear={request.RelativeYear}, @UpdatedSince={request.UpdatedSince?.UtcDateTime}")
             .AsNoTracking()
             .WithTimeout(TimeSpan.FromMinutes(10)) // Necessary due to poor db performance
             .AsAsyncEnumerable()
@@ -47,7 +47,8 @@ public sealed class StreamPomsRequestHandler(SynapseContext dbContext)
                 SubmitterId = pom.SubmitterId,
                 RegulatorStatus = pom.RegulatorStatus,
                 IsResubmission = pom.IsResubmission,
-                CreatedAt = pom.CreatedAt is { } value ? new DateTimeOffset(value, TimeSpan.Zero) : null
+                CreatedAt = pom.CreatedAt is { } createdAt ? new DateTimeOffset(createdAt, TimeSpan.Zero) : null,
+                DecisionDate = pom.DecisionDate is { } decisionDate ? new DateTimeOffset(decisionDate, TimeSpan.Zero) : null
             };
         }
     }

@@ -57,6 +57,7 @@ public class PomsControllerTests
                 PackagingMaterialSubtype = null,
                 RamRagRating = null,
                 CreatedAt = null,
+                DecisionDate = null,
                 IsResubmission = false,
                 OrganisationSize = "L",
                 RegulatorStatus = "Accepted"
@@ -99,6 +100,7 @@ public class PomsControllerTests
                 SubmitterId = null,
                 RamRagRating = null,
                 CreatedAt = null,
+                DecisionDate = null,
                 IsResubmission = false,
                 OrganisationSize = "L",
                 RegulatorStatus = "Accepted"
@@ -151,6 +153,7 @@ public class PomsControllerTests
                 SubmitterId = null,
                 RamRagRating = null,
                 CreatedAt = null,
+                DecisionDate = null,
                 IsResubmission = false,
                 OrganisationSize = "L",
                 RegulatorStatus = "Accepted"
@@ -187,7 +190,11 @@ public class PomsControllerTests
     public void StreamOut_ShouldCallRequestHandlerWithRequestAndCancellationToken()
     {
         // Arrange
-        var request = new StreamPomsRequest { RelativeYear = 2025 };
+        var request = new StreamPomsRequest
+        {
+            RelativeYear = 2025,
+            UpdatedSince = new DateTimeOffset(2025, 6, 1, 0, 0, 0, TimeSpan.Zero)
+        };
         using var cts = new CancellationTokenSource();
 
         _mockRequestHandler
